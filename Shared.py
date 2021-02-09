@@ -11,9 +11,7 @@ import sys
 import urllib.request
 
 # Local Includes
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 import Config
-
 config = Config.config
 
 ######################## Team and Emoji Mappings ########################

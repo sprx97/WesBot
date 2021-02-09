@@ -19,9 +19,9 @@ class Wes(commands.Bot):
         super(Wes, self).__init__(*args, **kwargs)
 
     # Creates or returns a log file of the given name.
-    def create_log(self, name):    
+    def create_log(self, name):
         logger = logging.getLogger(name)
-        
+
         # Only create file handlers if the log doesn't have any, not on reload
         if not logger.hasHandlers():
             logger.setLevel(logging.INFO)

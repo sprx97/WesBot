@@ -1,0 +1,14 @@
+# Python excess stuff
+**/__pycache__/
+*.pyc
+
+# Personal info
+config.json
+
+# Bot daily data files
+data/messages.pickle
+data/ot.pickle
+data/pickems.pickle
+
+# Bot log files
+Logs/*
