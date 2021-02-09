@@ -215,7 +215,7 @@ class OTChallenge(WesCog):
         args = args.split(" ")
 
         if len(args) < 2:
-            raise commands.MissingRequiredArgument()
+            raise self.OTException("Missings argument(s) for !ot [team] [player]")
 
         team = args[0]
         team = team.replace("[", "").replace("]", "")
@@ -293,7 +293,7 @@ class OTChallenge(WesCog):
     @ot.error
     async def ot_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Usage:\n\t`!otstandings`\n\t!ot [Team] [Player Name/Number]`\n\t`!otlist [Team or @User]`")
+            await ctx.send("Usage:\n\t`!otstandings`\n\t`!ot [Team] [Player Name/Number]`\n\t`!otlist [Team or @User]`")
         elif isinstance(error, commands.CommandOnCooldown):
             await ctx.send(f"Two-minute penalty for spamming {get_emoji('parros')}")
         elif isinstance(error, NHLTeamNotFound):
