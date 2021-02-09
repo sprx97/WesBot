@@ -424,12 +424,15 @@ class Scoreboard(WesCog):
         await self.bot.wait_until_ready()
 
         # Load any messages we've sent previously today
-        async with self.messages_lock: 
+        async with self.messages_lock:
             self.messages = LoadPickleFile(messages_datafile)
 
     @scores_loop.error
     async def scores_loop_error(self, error):
         await self.cog_command_error(None, error)
+        self.log.info(f"scores_loop.is_running(): {self.scores_loop.is_running()}")
+        self.scores_loop.restart()
+        self.log.info(f"scores_loop.is_running(): {self.scores_loop.is_running()}")
 
 def setup(bot):
     bot.add_cog(Scoreboard(bot))
