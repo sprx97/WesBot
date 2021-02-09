@@ -211,7 +211,13 @@ class OTChallenge(WesCog):
 
     @commands.command(name="ot")
     @commands.cooldown(3, 120.0, commands.BucketType.member) # 3 uses per 120 seconds per member
-    async def ot(self, ctx, team, guess_player = None, *extra):
+    async def ot(self, ctx, *, args):
+        args = args.split(" ")
+
+        if len(args) < 2:
+            raise commands.MissingRequiredArgument()
+
+        team = args[0]
         team = team.replace("[", "").replace("]", "")
         
         # Check that we've been given a valid team
@@ -224,11 +230,7 @@ class OTChallenge(WesCog):
                 raise NHLTeamNotFound(team)
         team = team_map[team.lower()]
 
-        if guess_player == None:
-            raise self.OTException("Must guess a player.")
-
-        if len(extra) > 0:
-            guess_player += " " + " ".join(extra)
+        guess_player = " ".join(args[1:])
         guess_player = guess_player.replace("[", "").replace("]", "")
         guess_player = sanitize(guess_player)
 
