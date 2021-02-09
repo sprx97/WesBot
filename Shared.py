@@ -126,10 +126,6 @@ TEST_ROLE_ROLE_ID = 801477256744403025
 # User IDs
 MINNE_USER_ID = 144483356531228672
 
-# Get the current year from our config file
-with open(Config.config["srcroot"] + "scripts/WeekVars.txt", "r") as f:
-    CURRENT_YEAR = int(f.readline().strip())
-
 # Config settings
 MIN_INACTIVE_DAYS = 7 # Number of days where we deem a team to be "inactive" on fleaflicker
 OT_CHALLENGE_BUFFER_MINUTES = 5 # Mintues left in the 3rd at which OT challenge submissions are accepted
@@ -209,7 +205,7 @@ def get_user_matchup_from_database(user):
         user = "voodoosteve"
 
     cursor = DB.cursor()
-    
+
     cursor.execute("SELECT me_u.FFname as name, me.currentWeekPF as PF, opp_u.FFname as opp_name, opp.currentWeekPF as opp_PF, me.leagueID as league_id, me.matchupID as matchup_id, " + \
                           "me.wins as wins, me.losses as losses, opp.wins as opp_wins, opp.losses as opp_losses, me.year as year " + \
                           "FROM Teams AS me " + \
@@ -217,7 +213,7 @@ def get_user_matchup_from_database(user):
                           "INNER JOIN Users AS me_u ON me.ownerID=me_u.FFid " + \
                           "INNER JOIN Users AS opp_u ON opp.ownerID=opp_u.FFid " + \
                           "INNER JOIN Leagues AS l ON (me.leagueID=l.id AND me.year=l.year) " + \
-                          "WHERE me.replacement != 1 AND LOWER(me_u.FFname)='" + user + "' AND l.year=" + str(CURRENT_YEAR))
+                          "WHERE me.replacement != 1 AND LOWER(me_u.FFname)='" + user + "' AND l.year=" + Config.config["year"])
 
     matchup = cursor.fetchall()
     cursor.close()

@@ -34,7 +34,7 @@ class OTH(WesCog):
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
         msg = ""
-        leagues = get_leagues_from_database(CURRENT_YEAR)
+        leagues = get_leagues_from_database(Config.config["year"])
         for league in leagues:
             standings = make_api_call(f"https://www.fleaflicker.com/api/FetchLeagueStandings?sport=NHL&league_id={league['id']}")
 
@@ -114,7 +114,7 @@ class OTH(WesCog):
         posted = [int(x.strip()) for x in f.readlines()]
 
         # Get the list of leagueIds for this year from the database
-        leagues = get_leagues_from_database(CURRENT_YEAR)
+        leagues = get_leagues_from_database(Config.config["year"])
 
         trades_channel = self.bot.get_channel(TRADEREVIEW_CHANNEL_ID)
 
