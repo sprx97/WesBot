@@ -10,5 +10,8 @@ data/messages.pickle
 data/ot.pickle
 data/pickems.pickle
 
+# Extraneous stuff
+StandingsOverride.py
+
 # Bot log files
 Logs/*
