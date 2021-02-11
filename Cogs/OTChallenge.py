@@ -214,9 +214,6 @@ class OTChallenge(WesCog):
     async def ot(self, ctx, *, args):
         args = args.split(" ")
 
-        if len(args) < 2:
-            raise self.OTException("Missings argument(s) for !ot [team] [player]")
-
         team = args[0]
         team = team.replace("[", "").replace("]", "")
         
@@ -229,6 +226,9 @@ class OTChallenge(WesCog):
             else:
                 raise NHLTeamNotFound(team)
         team = team_map[team.lower()]
+
+        if len(args) < 2:
+            raise self.OTException("Missings argument(s) for !ot [team] [player]")
 
         guess_player = " ".join(args[1:])
         guess_player = guess_player.replace("[", "").replace("]", "")
