@@ -237,7 +237,7 @@ class Scoreboard(WesCog):
         for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
             msg = await channel.send(embed=embed)
             msgids[channel.id] = msg.id
-            self.log.info(f"Post: {key} {channel.id}:{msg.id} {string} {link}")
+        self.log.info(f"Post: {key} {string} {link}")
 
         self.messages[key] = {"msg_id":msgids, "msg_text":string, "msg_link":link}
 
