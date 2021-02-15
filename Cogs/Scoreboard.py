@@ -90,9 +90,9 @@ class Scoreboard(WesCog):
         game_state = game["status"]["detailedState"]
         # Game hasn't started yet
         if game_state == "Scheduled" or game_state == "Pre-Game":
-            return f"{away_emoji} {away} vs {home_emoji} {home} has not started yet."
+            return f"{away_emoji} {away} vs {home_emoji} {home} has not started yet.", None
         elif game_state == "Postponed":
-            return f"{away_emoji} {away} vs {home_emoji} {home} was postponed."
+            return f"{away_emoji} {away} vs {home_emoji} {home} was postponed.", None
         else:
             period = "(" + game["linescore"]["currentPeriodOrdinal"] + ")"
             away_score = game["teams"]["away"]["score"]
@@ -346,6 +346,7 @@ class Scoreboard(WesCog):
 
     # Parses a game play-by-play and posts start, goals, and end messages
     async def parse_game(self, game):
+        # TODO: Only make this API call if the game is in certain states
         # Get the game from NHL.com
         playbyplay = make_api_call(f"https://statsapi.web.nhl.com{game['link']}")
 
