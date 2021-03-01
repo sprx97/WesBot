@@ -210,7 +210,7 @@ class OTChallenge(WesCog):
         return (is_late_3rd or is_pre_OT)
 
     @commands.command(name="ot")
-    @commands.cooldown(3, 120.0, commands.BucketType.member) # 3 uses per 120 seconds per member
+    @commands.cooldown(10, 120.0, commands.BucketType.member) # 10 uses per 120 seconds per member
     async def ot(self, ctx, *, args):
         args = args.split(" ")
 
