@@ -64,6 +64,18 @@ class Memes(WesCog):
     async def bryz(self, ctx):
         await ctx.send("http://2.bp.blogspot.com/-ut7bwg8rrp8/UCFRrZinwVI/AAAAAAAACNw/M6LRPCMuUtg/s1600/its-only-game.gif")
 
+    @commands.command(name="price")
+    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @is_OTH_guild()
+    async def price(self, ctx):
+        await ctx.send("Carey Price has a $10.5 million cap hit through 2025-26.")
+
+    @commands.command(name="bob", aliases=["bobrovsky"])
+    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @is_OTH_guild()
+    async def bob(self, ctx):
+        await ctx.send("Sergei Bobrovsky has a $10 million cap hit through 2025-26.")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.id == MINNE_USER_ID and " wes " in (message.content + " ").lower().replace(".", " "):
