@@ -267,7 +267,10 @@ class OTChallenge(WesCog):
         found_player = None
         for pid in game["gameData"]["players"].keys():
             player = game["gameData"]["players"][pid]
-            if (sanitize(player["lastName"].lower()) == guess_player.lower() or sanitize(player["fullName"].lower()) == guess_player.lower() or str(player["primaryNumber"]) == guess_player) and player["currentTeam"]["triCode"] == team:
+            player_number = ""
+            if "primaryNumber" in player:
+                player_number = str(player["primaryNumber"])
+            if (sanitize(player["lastName"].lower()) == guess_player.lower() or sanitize(player["fullName"].lower()) == guess_player.lower() or player_number == guess_player) and player["currentTeam"]["triCode"] == team:
                 if found_player != None:
                     raise self.OTException(f"{team} has multiple players matching {guess_player}. Try using full name or jersey number instead.")
                 found_player = player
