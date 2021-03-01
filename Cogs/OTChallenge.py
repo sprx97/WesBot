@@ -230,7 +230,7 @@ class OTChallenge(WesCog):
         if len(args) < 2:
             raise self.OTException("Missings argument(s) for !ot [team] [player]")
 
-        guess_player = " ".join(args[1:])
+        guess_player = " ".join(args[1:]).strip()
         guess_player = guess_player.replace("[", "").replace("]", "")
         guess_player = sanitize(guess_player)
 
