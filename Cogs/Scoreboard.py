@@ -285,7 +285,7 @@ class Scoreboard(WesCog):
 
         # Skip if there aren't any plays or goals. Seems like feeds "disappear" for short periods of time occasionally,
         # and we don't want this to incorrectly trigger disallows.
-        if len(all_plays) == 0 or len(goals) == 0:
+        if len(all_plays) == 0:
             return
 
         # Loop through all of our pickled goals

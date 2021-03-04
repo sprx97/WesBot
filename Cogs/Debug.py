@@ -155,7 +155,7 @@ class Debug(WesCog):
     async def kill(self, ctx, cog, num_lines=5):
         num_lines = int(num_lines)
         try:
-            f = open(f"{config['srcroot']}scripts/DiscordBot/v2/Logs/{cog}.log")
+            f = open(f"{config['srcroot']}Logs/{cog}.log")
             lines = f.readlines()[-num_lines:]
             msg = "\n".join(lines)
             for line in lines:
