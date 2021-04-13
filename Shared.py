@@ -209,9 +209,9 @@ def get_user_matchup_from_database(user):
     cursor.execute("SELECT me_u.FFname as name, me.currentWeekPF as PF, opp_u.FFname as opp_name, opp.currentWeekPF as opp_PF, me.leagueID as league_id, me.matchupID as matchup_id, " + \
                           "me.wins as wins, me.losses as losses, opp.wins as opp_wins, opp.losses as opp_losses, me.year as year " + \
                           "FROM Teams AS me " + \
-                          "INNER JOIN Teams AS opp ON (me.CurrOpp=opp.teamID AND me.year=opp.year) " + \
+                          "LEFT JOIN Teams AS opp ON (me.CurrOpp=opp.teamID AND me.year=opp.year) " + \
                           "INNER JOIN Users AS me_u ON me.ownerID=me_u.FFid " + \
-                          "INNER JOIN Users AS opp_u ON opp.ownerID=opp_u.FFid " + \
+                          "LEFT JOIN Users AS opp_u ON opp.ownerID=opp_u.FFid " + \
                           "INNER JOIN Leagues AS l ON (me.leagueID=l.id AND me.year=l.year) " + \
                           "WHERE me.replacement != 1 AND LOWER(me_u.FFname)='" + user + "' AND l.year=" + Config.config["year"])
 

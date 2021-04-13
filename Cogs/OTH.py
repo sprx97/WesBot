@@ -33,9 +33,10 @@ class OTH(WesCog):
 
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
-        msg = ""
+        channel = self.bot.get_channel(MODS_CHANNEL_ID)
         leagues = get_leagues_from_database(Config.config["year"])
         for league in leagues:
+            msg = ""
             standings = make_api_call(f"https://www.fleaflicker.com/api/FetchLeagueStandings?sport=NHL&league_id={league['id']}")
 
             for team in standings["divisions"][0]["teams"]:
@@ -51,8 +52,8 @@ class OTH(WesCog):
                 if time_since_seen.days > MIN_INACTIVE_DAYS:
                     msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} not seen in last {MIN_INACTIVE_DAYS} days*\n"
 
-        channel = self.bot.get_channel(MODS_CHANNEL_ID)
-        await channel.send(msg)
+            if msg != "":
+                await channel.send(msg)
         self.log.info("Inactives check complete.")
 
     # Check fleaflicker for recent trades
@@ -187,8 +188,12 @@ class OTH(WesCog):
 
         # Format a matchup embed to send
         msg = f"{matchup['name']} ({matchup['wins']}-{matchup['losses']}): **{matchup['PF']}**\n"
-        msg += f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']}): **{matchup['opp_PF']}**"
-        link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
+        if matchup['opp_name'] == None:
+            msg += "BYE"
+            link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
+        else:
+            msg += f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']}): **{matchup['opp_PF']}**"
+            link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
         embed = discord.Embed(title=msg, url=link)
         await ctx.send(embed=embed)
 
