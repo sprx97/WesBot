@@ -1,4 +1,4 @@
 Restart Wes:
-- `sudo pm2 start DiscordBot_v2.py --interpreter=python3`
+- `sudo pm2 start /var/www/DiscordBot/DiscordBot.py --interpreter=python3`
 - `sudo pm2 (re)start <pm2 Process ID>`
 - pm2 process ID found via `sudo pm2 list`
