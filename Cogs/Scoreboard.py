@@ -76,9 +76,9 @@ class Scoreboard(WesCog):
             media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
             for item in media["media"]["epg"]:
                 if item["title"] == "Recap":
-                    return item["items"][0]["playbacks"][3]["url"] # 3 = FLASH_1800K_896x504
+                    return item["items"][0]["playbacks"][3]["url"], item["items"][0]["image"]["cuts"]["640x360"]["src"]
         except:
-            return None
+            return None, None
 
     def get_score_string(self, game):
         away = team_map[game["teams"]["away"]["team"]["name"].split(" ")[-1].lower()]
@@ -146,8 +146,10 @@ class Scoreboard(WesCog):
             if home != team and away != team:
                 continue
 
-            msg, link = self.get_score_string(game)
-            await ctx.send(embed=discord.Embed(title=msg, url=link))
+            msg, links = self.get_score_string(game)
+            embed=discord.Embed(title=msg, url=links[0])
+            embed.set_thumbnail(url=links[1]) 
+            await ctx.send(embed=embed)
 
             found = True
             break
@@ -177,9 +179,9 @@ class Scoreboard(WesCog):
             media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
             for event in media["media"]["milestones"]["items"]:
                 if event["statsEventId"] == event_id:
-                    return event["highlight"]["playbacks"][3]["url"] # 3 = FLASH_1800K_896x504
+                    return event["highlight"]["playbacks"][3]["url"], event["highlight"]["image"]["cuts"]["640x360"]["src"]
         except:
-            return None
+            return None, None
 
     # Gets the strength (EV, PP, SH, EN) of a goal
     def get_goal_strength(self, playbyplay, goal):
@@ -201,45 +203,48 @@ class Scoreboard(WesCog):
         return strength
 
     # Update a message string that has already been sent
-    async def update_goal(self, key, string, link):
+    async def update_goal(self, key, string, link, thumb):
         # Do nothing if nothing has changed, including the link.
-        if string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
+        if string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"] and thumb == self.messages[key]["msg_thumb"]:
             return
 
         self.messages[key]["msg_text"] = string
         self.messages[key]["msg_link"] = link
+        self.messages[key]["msg_thumb"] = thumb
         embed = discord.Embed(title=string, url=link)
+        embed.set_thumbnail(url=thumb)
 
         # Update all the messages that have been posted containing this
         for channel_id, msg_id in self.messages[key]["msg_id"].items():
             try:
                 msg = await self.bot.get_channel(channel_id).fetch_message(msg_id)
                 await msg.edit(embed=embed)
-                self.log.info(f"Edit: {key} {channel_id}:{msg_id} {string} {link}")
+                self.log.info(f"Edit: {key} {channel_id}:{msg_id} {string} {link} {thumb}")
             except Exception as e:
                 self.log.warn(e)
                 continue
 
     # Post a goal (or other related message) string to chat and track the data
-    async def post_goal(self, key, string, link):
+    async def post_goal(self, key, string, link, thumb = None):
         # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
 
         # If this key already exists, we're updating, not posting
         if key in self.messages:
-            await self.update_goal(key, string, link)
+            await self.update_goal(key, string, link, thumb)
             return
 
         embed = discord.Embed(title=string, url=link)
+        embed.set_thumbnail(url=thumb)
 
         msgids = {}
         for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
             msg = await channel.send(embed=embed)
             msgids[channel.id] = msg.id
-        self.log.info(f"Post: {key} {string} {link}")
+        self.log.info(f"Post: {key} {string} {link} {thumb}")
 
-        self.messages[key] = {"msg_id":msgids, "msg_text":string, "msg_link":link}
+        self.messages[key] = {"msg_id":msgids, "msg_text":string, "msg_link":link, "msg_thumb":thumb}
 
     # Checks for new goals in the play-by-play and posts them
     async def check_for_goals(self, key, playbyplay):
@@ -270,12 +275,12 @@ class Scoreboard(WesCog):
             goal_str += score
 
             # Find the media link if we don't have one for this goal yet
-            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None:
-                goal_link = self.get_media_link(goal_key)
+            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None or self.messages[goal_key]["msg_thumb"] == None:
+                goal_link, goal_thumb = self.get_media_link(goal_key)
             else:
-                goal_link = self.messages[goal_key]["msg_link"]
+                goal_link, goal_thumb = self.messages[goal_key]["msg_link"], self.messages[goal_key]["msg_thumb"]
 
-            await self.post_goal(goal_key, goal_str, goal_link)
+            await self.post_goal(goal_key, goal_str, goal_link, goal_thumb)
 
     # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
     async def check_for_disallowed_goals(self, key, playbyplay):
@@ -411,10 +416,10 @@ class Scoreboard(WesCog):
                 await self.post_goal(end_key, final_str, None)
 
         # Find the game recap link if we don't have it already.
-        if game_state == "Final" and end_key in self.messages and self.messages[end_key]["msg_link"] == None:
-            recap_link = self.get_recap_link(end_key)
+        if game_state == "Final" and end_key in self.messages and (self.messages[end_key]["msg_link"] == None or self.messages[end_key]["msg_thumb"] == None):
+            recap_link, recap_thumb = self.get_recap_link(end_key)
             if recap_link != None:
-                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link)
+                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, recap_thumb)
 
         async with self.messages_lock:
             WritePickleFile(messages_datafile, self.messages)
@@ -436,9 +441,7 @@ class Scoreboard(WesCog):
     @scores_loop.error
     async def scores_loop_error(self, error):
         await self.cog_command_error(None, error)
-        self.log.info(f"scores_loop.is_running(): {self.scores_loop.is_running()}")
         self.scores_loop.restart()
-        self.log.info(f"scores_loop.is_running(): {self.scores_loop.is_running()}")
 
 def setup(bot):
     bot.add_cog(Scoreboard(bot))
