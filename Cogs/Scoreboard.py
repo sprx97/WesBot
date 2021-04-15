@@ -191,12 +191,21 @@ class Scoreboard(WesCog):
         if "emptyNet" in goal["result"] and goal["result"]["emptyNet"]:
             strength += "(EN) "
 
-        # Check if it was a penalty shot by looking at previous play (Sample game: https://statsapi.web.nhl.com/api/v1/game/2020020074/feed/live)
+        # Check if it was a penalty shot by looking at previous play
+        # Sample game: https://statsapi.web.nhl.com/api/v1/game/2020020074/feed/live
         try:
             prev_id = goal["about"]["eventIdx"] - 1
             prev_play = playbyplay["liveData"]["plays"]["allPlays"][prev_id]["result"]
             if "eventTypeId" in prev_play and prev_play["eventTypeId"] == "PENALTY" and prev_play["penaltySeverity"] == "Penalty Shot":
                 strength += "(PS) "
+
+            # For some weird reason, the penalty is reported AFTER the penalty shot in some cases, so check that too.
+            # Sample game: https://statsapi.web.nhl.com/api/v1/game/2020020509/feed/live
+            next_id = goal["about"]["eventIdx"] + 1
+            if next_id in playbyplay["liveData"]["plays"]["allPlays"]:
+                next_play = playbyplay["liveData"]["plays"]["allPlays"][next_id]["result"]
+                if "eventTypeId" in next_play and next_play["eventTypeId"] == "PENALTY" and next_play["penaltySeverity"] == "Penalty Shot":
+                    strength += "(PS) "
         except:
             self.log.info("Failure in PS check.")
 
