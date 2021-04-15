@@ -25,7 +25,7 @@ class Scoreboard(WesCog):
             self.message = f"Could not find channel {id}."
 
     @commands.command(name="scoresstart")
-    @commands.has_permissions(manage_guild=True) 
+    @commands.has_permissions(manage_guild=True)
     async def scoresstart(self, ctx, scores_channel_id):
         scores_channel_id = int(scores_channel_id)
         scores_channel = self.bot.get_channel(scores_channel_id)
@@ -148,7 +148,8 @@ class Scoreboard(WesCog):
 
             msg, links = self.get_score_string(game)
             embed=discord.Embed(title=msg, url=links[0])
-            embed.set_thumbnail(url=links[1]) 
+            if links[1]:
+                embed.set_thumbnail(url=links[1])
             await ctx.send(embed=embed)
 
             found = True
@@ -221,7 +222,8 @@ class Scoreboard(WesCog):
         self.messages[key]["msg_link"] = link
         self.messages[key]["msg_thumb"] = thumb
         embed = discord.Embed(title=string, url=link)
-        embed.set_thumbnail(url=thumb)
+        if thumb:
+            embed.set_thumbnail(url=thumb)
 
         # Update all the messages that have been posted containing this
         for channel_id, msg_id in self.messages[key]["msg_id"].items():
@@ -245,7 +247,8 @@ class Scoreboard(WesCog):
             return
 
         embed = discord.Embed(title=string, url=link)
-        embed.set_thumbnail(url=thumb)
+        if thumb:
+            embed.set_thumbnail(url=thumb)
 
         msgids = {}
         for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
