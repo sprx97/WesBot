@@ -49,7 +49,7 @@ class Scoreboard(WesCog):
             await ctx.send(error)
 
     @commands.command(name="scoresstop")
-    @commands.has_permissions(manage_guild=True) 
+    @commands.has_permissions(manage_guild=True)
     async def scoresstop(self, ctx):
         self.scoreboard_channel_ids.pop(ctx.guild.id)
 
@@ -76,9 +76,9 @@ class Scoreboard(WesCog):
             media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
             for item in media["media"]["epg"]:
                 if item["title"] == "Recap":
-                    return item["items"][0]["playbacks"][3]["url"], item["items"][0]["image"]["cuts"]["640x360"]["src"]
+                    return item["items"][0]["playbacks"][3]["url"] #, item["items"][0]["image"]["cuts"]["640x360"]["src"]
         except:
-            return None, None
+            return None #, None
 
     def get_score_string(self, game):
         away = team_map[game["teams"]["away"]["team"]["name"].split(" ")[-1].lower()]
@@ -147,9 +147,9 @@ class Scoreboard(WesCog):
                 continue
 
             msg, links = self.get_score_string(game)
-            embed=discord.Embed(title=msg, url=links[0])
-            if links[1]:
-                embed.set_thumbnail(url=links[1])
+            embed=discord.Embed(title=msg, url=links) # links[0]
+#            if links[1]:
+#                embed.set_thumbnail(url=links[1])
             await ctx.send(embed=embed)
 
             found = True
@@ -180,9 +180,9 @@ class Scoreboard(WesCog):
             media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
             for event in media["media"]["milestones"]["items"]:
                 if event["statsEventId"] == event_id:
-                    return event["highlight"]["playbacks"][3]["url"], event["highlight"]["image"]["cuts"]["640x360"]["src"]
+                    return event["highlight"]["playbacks"][3]["url"] #, event["highlight"]["image"]["cuts"]["640x360"]["src"]
         except:
-            return None, None
+            return None #, None
 
     # Gets the strength (EV, PP, SH, EN) of a goal
     def get_goal_strength(self, playbyplay, goal):
@@ -215,15 +215,15 @@ class Scoreboard(WesCog):
     # Update a message string that has already been sent
     async def update_goal(self, key, string, link, thumb):
         # Do nothing if nothing has changed, including the link.
-        if string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"] and thumb == self.messages[key]["msg_thumb"]:
+        if string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]: # and thumb == self.messages[key]["msg_thumb"]:
             return
 
         self.messages[key]["msg_text"] = string
         self.messages[key]["msg_link"] = link
         self.messages[key]["msg_thumb"] = thumb
         embed = discord.Embed(title=string, url=link)
-        if thumb:
-            embed.set_thumbnail(url=thumb)
+#        if thumb:
+#            embed.set_thumbnail(url=thumb)
 
         # Update all the messages that have been posted containing this
         for channel_id, msg_id in self.messages[key]["msg_id"].items():
@@ -236,7 +236,7 @@ class Scoreboard(WesCog):
                 continue
 
     # Post a goal (or other related message) string to chat and track the data
-    async def post_goal(self, key, string, link, thumb = None):
+    async def post_goal(self, key, string, link, thumb):
         # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
@@ -247,8 +247,8 @@ class Scoreboard(WesCog):
             return
 
         embed = discord.Embed(title=string, url=link)
-        if thumb:
-            embed.set_thumbnail(url=thumb)
+#        if thumb:
+#            embed.set_thumbnail(url=thumb)
 
         msgids = {}
         for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
@@ -287,12 +287,14 @@ class Scoreboard(WesCog):
             goal_str += score
 
             # Find the media link if we don't have one for this goal yet
-            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None or self.messages[goal_key]["msg_thumb"] == None:
-                goal_link, goal_thumb = self.get_media_link(goal_key)
+            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None: # or self.messages[goal_key]["msg_thumb"] == None:
+                goal_link = self.get_media_link(goal_key)
+#                goal_link, goal_thumb = self.get_media_link(goal_key)
             else:
-                goal_link, goal_thumb = self.messages[goal_key]["msg_link"], self.messages[goal_key]["msg_thumb"]
+                goal_link = self.messages[goal_key]["msg_link"]
+#                goal_link, goal_thumb = self.messages[goal_key]["msg_link"], self.messages[goal_key]["msg_thumb"]
 
-            await self.post_goal(goal_key, goal_str, goal_link, goal_thumb)
+            await self.post_goal(goal_key, goal_str, goal_link, None) #goal_thumb)
 
     # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
     async def check_for_disallowed_goals(self, key, playbyplay):
@@ -332,7 +334,7 @@ class Scoreboard(WesCog):
 
             # Skip updating goals that have already been crossed out
             if self.messages[pickle_key]["msg_text"][0] != "~":
-                await self.post_goal(pickle_key, f"~~{self.messages[pickle_key]['msg_text']}~~", None)
+                await self.post_goal(pickle_key, f"~~{self.messages[pickle_key]['msg_text']}~~", None, None)
 
             # Announce that the goal has been disallowed
             disallow_key = pickle_key + "D"
@@ -340,7 +342,7 @@ class Scoreboard(WesCog):
                 away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
                 home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
                 disallow_str = f"Goal disallowed in {away}-{home}."
-                await self.post_goal(disallow_key, disallow_str, None)
+                await self.post_goal(disallow_key, disallow_str, None, None)
 
     # Checks to see if OT challenge starting for a game
     def check_for_ot_challenge_start(self, key, playbyplay):
@@ -378,20 +380,20 @@ class Scoreboard(WesCog):
         start_key = key + ":S"
         if game_state == "In Progress" and start_key not in self.messages: 
             start_string = away_emoji + " " + away + " at " + home_emoji + " " + home + " Starting."
-            await self.post_goal(start_key, start_string, None)
+            await self.post_goal(start_key, start_string, None, None)
 
         # Send goal and disallowed goal notifications
         await self.check_for_disallowed_goals(key, playbyplay)
-        await self.check_for_goals(key, playbyplay)      
+        await self.check_for_goals(key, playbyplay)
 
         # Check for OT Challenge start notifications
         ot_key = key + ":O"
         ot_string = f"OT Challenge for {away_emoji} {away} at {home_emoji} {home} is open."
         if self.check_for_ot_challenge_start(key, playbyplay):
-            await self.post_goal(ot_key, ot_string, None)
+            await self.post_goal(ot_key, ot_string, None, None)
         elif ot_key in self.messages:
             ot_string = f"~~{ot_string}~~"
-            await self.post_goal(ot_key, ot_string, None)
+            await self.post_goal(ot_key, ot_string, None, None)
 
         # Check whether the game finished notification needs to be sent
         end_key = key + ":E"
@@ -425,13 +427,14 @@ class Scoreboard(WesCog):
                 if period == "(3rd)": # No additional tag for a regulation final
                     period = ""
                 final_str = f"{get_emoji(away)} {away} {away_score}, {get_emoji(home)} {home} {home_score} Final {period}"
-                await self.post_goal(end_key, final_str, None)
+                await self.post_goal(end_key, final_str, None, None)
 
         # Find the game recap link if we don't have it already.
-        if game_state == "Final" and end_key in self.messages and (self.messages[end_key]["msg_link"] == None or self.messages[end_key]["msg_thumb"] == None):
-            recap_link, recap_thumb = self.get_recap_link(end_key)
+        if game_state == "Final" and end_key in self.messages and (self.messages[end_key]["msg_link"] == None): # or self.messages[end_key]["msg_thumb"] == None):
+            recap_link = self.get_recap_link(end_key)
+#            recap_link, recap_thumb = self.get_recap_link(end_key)
             if recap_link != None:
-                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, recap_thumb)
+                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, None) #recap_thumb)
 
         async with self.messages_lock:
             WritePickleFile(messages_datafile, self.messages)
