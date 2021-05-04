@@ -211,6 +211,7 @@ class OTChallenge(WesCog):
 
     @commands.command(name="ot")
     @commands.cooldown(10, 120.0, commands.BucketType.member) # 10 uses per 120 seconds per member
+    @is_otchallenge_channel()
     async def ot(self, ctx, *, args):
         args = args.split(" ")
 

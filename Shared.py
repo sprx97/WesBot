@@ -298,6 +298,11 @@ def is_tradereview_channel():
         return ctx.message.channel.id == TRADEREVIEW_CHANNEL_ID or commands.check(is_tech_channel())
     return commands.check(check)
 
+def is_otchallenge_channel():
+    def check(ctx):
+        return ctx.message.channel.name == "ot-challenge"
+    return commands.check(check)
+
 def is_mods_channel():
     def check(ctx):
         return ctx.message.channel.id == MODS_CHANNEL_ID or commands.check(is_tech_channel())
