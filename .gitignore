@@ -4,6 +4,7 @@
 
 # Personal info
 config.json
+service_client_secret.json
 
 # Bot daily data files
 data/messages.pickle

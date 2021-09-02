@@ -60,6 +60,7 @@ class Debug(WesCog):
             await ctx.send("I'm Wes McCauley, the official referee of Keeping Karlsson. Here are some of the commands I respond to:\n" + \
                             "**`!help`**\n\tDisplays this list of commands.\n" + \
                             "**`!ping` or `!pong`**\n\tGets a response to check that bot is up.\n" + \
+                            "**`!ft` or `!ft [user]`**\n\tChecks your or another user's placement in the KKUPFL Fast Track Standings\n" + \
                             "**`!score [NHL team]`**\n\tPosts the score of the given NHL team's game tonight. Accepts a variety of nicknames and abbreviations.\n" + \
                             "**`!ot [NHL team] [player name/number]`**\n\tAllows you to predict a player to score the OT winner.\n\tMust be done between 5 minutes left" + \
                             "in the 3rd period and the start of OT of a tied game.\n\tCan only guess one player per game.\n" + \

@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 # Python Libraries
 from datetime import datetime, timedelta
 import logging
+import pygsheets
 
 # Local Includes
 from Shared import *
@@ -12,7 +13,52 @@ class KeepingKarlsson(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+        self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret.json")
+
         self.check_threads_loop.start()
+
+    # fasttrack leaderboard
+    @commands.command(name="fasttrack", aliases=["ft"])
+    @is_KK_guild()
+    async def ft(self, ctx): # TODO: Optional argument to !ft <user>
+        # Open the fasttrack gsheet and find the author
+        sheet = self.PYGS.open_by_key("1ob_tgG0lIk7THn6V6ksWIGZNLnxEYQfRAC2n4jeiNZ4")
+        worksheet = sheet.worksheet_by_title("Fasttrack2020")
+        author = ctx.message.author.name + "#" + ctx.message.author.discriminator
+        user = worksheet.find(author)
+        if not user:
+            await ctx.send("Sorry, I couldn't find your team in the list")
+
+        rowstart = user[0].address.row-2 # two teams above the author
+        rowend = user[0].address.row+2 # two teams below the author
+        if rowstart < 2: # error checking for beginning of list
+            rowstart = 2
+            rowend = 6
+        # TODO: Add error checking for end of list
+        data = worksheet.get_values(f"A{rowstart}", f"G{rowend}")
+
+        # Loop through data from the table
+        teamNames = discordNames = points = ""
+        for i, user in enumerate(data):
+            teamID, teamName, manager, league, discordName, KKUPFLRank, pf = user
+
+            # Format the data to display
+            if discordName == author:
+                teamNames += f"**{KKUPFLRank}. {teamName}**\n"
+                discordNames += f"**{discordName}**\n"
+                points += f"**{pf}**\n"
+            else:
+                teamNames += f"{KKUPFLRank}. {teamName}\n"
+                discordNames += f"{discordName}\n"
+                points += f"{pf}\n"
+
+        # Create and send an embed
+        embed = discord.Embed(title="FastTrack Leaderboard", description="This is your ranking in the whole wide KKUPFL", color=0x00aaff)
+        embed.add_field(name="Team name", value=teamNames, inline=True)
+        embed.add_field(name="Discord user", value=discordNames, inline=True)
+        embed.add_field(name="Points", value=points, inline=True)
+        embed.set_footer(text="See the full standings at www.kkupfl.com/stat-attack/manager-stats")
+        await ctx.channel.send(embed=embed)
 
     # Thread management loop
     @tasks.loop(hours=1.0)
