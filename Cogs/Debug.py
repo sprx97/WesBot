@@ -5,7 +5,6 @@ from discord.ext import commands
 import asyncio
 from datetime import datetime, timedelta
 import importlib
-import logging
 
 # Local Includes
 Shared = importlib.import_module("Shared")

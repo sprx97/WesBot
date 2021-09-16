@@ -1,9 +1,6 @@
 # Discord Libraries
 from discord.ext import commands
 
-# Python Libraries
-import logging
-
 # Local Includes
 from Shared import *
 

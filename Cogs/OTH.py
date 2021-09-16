@@ -4,7 +4,6 @@ from discord.ext import commands, tasks
 # Python Libraries
 import asyncio
 from datetime import datetime, timedelta
-import urllib.request, json
 
 # Local Includes
 from Shared import *

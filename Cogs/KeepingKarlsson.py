@@ -3,7 +3,6 @@ from discord.ext import commands, tasks
 
 # Python Libraries
 from datetime import datetime, timedelta
-import logging
 import pygsheets
 
 # Local Includes
