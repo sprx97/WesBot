@@ -296,7 +296,9 @@ class OTChallenge(WesCog):
 
     @ot.error
     async def ot_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
+        if isinstance(error, commands.CheckFailure):
+            await ctx.message.delete()
+        elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Usage:\n\t`!otstandings`\n\t`!ot [Team] [Player Name/Number]`\n\t`!otlist [Team or @User]`")
         elif isinstance(error, commands.CommandOnCooldown):
             await ctx.send(f"Two-minute penalty for spamming {get_emoji('parros')}")
