@@ -1,4 +1,5 @@
 # Discord Libraries
+import discord
 from discord.ext import commands, tasks
 
 # Python Libraries
@@ -17,16 +18,25 @@ class KeepingKarlsson(WesCog):
         self.check_threads_loop.start()
 
     # fasttrack leaderboard
-    @commands.command(name="fasttrack", aliases=["ft"])
+    @commands.command(name="ft", aliases=["fasttrack"])
     @is_KK_guild()
-    async def ft(self, ctx): # TODO: Optional argument to !ft <user>
+    async def ft(self, ctx, member: discord.Member=None, year=None):
         # Open the fasttrack gsheet and find the author
         sheet = self.PYGS.open_by_key("1ob_tgG0lIk7THn6V6ksWIGZNLnxEYQfRAC2n4jeiNZ4")
-        worksheet = sheet.worksheet_by_title("Fasttrack2020")
+
+        # Get the right year's fasttrack
+        if year == None:
+            year = Config.config["year"]
+        worksheet = sheet.worksheet_by_title(f"Fasttrack{year}")
+
         author = ctx.message.author.name + "#" + ctx.message.author.discriminator
+        if member != None:
+            author = member.name + "#" + member.discriminator
+        
         user = worksheet.find(author)
         if not user:
-            await ctx.send("Sorry, I couldn't find your team in the list")
+            pronoun = "your" if member == None else "that"
+            await ctx.send(f"Sorry, I couldn't find {pronoun} team in the list.")
 
         rowstart = user[0].address.row-2 # two teams above the author
         rowend = user[0].address.row+2 # two teams below the author
