@@ -1,4 +1,5 @@
 # Discord Libraries
+import discord
 from discord.ext import commands, tasks
 
 # Python Libraries
@@ -206,6 +207,20 @@ class OTH(WesCog):
             await ctx.send(error.message)
         else:
             await ctx.send(error)
+
+    @commands.command(name="box")
+    @commands.is_owner()
+    async def box(self, ctx, member: discord.Member):
+        boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
+        for role in member.roles:
+            if role == boxrole:
+                await member.remove_roles(boxrole)
+                return
+        await member.add_roles(boxrole)
+
+    @box.error
+    async def box_error(self, ctx, error):
+        await ctx.send(error)
 
 ######################## Woppa Cup ########################
 
