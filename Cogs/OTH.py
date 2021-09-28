@@ -264,6 +264,10 @@ class OTH(WesCog):
             self.log.info(f"Removing all division/league roles from {member.name}")
             await member.remove_roles(*role_ids.values())
 
+    @rolesclear.error
+    async def roles_error(self, ctx, error):
+        await ctx.send(error)
+
 ######################## Woppa Cup ########################
 
     # Posts the current woppacup matchup score for the given user
