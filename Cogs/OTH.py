@@ -209,7 +209,7 @@ class OTH(WesCog):
         else:
             await ctx.send(error)
 
-    @commands.command(name="box")
+    @commands.command(name="box", aliases=["penalty", "penaltybox"])
     @commands.is_owner()
     async def box(self, ctx, member: discord.Member):
         boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
