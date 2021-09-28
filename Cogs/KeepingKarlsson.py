@@ -13,7 +13,7 @@ class KeepingKarlsson(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
-        self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret.json")
+        self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_KK.json")
 
         self.check_threads_loop.start()
 

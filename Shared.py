@@ -85,6 +85,8 @@ emojis["WPJ"] = "<:WPJ:269315448833703946>"
 emojis["goal"] = "<a:goalsiren:750190349963624510>"
 emojis["parros"] = "<:parros:372533524286275597>"
 
+role_ids = {}
+
 # Returns the emoji if it's in the map, but blank if not
 def get_emoji(team):
     if team in emojis:
@@ -138,7 +140,30 @@ class WesCog(commands.Cog):
         self.bot = bot
         self.log = self.bot.create_log(self.__class__.__name__)
         self.log.info(f"{self.__class__.__name__} cog initialized.")
+        self.populate_roles()
         self.loops = []
+
+    def populate_roles(self):
+        role_ids["D1"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340870807137812480)
+        role_ids["D2"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
+        role_ids["D3"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
+        role_ids["D4"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
+        role_ids["Gretzky"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
+        role_ids["Brodeur"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
+        role_ids["Hasek"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
+        role_ids["Roy"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133440902561803)
+        role_ids["Lemieux"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
+        role_ids["Jagr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
+        role_ids["Yzerman"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133873658396683)
+        role_ids["Howe"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
+        role_ids["Dionne"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
+        role_ids["Bourque"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384675141648385)
+        role_ids["Orr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384733228564530)
+        role_ids["Lidstrom"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
+        role_ids["Niedermayer"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
+        role_ids["Leetch"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
+        role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
+        role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
 
     # Cancels all running loops
     def cog_unload(self):

@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 # Python Libraries
 import asyncio
 from datetime import datetime, timedelta
+import pygsheets
 
 # Local Includes
 from Shared import *
@@ -221,6 +222,47 @@ class OTH(WesCog):
     @box.error
     async def box_error(self, ctx, error):
         await ctx.send(error)
+
+    @commands.command(name="roles")
+    @commands.is_owner()
+    @is_tech_channel()
+    async def roles(self, ctx, scope=""):
+        PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_OTH.json")
+        sheet = PYGS.open_by_key("1jC3zHsRuB6IawR-AM5ZtAOl360pCdjqUk230NiWPYbo")
+        worksheet = sheet.worksheet_by_title("LeagueAssignments")
+
+        values = worksheet.get_values("A2", "D225")
+        members = self.bot.get_guild(OTH_GUILD_ID).members
+        for member in members:
+            for team in values:
+                if team[1] == "" or "#" not in team[1]:
+                    continue
+
+                name, discrim = team[1].split("#")
+
+                if name.lower() == member.name.lower() and discrim == member.discriminator:
+                    div = team[2]
+                    league = team[3]
+                    if scope == "" or scope == div or scope == league:
+                        self.log.info(f"Removing all division/league roles from {member.name}")
+                        await member.remove_roles(*role_ids.values())
+
+                        self.log.info(f"Adding roles {div} and {league} to {name}")
+                        await member.add_roles(role_ids[div], role_ids[league])
+                    break
+  
+    @roles.error
+    async def roles_error(self, ctx, error):
+        await ctx.send(error)
+
+    @commands.command(name="rolesclear")
+    @commands.is_owner()
+    @is_tech_channel()
+    async def rolesclear(self, ctx):
+       members = self.bot.get_guild(OTH_GUILD_ID).members
+       for member in members:
+            self.log.info(f"Removing all division/league roles from {member.name}")
+            await member.remove_roles(*role_ids.values())
 
 ######################## Woppa Cup ########################
 
