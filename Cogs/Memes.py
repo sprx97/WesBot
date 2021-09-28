@@ -73,6 +73,18 @@ class Memes(WesCog):
     async def bob(self, ctx):
         await ctx.send("Sergei Bobrovsky has a $10 million cap hit through 2025-26.")
 
+    @commands.command(name="ned")
+    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @is_OTH_guild()
+    async def ned(self, ctx):
+        await ctx.send("That's no surprise. He's on the third axis of transcendence right now. Alex Nedeljkovic moves in anti-planar reality " + \
+                       "(or prime-planar reality, shouts to my qmech nerds who really buy Frisch-Hayes.) While goalies like Thomas Greiss or Andrei Vasilevskiy " + \
+                       "see the game from an x and o perspective, Alex has vision of the omega and delta factors surrounding any given hockey event. " + \
+                       "There's a reason Alex was able to lead Martin Necas to the 2019 Calder Cup. Put simply, Nedeljkovic is visuospatial jazz. " + \
+                       "Think of Ornette Coleman or Buddy Rich, not Henrik Lundqvist or Tuukka Rask. The dorian stylings of a Eric Dolphy better describe Ned's game " + \
+                       "than a monotone listing-off of conventional goalie skills. Puck handles? When you're in constant tune with the precise Hz pitch of the ice like Nedeljkovic, " + \
+                       "English words like 'good save' cannot encapsulate even a fractoid of the scientific and metaphysical majesty of Alex.")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.id == MINNE_USER_ID and " wes " in (message.content + " ").lower().replace(".", " "):
