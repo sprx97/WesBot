@@ -3,7 +3,8 @@ from discord.ext import commands, tasks
 
 # Python Libraries
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import pytz
 
 # Local Includes
 from Shared import *
@@ -90,7 +91,10 @@ class Scoreboard(WesCog):
         game_state = game["status"]["detailedState"]
         # Game hasn't started yet
         if game_state == "Scheduled" or game_state == "Pre-Game":
-            return f"{away_emoji} {away} vs {home_emoji} {home} has not started yet.", None
+            utctime = datetime.strptime(game["gameDate"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
+            localtime = utctime.astimezone(pytz.timezone("America/New_York"))
+            time = localtime.strftime("%-I:%M%P")
+            return f"{away_emoji} {away} vs {home_emoji} {home} starts at {time} ET.", None
         elif game_state == "Postponed":
             return f"{away_emoji} {away} vs {home_emoji} {home} was postponed.", None
         else:
