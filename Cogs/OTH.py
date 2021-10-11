@@ -91,6 +91,10 @@ class OTH(WesCog):
         embed = discord.Embed(url=f"https://www.fleaflicker.com/nhl/leagues/{league['id']}/trades/{trade['id']}")
         embed.title = "Trade in " + league["name"]
         for team in trade["teams"]:
+            if "playersObtained" not in team:
+                embed.add_field(name=f"**{team['team']['name']}**", value="No players going to this team -- please investigate.")
+                continue
+
             players = ""
             for player in team["playersObtained"]:
                 players += player["proPlayer"]["nameFull"] + "\n"
