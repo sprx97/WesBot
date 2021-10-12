@@ -140,7 +140,7 @@ class WesCog(commands.Cog):
         self.bot = bot
         self.log = self.bot.create_log(self.__class__.__name__)
         self.log.info(f"{self.__class__.__name__} cog initialized.")
-        self.populate_roles()
+#        self.populate_roles()
         self.loops = []
 
     def populate_roles(self):

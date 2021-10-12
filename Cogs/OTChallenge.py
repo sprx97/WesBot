@@ -15,10 +15,17 @@ class OTChallenge(WesCog):
         self.guesses_lock = asyncio.Lock()
         self.guesses = LoadPickleFile(ot_datafile)
         self.standings = LoadPickleFile(otstandings_datafile)
-    
+
     class OTException(discord.ext.commands.CommandError):
         def __init__(self, msg):
             self.message = msg
+
+    # Clears the otstandings file
+    @commands.command(name="otclearstandings")
+    @commands.is_owner()
+    async def otclearstandings(self, ctx):
+        self.standings = {}
+        WritePickleFile(otstandings_datafile, self.standings)
 
     # Lists the days OT Challenge guesses for a user or team
     @commands.command(name="otlist")
@@ -68,7 +75,8 @@ class OTChallenge(WesCog):
         guild = ctx.guild.id
 
         if guild not in self.standings:
-            raise self.OTException("No standings for this server.")
+            await ctx.send("No standings for this server.")
+            return
 
         # Standings message header
         standings = self.standings[guild]
@@ -117,7 +125,7 @@ class OTChallenge(WesCog):
                 if ord(char) > 100000: # Emoji or unicode
                     emoji_count += 1
             user_name = user_name[:12-int(1.75*emoji_count)]
-            
+
             wins = wins[:6]
             guesses = guesses[:8]
 
@@ -217,7 +225,7 @@ class OTChallenge(WesCog):
 
         team = args[0]
         team = team.replace("[", "").replace("]", "")
-        
+
         # Check that we've been given a valid team
         if team.lower() not in team_map:
             if team.lower() == "list":
