@@ -18,6 +18,47 @@ class KeepingKarlsson(WesCog):
         self.check_threads_loop.start()
 
     # fasttrack leaderboard
+    async def fasttrack_core(self, worksheet, author, rowstart, rowend):
+        data = worksheet.get_values(f"A{rowstart}", f"G{rowend}")
+
+        # Loop through data from the table
+        line = "```diff\n"
+        for i, user in enumerate(data):
+            teamID, teamName, manager, league, discordName, KKUPFLRank, pf = user
+
+            if discordName == author:
+                line += "+"
+            else:
+                line += " "
+            
+            rank_width = len(str(rowend-1)) + 2
+
+            MAX_NAME_WIDTH = 18
+            line += (KKUPFLRank + ".").ljust(rank_width) + discordName[:MAX_NAME_WIDTH].ljust(MAX_NAME_WIDTH) + " " + pf.ljust(7) + "\n"
+
+        line += "```"
+
+        embed = discord.Embed(title="FastTrack Leaderboard", description="This is your ranking in the whole wide KKUPFL", color=0x00aaff)
+        embed.add_field(name="Rank", value=line)
+        embed.add_field(name="Info", value="Try the commands `!ft @user` or `!fttop` too!", inline=False)
+        embed.set_footer(text="See the full standings at www.kkupfl.com/stat-attack/manager-stats")
+
+        return embed
+
+    @commands.command(name="fttop", aliases=["fasttracktop"])
+    @is_KK_guild()
+    async def fttop(self, ctx, year=None):
+        # Open the fasttrack gsheet
+        sheet = self.PYGS.open_by_key("1ob_tgG0lIk7THn6V6ksWIGZNLnxEYQfRAC2n4jeiNZ4")
+
+        # Get the right year's fasttrack
+        if year == None:
+            year = Config.config["year"]
+        worksheet = sheet.worksheet_by_title(f"Fasttrack{year}")      
+
+        embed = await self.fasttrack_core(worksheet, None, 2, 6)
+        await ctx.channel.send(embed=embed)
+
     @commands.command(name="ft", aliases=["fasttrack"])
     @is_KK_guild()
     async def ft(self, ctx, member: discord.Member=None, year=None):
@@ -44,28 +85,8 @@ class KeepingKarlsson(WesCog):
             rowstart = 2
             rowend = 6
         # TODO: Add error checking for end of list
-        data = worksheet.get_values(f"A{rowstart}", f"G{rowend}")
 
-        # Loop through data from the table
-        line = "```diff\n"
-        for i, user in enumerate(data):
-            teamID, teamName, manager, league, discordName, KKUPFLRank, pf = user
-
-            if discordName == author:
-                line += "+"
-            else:
-                line += " "
-            
-            MAX_NAME_WIDTH = 18
-            line += (KKUPFLRank + ".").ljust(5) + discordName[:MAX_NAME_WIDTH].ljust(MAX_NAME_WIDTH) + " " + pf.ljust(7) + "\n"
-
-        line += "```"
-
-        embed = discord.Embed(title="FastTrack Leaderboard", description="This is your ranking in the whole wide KKUPFL", color=0x00aaff)
-        embed.add_field(name="Rank", value=line)
-        embed.add_field(name="Info", value="Try the commands `!ft @user` or `!ft all` too!", inline=False)
-        embed.set_footer(text="See the full standings at www.kkupfl.com/stat-attack/manager-stats")
-
+        embed = await self.fasttrack_core(worksheet, author, rowstart, rowend)
         await ctx.channel.send(embed=embed)
 
     # Thread management loop
