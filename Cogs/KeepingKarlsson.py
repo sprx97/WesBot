@@ -63,8 +63,8 @@ class KeepingKarlsson(WesCog):
 
         embed = discord.Embed(title="FastTrack Leaderboard", description="This is your ranking in the whole wide KKUPFL", color=0x00aaff)
         embed.add_field(name="Rank", value=line)
-        embed.add_field(name="Info", value="See the full standings at www.kkupfl.com/stat-attack/manager-stats", inline=False)
-        embed.set_footer(text="Try the commands `!ft @user` or `!ft all` too!")
+        embed.add_field(name="Info", value="Try the commands `!ft @user` or `!ft all` too!", inline=False)
+        embed.set_footer(text="See the full standings at www.kkupfl.com/stat-attack/manager-stats")
 
         await ctx.channel.send(embed=embed)
 
