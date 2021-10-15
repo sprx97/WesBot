@@ -38,8 +38,8 @@ class KeepingKarlsson(WesCog):
             pronoun = "your" if member == None else "that"
             await ctx.send(f"Sorry, I couldn't find {pronoun} team in the list.")
 
-        rowstart = user[0].address.row-2 # two teams above the author
-        rowend = user[0].address.row+2 # two teams below the author
+        rowstart = user[0].address.row - 2 # two teams above the author
+        rowend = user[0].address.row + 2 # two teams below the author
         if rowstart < 2: # error checking for beginning of list
             rowstart = 2
             rowend = 6
@@ -47,26 +47,25 @@ class KeepingKarlsson(WesCog):
         data = worksheet.get_values(f"A{rowstart}", f"G{rowend}")
 
         # Loop through data from the table
-        teamNames = discordNames = points = ""
+        line = "```diff\n"
         for i, user in enumerate(data):
             teamID, teamName, manager, league, discordName, KKUPFLRank, pf = user
 
-            # Format the data to display
             if discordName == author:
-                teamNames += f"**{KKUPFLRank}. {teamName}**\n"
-                discordNames += f"**{discordName}**\n"
-                points += f"**{pf}**\n"
+                line += "+"
             else:
-                teamNames += f"{KKUPFLRank}. {teamName}\n"
-                discordNames += f"{discordName}\n"
-                points += f"{pf}\n"
+                line += " "
+            
+            MAX_NAME_WIDTH = 18
+            line += (KKUPFLRank + ".").ljust(5) + discordName[:MAX_NAME_WIDTH].ljust(MAX_NAME_WIDTH) + " " + pf.ljust(7) + "\n"
 
-        # Create and send an embed
+        line += "```"
+
         embed = discord.Embed(title="FastTrack Leaderboard", description="This is your ranking in the whole wide KKUPFL", color=0x00aaff)
-        embed.add_field(name="Team name", value=teamNames, inline=True)
-        embed.add_field(name="Discord user", value=discordNames, inline=True)
-        embed.add_field(name="Points", value=points, inline=True)
-        embed.set_footer(text="See the full standings at www.kkupfl.com/stat-attack/manager-stats")
+        embed.add_field(name="Rank", value=line)
+        embed.add_field(name="Info", value="See the full standings at www.kkupfl.com/stat-attack/manager-stats", inline=False)
+        embed.set_footer(text="Try the commands `!ft @user` or `!ft all` too!")
+
         await ctx.channel.send(embed=embed)
 
     # Thread management loop
