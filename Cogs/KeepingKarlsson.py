@@ -155,8 +155,8 @@ class KeepingKarlsson(WesCog):
         self.log.info("Sleeping league activity loop for " + str(delta))
         await asyncio.sleep(delta.total_seconds())
 
-    @check_threads_loop.error
-    async def check_check_threads_loop(self, error):
+    @check_league_activity_loop.error
+    async def check_league_activity_loop_error(self, error):
         self.log.error(error)
 
 
