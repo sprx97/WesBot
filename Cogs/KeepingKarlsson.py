@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands, tasks
 
 # Python Libraries
+import asyncio
 from datetime import datetime, timedelta
 import pygsheets
 
@@ -16,6 +17,8 @@ class KeepingKarlsson(WesCog):
         self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_KK.json")
 
         self.check_threads_loop.start()
+        self.check_league_activity_loop.start()
+        self.loops = [self.check_league_activity_loop, self.check_threads_loop]
 
     # fasttrack leaderboard
     async def fasttrack_core(self, worksheet, author, rowstart, rowend):
@@ -90,7 +93,7 @@ class KeepingKarlsson(WesCog):
         await ctx.channel.send(embed=embed)
 
     # Thread management loop
-    @tasks.loop(hours=1.0)
+    @tasks.loop(hours=3.0)
     async def check_threads_loop(self):
         for channel in self.bot.get_channel(MAKE_A_THREAD_CATEGORY_ID).text_channels[1:]:
             last_message = (await channel.history(limit=1).flatten())[0]
@@ -119,6 +122,43 @@ class KeepingKarlsson(WesCog):
     @check_threads_loop.error
     async def check_threads_loop_error(self, error):
         self.log.error(error)
+
+    # League activity checker loop
+    @tasks.loop(hours=24.0)
+    async def check_league_activity_loop(self):
+        zebra_channel = self.bot.get_guild(KK_GUILD_ID).get_channel(ZEBRAS_CHANNEL_ID)
+        for channel in self.bot.get_guild(KK_GUILD_ID).channels:
+            # Only look at league-specific chat channels
+            name = channel.name
+            if not name.startswith("tier-"):
+                continue
+
+            # If the last message in the league channel was more than 3 days ago, ping the zebra channel
+            last_message = (await channel.history(limit=1).flatten())[0]
+            last_message_delta = datetime.utcnow() - last_message.created_at
+            if last_message_delta > timedelta(hours=72):
+                self.log.info(f"No activty in last 72 hours in {name}")
+                await zebra_channel.send(f"No activty in last 72 hours in {name}")
+
+        self.log.info("League activity check complete.")
+
+    @check_league_activity_loop.before_loop
+    async def before_check_league_activity_loop(self):
+        await self.bot.wait_until_ready()
+
+        # Sleep until midnight Sunday (Sat night) to call at the same time every week
+        curr_time = datetime.utcnow()-timedelta(hours=ROLLOVER_HOUR_UTC)
+        target_time = curr_time + timedelta(days=1.0)
+        target_time = target_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        delta = target_time-curr_time
+
+        self.log.info("Sleeping league activity loop for " + str(delta))
+        await asyncio.sleep(delta.total_seconds())
+
+    @check_threads_loop.error
+    async def check_check_threads_loop(self, error):
+        self.log.error(error)
+
 
 def setup(bot):
     bot.add_cog(KeepingKarlsson(bot))

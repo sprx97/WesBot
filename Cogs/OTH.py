@@ -154,7 +154,7 @@ class OTH(WesCog):
         self.log.info("Trades check complete.")
 
     # Check fleaflicker for recent trades
-    @tasks.loop(hours=1.0)
+    @tasks.loop(hours=3.0)
     async def trades_loop(self):
         await self.check_trades()
 
