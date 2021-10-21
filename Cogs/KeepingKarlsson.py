@@ -107,7 +107,7 @@ class KeepingKarlsson(WesCog):
                         perms = channel.overwrites_for(role)
                         perms.send_messages=False
                         await channel.set_permissions(role, overwrite=perms)
-                await channel.send("This thread has been locked due to 24h of inactivity, and will be deleted in 12 hours. Tag @zebra in #help-me if you'd like to keep the thread open longer.")
+                await channel.send("This thread has been locked due to 24h of inactivity, and will be deleted in 12 hours. Tag @zebra in #tech-support if you'd like to keep the thread open longer.")
             # If the last message was more than 12 hours ago by this bot, delete the thread
             elif last_message_delta > timedelta(hours=12) and "tkeep" not in channel.name and last_message.author == self.bot.user:
                 self.log.info(f"{channel.name} deleted.")
