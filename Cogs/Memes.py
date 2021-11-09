@@ -85,6 +85,12 @@ class Memes(WesCog):
                        "than a monotone listing-off of conventional goalie skills. Puck handles? When you're in constant tune with the precise Hz pitch of the ice like Nedeljkovic, " + \
                        "English words like 'good save' cannot encapsulate even a fractoid of the scientific and metaphysical majesty of Alex.")
 
+    @commands.command(name="dahlin")
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
+    @is_OTH_guild()
+    async def dahlin(self, ctx):
+        await ctx.send("https://images-ext-1.discordapp.net/external/RrKncWScFzppS9-BwRdpVCP26H8XTy6zG0_rwdlhiBE/https/giant.gfycat.com/PreciousCleverHake.mp4")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.id == MINNE_USER_ID and " wes " in (message.content + " ").lower().replace(".", " "):
