@@ -126,7 +126,7 @@ class KeepingKarlsson(WesCog):
     # League activity checker loop
     @tasks.loop(hours=24.0)
     async def check_league_activity_loop(self):
-        zebra_channel = self.bot.get_guild(KK_GUILD_ID).get_channel(ZEBRAS_CHANNEL_ID)
+        cocommishes_channel = self.bot.get_guild(KK_GUILD_ID).get_channel(COCOMMISHES_CHANNEL_ID)
         for channel in self.bot.get_guild(KK_GUILD_ID).channels:
             # Only look at league-specific chat channels
             name = channel.name
@@ -137,8 +137,10 @@ class KeepingKarlsson(WesCog):
             last_message = (await channel.history(limit=1).flatten())[0]
             last_message_delta = datetime.utcnow() - last_message.created_at
             if last_message_delta > timedelta(hours=72):
-                self.log.info(f"No activty in last 72 hours in {name}")
-                await zebra_channel.send(f"No activty in last 72 hours in {name}")
+                for role in self.bot.get_guild(KK_GUILD_ID).roles:
+                    if role.name == channel.name:
+                        self.log.info(f"No activty in last 72 hours in {role.mention}")
+                        await cocommishes_channel.send(f"No activity in last 72 hours in {role.mention}")
 
         self.log.info("League activity check complete.")
 
