@@ -129,18 +129,24 @@ class KeepingKarlsson(WesCog):
         cocommishes_channel = self.bot.get_guild(KK_GUILD_ID).get_channel(COCOMMISHES_CHANNEL_ID)
         for channel in self.bot.get_guild(KK_GUILD_ID).channels:
             # Only look at league-specific chat channels
-            name = channel.name
-            if not name.startswith("tier-"):
+            channel_name = channel.name
+            if not channel_name.startswith("tier-"):
                 continue
+            channel_name = channel_name.split("-")[2]
 
             # If the last message in the league channel was more than 3 days ago, ping the zebra channel
             last_message = (await channel.history(limit=1).flatten())[0]
             last_message_delta = datetime.utcnow() - last_message.created_at
             if last_message_delta > timedelta(hours=72):
+                found = False
                 for role in self.bot.get_guild(KK_GUILD_ID).roles:
-                    if role.name == channel.name:
-                        self.log.info(f"No activty in last 72 hours in {role.mention}")
+                    role_name = role.name.lower()
+                    if channel_name in role_name:
                         await cocommishes_channel.send(f"No activity in last 72 hours in {role.mention}")
+                        found = True
+                        break
+                if not found:
+                    self.log.error("No matching role found for channel {channel_name}")
 
         self.log.info("League activity check complete.")
 
