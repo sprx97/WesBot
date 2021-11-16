@@ -146,7 +146,7 @@ class KeepingKarlsson(WesCog):
                         found = True
                         break
                 if not found:
-                    self.log.error("No matching role found for channel {channel_name}")
+                    self.log.error(f"No matching role found for channel {channel_name}")
 
         self.log.info("League activity check complete.")
 
