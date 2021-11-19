@@ -8,8 +8,13 @@ class Memes(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+    @commands.command(name="memes")
+    @is_OTH_guild()
+    async def memes(self, ctx):
+        await ctx.send("Try the following meme commands: *fifi, laine, xfactor, petey, mcavoy, bryz, price, bob, ned, dahlin*")
+
     @commands.command(name="fifi")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def fifi(self, ctx):
         await ctx.send("Aw yeah buddy we need way more Kevin “Fifi” Fiala up in this thread, all that animal does is rip shelfies buddy, " + \
@@ -23,7 +28,7 @@ class Memes(WesCog):
                        "and the third would be for a trillion dollars so I could pay to watch ol Fifi Score top cheddar magic for all eternity.")
 
     @commands.command(name="laine")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def laine(self, ctx):
         await ctx.send("Yeah, fuck off buddy we absolutely need more Laine clips. Fuckin every time this kid steps on the ice someone scores. " + \
@@ -31,14 +36,14 @@ class Memes(WesCog):
                        "Laine is pottin 50 in '17 fuckin callin it right now. Clap bombs, fuck moms, wheel, snipe, and fuckin celly boys fuck")
 
     @commands.command(name="xfactor")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def xfactor(self, ctx):
         await ctx.send("I have studied tapes of him and I must disagree. While he is highly skilled, he does not have 'it' if you know what I mean. " + \
                        "That 'x-factor'. The 'above and beyond' trait.")
 
     @commands.command(name="petey")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def petey(self, ctx):
         await ctx.send("Kid might look like if Malfoy was a Hufflepuff but he plays like if Potter was a Slytherin the kids absolutely fucking nasty. " + \
@@ -47,7 +52,7 @@ class Memes(WesCog):
                         "The Stanley Cup and whatever fucking cup is in Sweden. Game Over.")
 
     @commands.command(name="mcavoy")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def mcavoy(self, ctx):
         await ctx.send("WTF you say he hasn’t done anything notable he only the best baddest defenseman you ever seen. " + \
@@ -56,25 +61,25 @@ class Memes(WesCog):
                         "from your relegation only asking yourself why, why didn’t I draft McAvoy")
 
     @commands.command(name="bryz")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def bryz(self, ctx):
         await ctx.send("http://2.bp.blogspot.com/-ut7bwg8rrp8/UCFRrZinwVI/AAAAAAAACNw/M6LRPCMuUtg/s1600/its-only-game.gif")
 
     @commands.command(name="price")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def price(self, ctx):
         await ctx.send("Carey Price has a $10.5 million cap hit through 2025-26.")
 
     @commands.command(name="bob", aliases=["bobrovsky"])
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def bob(self, ctx):
         await ctx.send("Sergei Bobrovsky has a $10 million cap hit through 2025-26.")
 
     @commands.command(name="ned")
-    @commands.cooldown(1, 300.0, commands.BucketType.guild) # 1 use per 5 minutes per guild
+    @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def ned(self, ctx):
         await ctx.send("That's no surprise. He's on the third axis of transcendence right now. Alex Nedeljkovic moves in anti-planar reality " + \
@@ -89,7 +94,7 @@ class Memes(WesCog):
     @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def dahlin(self, ctx):
-        await ctx.send("https://images-ext-1.discordapp.net/external/RrKncWScFzppS9-BwRdpVCP26H8XTy6zG0_rwdlhiBE/https/giant.gfycat.com/PreciousCleverHake.mp4")
+        await ctx.send("https://i.imgur.com/Nsf5hkz.mp4")
 
     @commands.Cog.listener()
     async def on_message(self, message):
