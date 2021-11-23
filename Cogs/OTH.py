@@ -181,10 +181,10 @@ class OTH(WesCog):
     # Posts the current matchup score for the given user
     @commands.command(name="matchup")
     @is_OTH_guild()
-    async def matchup(self, ctx, user):
+    async def matchup(self, ctx, user, division=None):
         user = user.replace("[", "").replace("]", "")
 
-        matchup = get_user_matchup_from_database(user)
+        matchup = get_user_matchup_from_database(user, division)
         if len(matchup) == 0:
             raise self.UserNotFound(user)
         if len(matchup) > 1:
