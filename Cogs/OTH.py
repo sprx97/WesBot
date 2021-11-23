@@ -22,8 +22,8 @@ class OTH(WesCog):
 
     # Custom exception for an invalid fleaflicker username
     class UserNotFound(discord.ext.commands.CommandError):
-        def __init__(self, user):
-            self.message = f"Fleaflicker user {user} not found."
+        def __init__(self, user, division):
+            self.message = f"Matchup for user {user} in division {division} not found."
 
     # Custom exception for finding multiple matchups for a user
     class MultipleMatchupsFound(discord.ext.commands.CommandError):
@@ -186,7 +186,7 @@ class OTH(WesCog):
 
         matchup = get_user_matchup_from_database(user, division)
         if len(matchup) == 0:
-            raise self.UserNotFound(user)
+            raise self.UserNotFound(user, division)
         if len(matchup) > 1:
             raise self.MultipleMatchupsFound(user)
         matchup = matchup[0]
