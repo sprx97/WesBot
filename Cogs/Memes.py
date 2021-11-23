@@ -11,7 +11,7 @@ class Memes(WesCog):
     @commands.command(name="memes")
     @is_OTH_guild()
     async def memes(self, ctx):
-        await ctx.send("Try the following meme commands: *fifi, laine, xfactor, petey, mcavoy, bryz, price, bob, ned, dahlin*")
+        await ctx.send("Try the following meme commands: *bob, bryz, cat, dahlin, fifi, laine, mcavoy, ned, petey, price, xfactor*")
 
     @commands.command(name="fifi")
     @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
@@ -95,6 +95,12 @@ class Memes(WesCog):
     @is_OTH_guild()
     async def dahlin(self, ctx):
         await ctx.send("https://i.imgur.com/Nsf5hkz.mp4")
+
+    @commands.command(name="cat", aliases=["debrincat"])
+    @commands.cooldown(1, 60.0, commands.BucketType.user) # 1 use per minute per user
+    @is_OTH_guild()
+    async def cat(self, ctx):
+        await ctx.send("https://images-ext-1.discordapp.net/external/jqBbbyFVQk10FI3TZlQS1GV2LNg8COT2TLw-9ckFqWM/https/media.discordapp.net/attachments/507616755510673409/744726226786320454/3x.gif")
 
     @commands.Cog.listener()
     async def on_message(self, message):
