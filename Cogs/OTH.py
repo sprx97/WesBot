@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 
 # Python Libraries
 import asyncio
+import challonge
 from datetime import datetime, timedelta
 import pygsheets
 
@@ -24,6 +25,10 @@ class OTH(WesCog):
     class UserNotFound(discord.ext.commands.CommandError):
         def __init__(self, user, division):
             self.message = f"Matchup for user {user} in division {division} not found."
+
+    class WoppaCupOpponentNotFound(discord.ext.commands.CommandError):
+        def __init__(self, user):
+            self.message = f"Current opponent for user {user} not found."
 
     # Custom exception for finding multiple matchups for a user
     class MultipleMatchupsFound(discord.ext.commands.CommandError):
@@ -275,14 +280,95 @@ class OTH(WesCog):
 ######################## Woppa Cup ########################
 
     # Posts the current woppacup matchup score for the given user
-    @commands.command(name="woppacup")
-    async def woppacup(self, ctx, user):
-        # TODO: Find a way to make this work even though challonge
-        #       API doesn't support multi-part tournaments. May
-        #       make a comeback for 2020-2021 because no group stage.
-        pass
+    @commands.command(name="woppacup", aliases=["cup", "wc"])
+    async def woppacup(self, ctx, user, division = None):
+        user = user.lower()
+        if division != None:
+            division = division.lower()
 
-    # TODO: Flairing users. Not necessary for v2 but nice to have.
+        challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
+        wc22_id = 10278241 # TODO: hard-coded for now. Need a way to update annually easily.
+
+        participants = challonge.participants.index(wc22_id)
+        me = opp = None
+        for p in participants:
+            if p["name"].lower().split(".")[-1] == user and (division == None or p["name"].lower().split(".")[0]):
+                me = p
+                break
+
+        if me == None:
+            raise self.UserNotFound(user, "(woppa cup)")
+
+        for m in challonge.matches.index(wc22_id):
+            # Skip completed matches, because we only want the current one
+            if m["state"] != "open":
+                continue
+
+            # See if this match has the right player
+            p1id = m["player1_id"]
+            p2id = m["player2_id"]
+            opp_id = None
+
+            if p1id == me["id"] or p1id in me["group_player_ids"]:
+                opp_id = p2id
+            elif p2id == me["id"] or p2id in me["group_player_ids"]:
+                opp_id = p1id
+            else:
+                continue
+
+            # Get the opponent from the participants list
+            for p in participants:
+                if opp_id == p["id"] or opp_id in p["group_player_ids"]:
+                    opp = p
+                    break
+
+            if opp == None:
+                raise self.WoppaCupOpponentNotFound(user)
+
+            me_div, _, me_name = me["name"].split(".")
+            opp_div, _, opp_name = opp["name"].split(".")
+
+            # await ctx.send(f"Matchup is {me_name} vs {opp_name}")
+
+            # Get the user matchup from the database
+            me_matchup = get_user_matchup_from_database(me_name, me_div)
+            if len(me_matchup) == 0:
+                raise self.UserNotFound(me_name, me_div)
+            if len(me_matchup) > 1:
+                raise self.MultipleMatchupsFound(me_name)
+            me_matchup = me_matchup[0]
+
+            # Get the opponent matchup from the database
+            opp_matchup = get_user_matchup_from_database(opp_name, opp_div)
+            if len(opp_matchup) == 0:
+                raise self.UserNotFound(opp_name, opp_div)
+            if len(opp_matchup) > 1:
+                raise self.MultipleMatchupsFound(opp_name)
+            opp_matchup = opp_matchup[0]
+
+            # Format a matchup embed to send
+            msg = f"{me_matchup['name']}: **{me_matchup['PF']}**\n"
+            msg += f"{opp_matchup['name']}: **{opp_matchup['PF']}**"
+            # TODO: Add link to one of both of the matchups
+            embed = discord.Embed(title=msg, url=None)
+
+            await ctx.send(embed=embed)
+            break # Only show the first "open" match because that's the one happening this week. Should work the whole way through...
+
+    # TODO: Special casing for two-week matchups.
+
+    @woppacup.error
+    async def woppacup_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Usage: `!matchup [fleaflicker username]`")
+        elif isinstance(error, self.UserNotFound):
+            await ctx.send(error.message)
+        elif isinstance(error, self.WoppaCupOpponentNotFound):
+            await ctx.send(error.message)
+        elif isinstance(error, self.MultipleMatchupsFound):
+            await ctx.send(error.message)
+        else:
+            await ctx.send(error)
 
 def setup(bot):
     bot.add_cog(OTH(bot))

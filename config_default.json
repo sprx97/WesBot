@@ -1,6 +1,6 @@
 {
 	"srcroot": "/var/www/DiscordBot",
-	"year": "2020",
+	"year": "2021",
 
 	"sql_hostname": "localhost",
 	"sql_username": "", // update this to be your local mysql username
@@ -8,5 +8,8 @@
 	"sql_dbname": "OldTimeHockey",
 
 	"discord_token": "", // update this to be your discord bot token from the devloper portal
-	"beta_discord_token": "" // second bot token for if you're running a beta version
+	"beta_discord_token": "", // second bot token for if you're running a beta version
+
+	"challonge_username": "", // for accessing woppa cup matchups
+	"challonge_api_key": "" // for accessing woppa cup matchups
 }
