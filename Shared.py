@@ -230,6 +230,12 @@ def get_user_matchup_from_database(user, division=None):
     if user == "doodoosteve":
         user = "voodoosteve"
 
+    if user == "sprx":
+        user = "sprx97"
+    
+    if user == "planks":
+        user = "twoplanks"
+
     cursor = DB.cursor()
 
     query = "SELECT me_u.FFname as name, me.currentWeekPF as PF, opp_u.FFname as opp_name, opp.currentWeekPF as opp_PF, me.leagueID as league_id, me.matchupID as matchup_id, " + \

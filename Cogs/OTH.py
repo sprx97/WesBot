@@ -292,12 +292,12 @@ class OTH(WesCog):
         participants = challonge.participants.index(wc22_id)
         me = opp = None
         for p in participants:
-            if p["name"].lower().split(".")[-1] == user and (division == None or p["name"].lower().split(".")[0]):
+            if p["name"].lower().split(".")[-1] == user and (division == None or division == p["name"].lower().split(".")[0]):
                 me = p
                 break
 
         if me == None:
-            raise self.UserNotFound(user, "(woppa cup)")
+            raise self.UserNotFound(user, division)
 
         for m in challonge.matches.index(wc22_id):
             # Skip completed matches, because we only want the current one
@@ -328,7 +328,10 @@ class OTH(WesCog):
             me_div, _, me_name = me["name"].split(".")
             opp_div, _, opp_name = opp["name"].split(".")
 
-            # await ctx.send(f"Matchup is {me_name} vs {opp_name}")
+            if me_div == "Luuuuu":
+                me_div = "Luuuuuuu"
+            if opp_div == "Luuuuu":
+                opp_div = "Luuuuuuu"
 
             # Get the user matchup from the database
             me_matchup = get_user_matchup_from_database(me_name, me_div)
