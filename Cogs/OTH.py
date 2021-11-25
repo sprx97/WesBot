@@ -282,7 +282,7 @@ class OTH(WesCog):
     # Posts the current woppacup matchup score for the given user
     @commands.command(name="woppacup", aliases=["cup", "wc"])
     async def woppacup(self, ctx, user, division = None):
-        user = user.lower()
+        user = sanitize_user(user)
         if division != None:
             division = division.lower()
 

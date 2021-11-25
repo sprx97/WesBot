@@ -222,8 +222,7 @@ def get_leagues_from_database(year):
 
     return leagues
 
-# Grabs the current score and opponent's current score for the given username
-def get_user_matchup_from_database(user, division=None):
+def sanitize_user(user):
     user = user.lower()
 
     # For the lulz
@@ -235,6 +234,12 @@ def get_user_matchup_from_database(user, division=None):
     
     if user == "planks":
         user = "twoplanks"
+
+    return user
+
+# Grabs the current score and opponent's current score for the given username
+def get_user_matchup_from_database(user, division=None):
+    user = sanitize_user(user)
 
     cursor = DB.cursor()
 
