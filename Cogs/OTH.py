@@ -287,9 +287,9 @@ class OTH(WesCog):
             division = division.lower()
 
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-        wc22_id = 10278241 # TODO: hard-coded for now. Need a way to update annually easily.
+        wc_id = 10278241 # TODO: hard-coded for now. Need a way to update annually easily. Can be found in the URL of the "report" button on the tourney page
 
-        participants = challonge.participants.index(wc22_id)
+        participants = challonge.participants.index(wc_id)
         me = opp = None
         for p in participants:
             if p["name"].lower().split(".")[-1] == user and (division == None or division == p["name"].lower().split(".")[0]):
@@ -299,7 +299,7 @@ class OTH(WesCog):
         if me == None:
             raise self.UserNotFound(user, division)
 
-        for m in challonge.matches.index(wc22_id):
+        for m in challonge.matches.index(wc_id):
             # Skip completed matches, because we only want the current one
             if m["state"] != "open":
                 continue
