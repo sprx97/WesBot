@@ -287,7 +287,7 @@ class OTH(WesCog):
             division = division.lower()
 
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-        wc_id = 10278241 # TODO: hard-coded for now. Need a way to update annually easily. Can be found in the URL of the "report" button on the tourney page
+        wc_id = 10521685 # TODO: hard-coded for now. Need a way to update annually easily. Can be found in the URL of the "report" button on the tourney page
 
         participants = challonge.participants.index(wc_id)
         me = opp = None
