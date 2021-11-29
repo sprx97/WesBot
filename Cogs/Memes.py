@@ -35,7 +35,7 @@ class Memes(WesCog):
                        "kids fuckin dirt nasty man. Does fuckin ovi have 14 goals this season I dont fuckin think so bud. I'm fuckin tellin ya Patrik 'golden flow' " + \
                        "Laine is pottin 50 in '17 fuckin callin it right now. Clap bombs, fuck moms, wheel, snipe, and fuckin celly boys fuck")
 
-    @commands.command(name="xfactor")
+    @commands.command(name="xfactor", aliases=["groodles"])
     @commands.cooldown(1, 60.0, commands.BucketType.guild) # 1 use per minute per guild
     @is_OTH_guild()
     async def xfactor(self, ctx):
