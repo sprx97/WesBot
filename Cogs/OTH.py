@@ -325,8 +325,12 @@ class OTH(WesCog):
             if opp == None:
                 raise self.WoppaCupOpponentNotFound(user)
 
-            me_div, _, me_name = me["name"].split(".")
-            opp_div, _, opp_name = opp["name"].split(".")
+            me = me["name"].split(".")
+            me_div = me[0]
+            me_name = me[-1]
+            opp = opp["name"].split(".")
+            opp_div = opp[0]
+            opp_name = opp[-1]
 
             if me_div == "Luuuuu":
                 me_div = "Luuuuuuu"
