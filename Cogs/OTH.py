@@ -362,7 +362,8 @@ class OTH(WesCog):
             await ctx.send(embed=embed)
             break # Only show the first "open" match because that's the one happening this week. Should work the whole way through...
 
-    # TODO: Special casing for two-week matchups.
+    # TODO: Special casing for two-week matchups. If it's a semifinal or final, there should only be < 3 matches left in the tournament.
+    #       that may be a way to know for sure. Then we'd just have to display the sum of currentWeekPF and PrevWeekPF from the DB
 
     @woppacup.error
     async def woppacup_error(self, ctx, error):
