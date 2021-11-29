@@ -228,12 +228,16 @@ def sanitize_user(user):
     # For the lulz
     if user == "doodoosteve":
         user = "voodoosteve"
-
-    if user == "sprx":
+    elif user == "sprx":
         user = "sprx97"
-    
-    if user == "planks":
+    elif user == "planks":
         user = "twoplanks"
+    elif user == "yoshi":
+        user = "yoshirider2709"
+    elif user == "coyle":
+        user = "coyle1096"
+    elif user == "chizzle":
+        user = "ch1zzle"
 
     return user
 
