@@ -49,7 +49,8 @@ class Debug(WesCog):
             await ctx.send("I'm Wes McCauley, the official referee of /r/OldTimeHockey. Here are some of the commands I respond to:\n" + \
                             "**`!help`**\n\tDisplays this list of commands.\n" + \
                             "**`!ping` or `!pong`**\n\tGets a response to check that bot is up.\n" + \
-                            "**`!matchup [fleaflicker username]`**\n\tPosts the score of the user's fantasy matchup this week.\n" + \
+                            "**`!matchup [fleaflicker username]`**\n\tPosts the score of the user's fantasy matchup this week. Optionally takes a division argument.\n" + \
+                            "**`!wc [fleaflicker username]`**\n\tPosts the score of the user's Woppa Cup matchup this week. Optionally takes a division argument.\n" + \
                             "**`!score [NHL team]`**\n\tPosts the score of the given NHL team's game tonight. Accepts a variety of nicknames and abbreviations.\n" + \
                             "**`!ot [NHL team] [player name/number]`**\n\tAllows you to predict a player to score the OT winner.\n\tMust be done between 5 minutes left" + \
                             "in the 3rd period and the start of OT of a tied game.\n\tCan only guess one player per game.\n" + \

@@ -368,7 +368,7 @@ class OTH(WesCog):
     @woppacup.error
     async def woppacup_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Usage: `!matchup [fleaflicker username]`")
+            await ctx.send("Usage: `!wc [fleaflicker username]`")
         elif isinstance(error, self.UserNotFound):
             await ctx.send(error.message)
         elif isinstance(error, self.WoppaCupOpponentNotFound):
