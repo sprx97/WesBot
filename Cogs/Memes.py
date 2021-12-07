@@ -102,6 +102,12 @@ class Memes(WesCog):
     async def cat(self, ctx):
         await ctx.send("https://images-ext-1.discordapp.net/external/jqBbbyFVQk10FI3TZlQS1GV2LNg8COT2TLw-9ckFqWM/https/media.discordapp.net/attachments/507616755510673409/744726226786320454/3x.gif")
 
+    @commands.command(name="darn", aliases=["bruce", "gabby", "brucedarn"])
+    @commands.cooldown(1, 60.0, commands.BucketType.user) # 1 use per minute per user
+    @is_OTH_guild()
+    async def darn(self, ctx):
+        await ctx.send("https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.id == MINNE_USER_ID and " wes " in (message.content + " ").lower().replace(".", " "):
