@@ -226,7 +226,7 @@ def sanitize_user(user):
     user = user.lower()
 
     # For the lulz
-    if user == "doodoosteve":
+    if user == "doodoosteve" or user == "dookie":
         user = "voodoosteve"
     elif user == "sprx":
         user = "sprx97"
