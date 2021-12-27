@@ -282,6 +282,10 @@ class OTH(WesCog):
     # Posts the current woppacup matchup score for the given user
     @commands.command(name="woppacup", aliases=["cup", "wc"])
     async def woppacup(self, ctx, user, division = None):
+        # Temp override. Will remove in a few weeks.
+        await ctx.send("WoppaCup is on pause due to COVID breaks. Contact Woppa for more info.")
+        return
+
         user = sanitize_user(user)
         if division != None:
             division = division.lower()
