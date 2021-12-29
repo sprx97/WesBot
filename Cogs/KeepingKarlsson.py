@@ -137,12 +137,12 @@ class KeepingKarlsson(WesCog):
             # If the last message in the league channel was more than 3 days ago, ping the zebra channel
             last_message = (await channel.history(limit=1).flatten())[0]
             last_message_delta = datetime.utcnow() - last_message.created_at
-            if last_message_delta > timedelta(hours=72):
+            if last_message_delta > timedelta(hours=120):
                 found = False
                 for role in self.bot.get_guild(KK_GUILD_ID).roles:
                     role_name = role.name.lower()
                     if channel_name in role_name:
-                        await cocommishes_channel.send(f"No activity in last 72 hours in {role.mention}")
+                        await cocommishes_channel.send(f"No activity in last 5 days in {role.mention}")
                         found = True
                         break
                 if not found:
