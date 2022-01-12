@@ -50,6 +50,7 @@ class KeepingKarlsson(WesCog):
 
     @commands.command(name="fttop", aliases=["fasttracktop"])
     @is_KK_guild()
+    @is_botspam_channel()
     async def fttop(self, ctx, year=None):
         # Open the fasttrack gsheet
         sheet = self.PYGS.open_by_key("1ob_tgG0lIk7THn6V6ksWIGZNLnxEYQfRAC2n4jeiNZ4")
@@ -64,6 +65,7 @@ class KeepingKarlsson(WesCog):
 
     @commands.command(name="ft", aliases=["fasttrack"])
     @is_KK_guild()
+    @is_botspam_channel()
     async def ft(self, ctx, member: discord.Member=None, year=None):
         # Open the fasttrack gsheet and find the author
         sheet = self.PYGS.open_by_key("1ob_tgG0lIk7THn6V6ksWIGZNLnxEYQfRAC2n4jeiNZ4")

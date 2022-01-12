@@ -112,7 +112,8 @@ COCOMMISHES_CHANNEL_ID = 881011290141757480
 MAKE_A_THREAD_CATEGORY_ID = 744981120311099422
 GUAVAS_AND_APPLES_CHANNEL_ID = 747906611959562280
 LIVE_GAME_CHAT_CHANNEL_ID = 745031984601890906
-BOTSPAM_CHANNEL_ID = 788079428629692417
+ZEBRA_BOTSPAM_CHANNEL_ID = 788079428629692417
+BOTSPAM_CHANNEL_ID = 898663635147186217
 # KK_OT_CHALLENGE_CHANNEL_ID = 805021649799741480
 
 TEST_GENERAL_CHANNEL_ID = 403805619175292931
@@ -339,7 +340,12 @@ def is_KK_guild():
 
 def is_tech_channel():
     def check(ctx):
-        return ctx.message.channel.id == OTH_TECH_CHANNEL_ID or ctx.message.channel.id == BOTSPAM_CHANNEL_ID or ctx.message.guild.id == TEST_GUILD_ID
+        return ctx.message.channel.id == OTH_TECH_CHANNEL_ID or ctx.message.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID or ctx.message.guild.id == TEST_GUILD_ID
+    return commands.check(check)
+
+def is_botspam_channel():
+    def check(ctx):
+        return ctx.message.channel.id == BOTSPAM_CHANNEL_ID
     return commands.check(check)
 
 def is_tradereview_channel():
