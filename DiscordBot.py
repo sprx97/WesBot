@@ -46,7 +46,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.reactions = True
 
-bot = Wes(command_prefix="!", case_insensitive=True, intents=intents, heartbeat_timeout = 120)
+bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout = 120)
 
 @bot.event
 async def on_connect():
@@ -59,9 +59,6 @@ async def on_connect():
 async def on_disconnect():
     days, hours, minutes, seconds = bot.calculate_uptime()
     bot.log.info(f"Bot disconnected after {days} day(s), {hours} hour(s), {minutes} minute(s), {seconds} seconds(s).")
-
-# Remove default help command
-bot.remove_command("help")
 
 bot.load_extension("Cogs.Debug")
 bot.load_extension("Cogs.KeepingKarlsson")
