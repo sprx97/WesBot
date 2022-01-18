@@ -283,7 +283,7 @@ class OTH(WesCog):
     @commands.command(name="woppacup", aliases=["cup", "wc"])
     async def woppacup(self, ctx, user, division = None):
         # Temp override. Will remove in a few weeks.
-        await ctx.send("WoppaCup is on pause due to COVID breaks. Contact Woppa for more info.")
+        await ctx.send("WoppaCup is on pause due to COVID outbreaks. It will resume in fleaflicker Week 16. Contact Woppa for more info.")
         return
 
         user = sanitize_user(user)
