@@ -108,6 +108,18 @@ class Memes(WesCog):
     async def darn(self, ctx):
         await ctx.send("https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif")
 
+    @commands.command(name="fuck")
+    @commands.cooldown(1, 60.0, commands.BucketType.user) # 1 use per minute per user
+    @is_OTH_guild()
+    async def fuck(self, ctx):
+        await ctx.send("Bruce Boudreau would not approve of such language. Please try `!darn` instead.")
+
+    @commands.command(name="tuukka", aliases=["rask"])
+    @commands.cooldown(1, 60.0, commands.BucketType.user) # 1 use per minute per user
+    @is_OTH_guild()
+    async def tuukka(self, ctx):
+        await ctx.send("https://media.discordapp.net/attachments/507616755510673409/933173217781219338/unknown.gif")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.id == MINNE_USER_ID and " wes " in (message.content + " ").lower().replace(".", " "):
