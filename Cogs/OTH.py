@@ -107,7 +107,7 @@ class OTH(WesCog):
             # Display drops too
             if "playersReleased" in team:
                 for player in team["playersReleased"]:
-                    players += "**Dropping** " + player["proPlayer"]["nameFull"] + "\n"
+                    players += "*Dropping* " + player["proPlayer"]["nameFull"] + "\n"
 
             embed.add_field(name=f"**{team['team']['name']}** gets", value=players)
 
