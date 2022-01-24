@@ -145,7 +145,7 @@ class OTH(WesCog):
                 trade_embed = self.format_trade(league, trade)
                 await trades_channel.send(f"<@&{TRADEREVIEW_ROLE_ID}>", embed=trade_embed)
                 count += 1
-                
+
                 # Append this trade ID to the list of trades already covered
                 f.write(str(trade["id"]) + "\n")
 
@@ -258,7 +258,7 @@ class OTH(WesCog):
                         self.log.info(f"Adding roles {div} and {league} to {name}")
                         await member.add_roles(role_ids[div], role_ids[league])
                     break
-  
+
     @roles.error
     async def roles_error(self, ctx, error):
         await ctx.send(error)
@@ -281,10 +281,6 @@ class OTH(WesCog):
     # Posts the current woppacup matchup score for the given user
     @commands.command(name="woppacup", aliases=["cup", "wc"])
     async def woppacup(self, ctx, user, division = None):
-        # Temp override. Will remove in a few weeks.
-        await ctx.send("WoppaCup is on pause due to COVID outbreaks. It will resume in fleaflicker Week 16. Contact Woppa for more info.")
-        return
-
         user = sanitize_user(user)
         if division != None:
             division = division.lower()
