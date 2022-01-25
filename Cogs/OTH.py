@@ -355,8 +355,13 @@ class OTH(WesCog):
             # Format a matchup embed to send
             msg = f"{me_matchup['name']}: **{me_matchup['PF']}**\n"
             msg += f"{opp_matchup['name']}: **{opp_matchup['PF']}**"
-            # TODO: Add link to one of both of the matchups
-            embed = discord.Embed(title=msg, url=None)
+
+            # Link is just to opponent's matchup, since that's what most people will be interested in
+            # Discord does not support having two different URLs in an embed.
+            link = f"https://www.fleaflicker.com/nhl/leagues/{opp_matchup['league_id']}/scores/{opp_matchup['matchup_id']}"
+
+            embed = discord.Embed(title=msg, url=link)
+            embed.set_footer(text=f"(Link is to opponent's matchup)")
 
             await ctx.send(embed=embed)
             break # Only show the first "open" match because that's the one happening this week. Should work the whole way through...
