@@ -282,7 +282,20 @@ class Scoreboard(WesCog):
             strength = self.get_goal_strength(playbyplay, goal)
 
             # Find the team that scored the goal
-            team_code = goal["team"]["triCode"]
+            try:
+                team_code = goal["team"]["triCode"]
+            except:
+                team_id = goal["team"]["id"]
+                if team_id == 87:
+                    team_code = "ATL"
+                elif team_id == 88:
+                    team_code = "MET"
+                elif team_id == 89:
+                    team_code = "CEN"
+                elif team_id == 90:
+                    team_code = "PAC"
+                else:
+                    self.log.error(f"Unknown team of id {team_id} at link https://statsapi.web.nhl.com{playbyplay['link']}")
             team = f"{get_emoji(team_code)} {team_code}"
 
             # Find the period and time the goal was scored in

@@ -46,6 +46,10 @@ team_map["van"] = team_map["vancouver"] = team_map["canucks"] = team_map["nucks"
 team_map["vgk"] = team_map["vegas"] = team_map["las vegas"] = team_map["golden knights"] = team_map["knights"]              = "VGK"
 team_map["wsh"] = team_map["was"] = team_map["washington"] = team_map["capitals"] = team_map["caps"]                        = "WSH"
 team_map["wpj"] = team_map["wpg"] = team_map["winnipeg"] = team_map["jets"]                                                 = "WPG"
+team_map["atl"] = team_map["atlantic"] = team_map["team atlantic"]                                                          = "ATL"
+team_map["cen"] = team_map["central"] = team_map["team central"]                                                            = "CEN"
+team_map["met"] = team_map["metropolitan"] = team_map["team metropolitan"]                                                  = "MET"
+team_map["pac"] = team_map["pacific"] = team_map["team pacific"]                                                            = "PAC"
 
 emojis = {}
 emojis["ARI"] = "<:ARI:269315353153110016>"
@@ -84,6 +88,10 @@ emojis["WPG"] = "<:WPJ:269315448833703946>"
 emojis["WPJ"] = "<:WPJ:269315448833703946>"
 emojis["goal"] = "<a:goalsiren:750190349963624510>"
 emojis["parros"] = "<:parros:372533524286275597>"
+emojis["ATL"] = ""
+emojis["CEN"] = ""
+emojis["MET"] = ""
+emojis["PAC"] = ""
 
 role_ids = {}
 
