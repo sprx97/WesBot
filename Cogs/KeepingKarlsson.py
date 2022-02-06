@@ -94,6 +94,16 @@ class KeepingKarlsson(WesCog):
         embed = await self.fasttrack_core(worksheet, author, rowstart, rowend)
         await ctx.channel.send(embed=embed)
 
+    @commands.command(name="unlock")
+    @is_KK_guild()
+    async def unlock(self, ctx):
+        if ctx.channel.category and ctx.channel.category.id == MAKE_A_THREAD_CATEGORY_ID:
+            for role_name in [PATRONS_ROLE_ID, PARTONS_ROLE_ID]:
+                role = self.bot.get_guild(KK_GUILD_ID).get_role(role_name)
+                perms = channel.overwrites_for(role)
+                perms.send_messages=True
+                await channel.set_permissions(role, overwrite=perms)
+
     # Thread management loop
     @tasks.loop(hours=1.0)
     async def check_threads_loop(self):
@@ -105,10 +115,10 @@ class KeepingKarlsson(WesCog):
             if last_message_delta > timedelta(hours=24) and "tkeep" not in channel.name and last_message.author != self.bot.user:
                 self.log.info(f"{channel.name} is stale.")
                 for role_name in [PATRONS_ROLE_ID, PARTONS_ROLE_ID]:
-                        role = self.bot.get_guild(KK_GUILD_ID).get_role(role_name)
-                        perms = channel.overwrites_for(role)
-                        perms.send_messages=False
-                        await channel.set_permissions(role, overwrite=perms)
+                    role = self.bot.get_guild(KK_GUILD_ID).get_role(role_name)
+                    perms = channel.overwrites_for(role)
+                    perms.send_messages=False
+                    await channel.set_permissions(role, overwrite=perms)
                 await channel.send("This thread has been locked due to 24h of inactivity, and will be deleted in 12 hours. Tag @zebra in #tech-support if you'd like to keep the thread open longer.")
             # If the last message was more than 12 hours ago by this bot, delete the thread
             elif last_message_delta > timedelta(hours=12) and "tkeep" not in channel.name and last_message.author == self.bot.user:
