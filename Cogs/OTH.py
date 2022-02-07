@@ -281,6 +281,10 @@ class OTH(WesCog):
     # Posts the current woppacup matchup score for the given user
     @commands.command(name="woppacup", aliases=["cup", "wc"])
     async def woppacup(self, ctx, user, division = None):
+        # Temp override for weeks where it's paused. Update the text as necessary.
+        # await ctx.send(f"WoppaCup is on pause due to the short All-Star week. It will resume in fleaflicker week 18. Contact Woppa for more info.")
+        # return
+
         user = sanitize_user(user)
         if division != None:
             division = division.lower()
