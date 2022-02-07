@@ -100,9 +100,9 @@ class KeepingKarlsson(WesCog):
         if ctx.channel.category and ctx.channel.category.id == MAKE_A_THREAD_CATEGORY_ID:
             for role_name in [PATRONS_ROLE_ID, PARTONS_ROLE_ID]:
                 role = self.bot.get_guild(KK_GUILD_ID).get_role(role_name)
-                perms = channel.overwrites_for(role)
+                perms = ctx.channel.overwrites_for(role)
                 perms.send_messages=True
-                await channel.set_permissions(role, overwrite=perms)
+                await ctx.channel.set_permissions(role, overwrite=perms)
 
     # Thread management loop
     @tasks.loop(hours=1.0)
