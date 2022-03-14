@@ -311,11 +311,21 @@ class OTH(WesCog):
             p1id = m["player1_id"]
             p2id = m["player2_id"]
             opp_id = None
+            me_prev = 0
+            opp_prev = 0
 
             if p1id == me["id"] or p1id in me["group_player_ids"]:
                 opp_id = p2id
+                if m["scores_csv"] != "":
+                    scores = m["scores_csv"].split("-")
+                    me_prev = int(scores[0])/100.0
+                    opp_prev = int(scores[1])/100.0
             elif p2id == me["id"] or p2id in me["group_player_ids"]:
                 opp_id = p1id
+                if m["scores_csv"] != "":
+                    scores = m["scores_csv"].split("-")
+                    opp_prev = int(scores[0])/100.0
+                    me_prev = int(scores[1])/100.0
             else:
                 continue
 
@@ -357,8 +367,8 @@ class OTH(WesCog):
             opp_matchup = opp_matchup[0]
 
             # Format a matchup embed to send
-            msg = f"{me_matchup['name']}: **{me_matchup['PF']}**\n"
-            msg += f"{opp_matchup['name']}: **{opp_matchup['PF']}**"
+            msg = f"{me_matchup['name']}: **{me_matchup['PF'] + me_prev}**\n"
+            msg += f"{opp_matchup['name']}: **{opp_matchup['PF'] + opp_prev}**"
 
             # Link is just to opponent's matchup, since that's what most people will be interested in
             # Discord does not support having two different URLs in an embed.
