@@ -367,8 +367,8 @@ class OTH(WesCog):
             opp_matchup = opp_matchup[0]
 
             # Format a matchup embed to send
-            msg = f"{me_matchup['name']}: **{me_matchup['PF'] + me_prev}**\n"
-            msg += f"{opp_matchup['name']}: **{opp_matchup['PF'] + opp_prev}**"
+            msg = f"{me_matchup['name']}: **{round(me_matchup['PF'] + me_prev, 2)}**\n"
+            msg += f"{opp_matchup['name']}: **{round(opp_matchup['PF'] + opp_prev, 2)}**"
 
             # Link is just to opponent's matchup, since that's what most people will be interested in
             # Discord does not support having two different URLs in an embed.
@@ -384,9 +384,6 @@ class OTH(WesCog):
         if opp == None:
             raise self.WoppaCupOpponentNotFound(user)
 
-
-    # TODO: Special casing for two-week matchups. If it's a semifinal or final, there should only be < 3 matches left in the tournament.
-    #       that may be a way to know for sure. Then we'd just have to display the sum of currentWeekPF and PrevWeekPF from the DB
 
     @woppacup.error
     async def woppacup_error(self, ctx, error):
