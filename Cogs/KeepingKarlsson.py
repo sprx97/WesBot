@@ -138,6 +138,8 @@ class KeepingKarlsson(WesCog):
     # League activity checker loop
     @tasks.loop(hours=24.0)
     async def check_league_activity_loop(self):
+        return # Disabled for offseason -- should be able to put a command to enable/disable this and give Brelan permissions too
+
         cocommishes_channel = self.bot.get_guild(KK_GUILD_ID).get_channel(COCOMMISHES_CHANNEL_ID)
         for channel in self.bot.get_guild(KK_GUILD_ID).channels:
             # Only look at league-specific chat channels
