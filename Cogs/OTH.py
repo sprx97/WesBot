@@ -39,6 +39,8 @@ class OTH(WesCog):
 
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
+        return # disabled for the offseason
+
         channel = self.bot.get_channel(MODS_CHANNEL_ID)
         leagues = get_leagues_from_database(Config.config["year"])
         for league in leagues:
