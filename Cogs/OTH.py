@@ -15,9 +15,15 @@ class OTH(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+    async def cog_load(self):
+        self.bot.loop.create_task(self.start_loops())
+
+    async def start_loops(self):
         self.trades_loop.start()
+        self.loops.append(self.trades_loop)
+
         self.inactives_loop.start()
-        self.loops = [self.trades_loop, self.inactives_loop]
+        self.loops.append(self.inactives_loop)
 
 ######################## Cog-specific Exceptions ########################
 
@@ -400,5 +406,5 @@ class OTH(WesCog):
         else:
             await ctx.send(error)
 
-def setup(bot):
-    bot.add_cog(OTH(bot))
+async def setup(bot):
+    await bot.add_cog(OTH(bot))

@@ -1,4 +1,5 @@
 # Discord Libraries
+from discord import app_commands
 from discord.ext import commands
 
 # Python Libraries
@@ -14,8 +15,12 @@ class Debug(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+    async def cog_load(self):
+        self.bot.loop.create_task(self.start_loops())
+
+    async def start_loops(self):
         self.rollover_loop.start()
-        self.loops = [self.rollover_loop]
+        self.loops.append(self.rollover_loop)
 
     # Basic call-and-response commands to test if bot is working.
     @commands.command(name="ping")
@@ -95,7 +100,7 @@ class Debug(WesCog):
         await ctx.send(msg = "Failure in kill: " + str(error))
 
     async def reload_single_cog(self, ctx, cog):
-        self.bot.reload_extension(f"Cogs.{cog}")
+        await self.bot.reload_extension(f"Cogs.{cog}")
         await ctx.send(f"Cogs.{cog} successfully reloaded.")
         self.log.info(f"Reloaded Cogs.{cog}.")
 
@@ -168,5 +173,5 @@ class Debug(WesCog):
         except:
             await ctx.send(f"Could not find file {cog}.log.")
 
-def setup(bot):
-    bot.add_cog(Debug(bot))
+async def setup(bot):
+    await bot.add_cog(Debug(bot))

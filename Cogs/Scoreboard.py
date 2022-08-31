@@ -18,8 +18,12 @@ class Scoreboard(WesCog):
 
         self.messages_lock = asyncio.Lock()
 
+    async def cog_load(self):
+        self.bot.loop.create_task(self.start_loops())
+
+    async def start_loops(self):
         self.scores_loop.start()
-        self.loops = [self.scores_loop]
+        self.loops.append(self.scores_loop)
 
     class ChannelNotFound(discord.ext.commands.CommandError):
         def __init__(self, id):
@@ -479,5 +483,5 @@ class Scoreboard(WesCog):
         await self.cog_command_error(None, error)
         self.scores_loop.restart()
 
-def setup(bot):
-    bot.add_cog(Scoreboard(bot))
+async def setup(bot):
+    await bot.add_cog(Scoreboard(bot))

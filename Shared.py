@@ -176,8 +176,8 @@ class WesCog(commands.Cog):
         role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
         role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
 
-    # Cancels all running loops
-    def cog_unload(self):
+    # Cancels all running tasks
+    async def cog_unload(self):
         for loop in self.loops:
             loop.cancel()
 
@@ -353,7 +353,7 @@ def is_tech_channel():
 
 def is_botspam_channel():
     def check(ctx):
-        return ctx.message.channel.id == BOTSPAM_CHANNEL_ID
+        return ctx.message.channel.id == BOTSPAM_CHANNEL_ID or ctx.message.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID
     return commands.check(check)
 
 def is_tradereview_channel():

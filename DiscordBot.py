@@ -1,12 +1,12 @@
-# Discord Libraries
-import discord
-from discord.ext import commands
-
 # Python Libaries
 from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
+
+# Discord Libraries
+import discord
+from discord.ext import commands
 
 # Local Includes
 from Shared import *
@@ -42,9 +42,18 @@ class Wes(commands.Bot):
 
         return uptime.days, hours, minutes, seconds
 
+    async def setup_hook(self):
+        await bot.load_extension("Cogs.Debug")
+        await bot.load_extension("Cogs.KeepingKarlsson")
+        await bot.load_extension("Cogs.Memes")
+        await bot.load_extension("Cogs.OTChallenge")
+        await bot.load_extension("Cogs.OTH")
+        await bot.load_extension("Cogs.Scoreboard")
+
 intents = discord.Intents.default()
 intents.members = True
 intents.reactions = True
+intents.message_content = True
 
 bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout = 120)
 
@@ -52,20 +61,14 @@ bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=
 async def on_connect():
     bot.start_timestamp = datetime.utcnow()
     await bot.change_presence(activity=discord.Game(name="NHL '94"))
-    await bot.user.edit(username="Wes McCauley") # avatar=fp.read()
+    await bot.user.edit(username="Wes McCauley") 
+    # avatar=fp.read()
     bot.log.info("Bot started.")
 
 @bot.event
 async def on_disconnect():
     days, hours, minutes, seconds = bot.calculate_uptime()
     bot.log.info(f"Bot disconnected after {days} day(s), {hours} hour(s), {minutes} minute(s), {seconds} seconds(s).")
-
-bot.load_extension("Cogs.Debug")
-bot.load_extension("Cogs.KeepingKarlsson")
-bot.load_extension("Cogs.Memes")
-bot.load_extension("Cogs.OTChallenge")
-bot.load_extension("Cogs.OTH")
-bot.load_extension("Cogs.Scoreboard")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

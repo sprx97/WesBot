@@ -16,9 +16,15 @@ class KeepingKarlsson(WesCog):
 
         self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_KK.json")
 
+    async def cog_load(self):
+        self.bot.loop.create_task(self.start_loops())
+
+    async def start_loops(self):
         self.check_threads_loop.start()
+        self.loops.append(self.check_threads_loop)
+
         self.check_league_activity_loop.start()
-        self.loops = [self.check_league_activity_loop, self.check_threads_loop]
+        self.loops.append(self.check_league_activity_loop)
 
     # fasttrack leaderboard
     async def fasttrack_core(self, worksheet, author, rowstart, rowend):
@@ -108,8 +114,8 @@ class KeepingKarlsson(WesCog):
     @tasks.loop(hours=1.0)
     async def check_threads_loop(self):
         for channel in self.bot.get_channel(MAKE_A_THREAD_CATEGORY_ID).text_channels[1:]:
-            last_message = (await channel.history(limit=1).flatten())[0]
-            last_message_delta = datetime.utcnow() - last_message.created_at
+            last_message = [messages async for messages in channel.history(limit=1)][0]
+            last_message_delta = datetime.utcnow() - last_message.created_at.replace(tzinfo=datetime.timezone.utc)
 
             # If the last message in the threads was more than a day ago and we aren't keeping it, lock it and mark for removal
             if last_message_delta > timedelta(hours=24) and "tkeep" not in channel.name and last_message.author != self.bot.user:
@@ -149,8 +155,8 @@ class KeepingKarlsson(WesCog):
             channel_name = channel_name.split("-")[2]
 
             # If the last message in the league channel was more than 3 days ago, ping the zebra channel
-            last_message = (await channel.history(limit=1).flatten())[0]
-            last_message_delta = datetime.utcnow() - last_message.created_at
+            last_message = [messages async for messages in channel.history(limit=1)][0]
+            last_message_delta = datetime.utcnow() - last_message.created_at.replace(tzinfo=datetime.timezone.utc)
             if last_message_delta > timedelta(hours=120):
                 found = False
                 for role in self.bot.get_guild(KK_GUILD_ID).roles:
@@ -182,5 +188,5 @@ class KeepingKarlsson(WesCog):
         self.log.error(error)
 
 
-def setup(bot):
-    bot.add_cog(KeepingKarlsson(bot))
+async def setup(bot):
+    await bot.add_cog(KeepingKarlsson(bot))

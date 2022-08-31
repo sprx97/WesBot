@@ -127,5 +127,5 @@ class Memes(WesCog):
                                        "mean I'm going to do it. Being a keyboard tough guy making smart ass remarks doesn't " + \
                                        "make you funny or clever, just a coward hiding behind a computer")
 
-def setup(bot):
-    bot.add_cog(Memes(bot))
+async def setup(bot):
+    await bot.add_cog(Memes(bot))

@@ -159,7 +159,7 @@ class OTChallenge(WesCog):
             try:
                 goal = playbyplay["liveData"]["plays"]["scoringPlays"][-1]
                 goal = playbyplay["liveData"]["plays"]["allPlays"][goal]
-            except:
+            except Exception as e:
                 self.log.info(f"Failed to find GWG play. {str(e)}") # Just log, don't raise exception so we continue processing
                 continue
 
@@ -321,5 +321,5 @@ class OTChallenge(WesCog):
         else:
             await ctx.send(error)
 
-def setup(bot):
-    bot.add_cog(OTChallenge(bot))
+async def setup(bot):
+    await bot.add_cog(OTChallenge(bot))
