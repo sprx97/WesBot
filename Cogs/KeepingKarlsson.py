@@ -4,7 +4,7 @@ from discord.ext import commands, tasks
 
 # Python Libraries
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pygsheets
 
 # Local Includes
@@ -115,7 +115,7 @@ class KeepingKarlsson(WesCog):
     async def check_threads_loop(self):
         for channel in self.bot.get_channel(MAKE_A_THREAD_CATEGORY_ID).text_channels[1:]:
             last_message = [messages async for messages in channel.history(limit=1)][0]
-            last_message_delta = datetime.utcnow() - last_message.created_at.replace(tzinfo=datetime.timezone.utc)
+            last_message_delta = datetime.now(timezone.utc) - last_message.created_at
 
             # If the last message in the threads was more than a day ago and we aren't keeping it, lock it and mark for removal
             if last_message_delta > timedelta(hours=24) and "tkeep" not in channel.name and last_message.author != self.bot.user:
@@ -156,7 +156,7 @@ class KeepingKarlsson(WesCog):
 
             # If the last message in the league channel was more than 3 days ago, ping the zebra channel
             last_message = [messages async for messages in channel.history(limit=1)][0]
-            last_message_delta = datetime.utcnow() - last_message.created_at.replace(tzinfo=datetime.timezone.utc)
+            last_message_delta = datetime.now(timezone.utc) - last_message.created_at
             if last_message_delta > timedelta(hours=120):
                 found = False
                 for role in self.bot.get_guild(KK_GUILD_ID).roles:
