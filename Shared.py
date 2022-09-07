@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands, tasks
 
 # Python Libraries
+from datetime import datetime
 import pickle
 import pymysql
 import requests
@@ -217,6 +218,15 @@ class TeamDoesNotPlayToday(discord.ext.commands.CommandError):
         self.message = f"I do not think {team} plays today."
 
 ######################## Helper functions ########################
+
+# Returns the days, hours, minutes, and seconds since the bot was last initialized
+start_timestamp = datetime.utcnow()
+def calculate_uptime():
+    uptime = (datetime.utcnow() - start_timestamp)
+    hours, remainder = divmod(uptime.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return uptime.days, hours, minutes, seconds
 
 DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)
 DB.autocommit(True)

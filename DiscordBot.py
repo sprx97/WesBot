@@ -9,12 +9,12 @@ import discord
 from discord.ext import commands
 
 # Local Includes
-from Shared import *
+import Shared
 
 class Wes(commands.Bot):
     def __init__(self, *args, **kwargs):
         self.killed = False
-        self.start_timestamp = datetime.utcnow()
+        Shared.start_timestamp = datetime.utcnow()
         self.log = self.create_log("Bot")
         super(Wes, self).__init__(*args, **kwargs)
 
@@ -34,14 +34,6 @@ class Wes(commands.Bot):
 
         return logger
 
-    # Returns the days, hours, minutes, and seconds since the bot was last initialized
-    def calculate_uptime(self):
-        uptime = (datetime.utcnow() - self.start_timestamp)
-        hours, remainder = divmod(uptime.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-
-        return uptime.days, hours, minutes, seconds
-
     async def setup_hook(self):
         await bot.load_extension("Cogs.Debug")
         await bot.load_extension("Cogs.KeepingKarlsson")
@@ -59,9 +51,10 @@ bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=
 
 @bot.event
 async def on_connect():
-    bot.start_timestamp = datetime.utcnow()
+    Shared.start_timestamp = datetime.utcnow()
+    await bot.tree.sync()
     await bot.change_presence(activity=discord.Game(name="NHL '94"))
-    await bot.user.edit(username="Wes McCauley") 
+    await bot.user.edit(username="Wes McCauley")
     # avatar=fp.read()
     bot.log.info("Bot started.")
 
@@ -73,9 +66,9 @@ async def on_disconnect():
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "test":
-            bot.run(config["beta_discord_token"], reconnect=True)
+            bot.run(Shared.config["beta_discord_token"], reconnect=True)
     else:
-        bot.run(config["discord_token"], reconnect=True)
+        bot.run(Shared.config["discord_token"], reconnect=True)
 
 # Hang if bot was killed by command to prevent recreation by pm2
 if bot.killed:
