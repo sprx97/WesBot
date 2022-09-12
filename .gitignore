@@ -6,10 +6,11 @@
 config.json
 service_client_secret*.json
 
-# Bot daily data files
+# Bot data files
 data/messages.pickle
 data/ot.pickle
 data/pickems.pickle
+Roles.txt
 
 # Extraneous stuff
 StandingsOverride.py

@@ -245,6 +245,7 @@ class OTH(WesCog):
     async def roles(self, ctx, set_roles=False):
         # TODO: Add a tier input variable to allow for one tier at a time
         # TODO: Use slash commands to force a true/false input on set_roles
+        # TODO: Add some fuzzy logic to assign roles based on FF username if we don't have discord username
 
         rolesfile = Config.config["srcroot"] + "/Roles.txt"
 
