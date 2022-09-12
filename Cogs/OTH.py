@@ -6,7 +6,7 @@ from discord.ext import commands, tasks
 import asyncio
 import challonge
 from datetime import datetime, timedelta
-import pygsheets
+import os
 
 # Local Includes
 from Shared import *
@@ -242,30 +242,41 @@ class OTH(WesCog):
     @commands.command(name="roles")
     @commands.is_owner()
     @is_tech_channel()
-    async def roles(self, ctx, scope=""):
-        PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_OTH.json")
-        sheet = PYGS.open_by_key("1jC3zHsRuB6IawR-AM5ZtAOl360pCdjqUk230NiWPYbo")
-        worksheet = sheet.worksheet_by_title("LeagueAssignments")
+    async def roles(self, ctx, set_roles=False):
+        # TODO: Add a tier input variable to allow for one tier at a time
+        # TODO: Use slash commands to force a true/false input on set_roles
 
-        values = worksheet.get_values("A2", "D225")
+        rolesfile = Config.config["srcroot"] + "/Roles.txt"
+
+        if not os.path.isfile(rolesfile):
+            await ctx.send("Roles file not found.")
+            return
+
+        if set_roles == "true":
+            set_roles = True
+        else:
+            await ctx.send("Reading roles from file but not setting them.")
+            await ctx.send("Use `!roles true` to actually change roles.")
+
+        assignments = {}
+        f = open(rolesfile)
+        for line in f.readlines():
+            name, discrim, tier, league = line.strip().split("\t")
+            assignments[(name.lower(), discrim)] = (tier, league)
+
         members = self.bot.get_guild(OTH_GUILD_ID).members
         for member in members:
-            for team in values:
-                if team[1] == "" or "#" not in team[1]:
-                    continue
-
-                name, discrim = team[1].split("#")
-
-                if name.lower() == member.name.lower() and discrim == member.discriminator:
-                    div = team[2]
-                    league = team[3]
-                    if scope == "" or scope == div or scope == league:
-                        self.log.info(f"Removing all division/league roles from {member.name}")
-                        await member.remove_roles(*role_ids.values())
-
-                        self.log.info(f"Adding roles {div} and {league} to {name}")
-                        await member.add_roles(role_ids[div], role_ids[league])
-                    break
+            self.log.info(f"Removing all division/league roles from {member.name}")
+            if set_roles:
+                await member.remove_roles(*league_role_ids.values())
+            
+            key = (member.name.lower(), member.discriminator)
+            if key in assignments:
+                tier = assignments[key][0]
+                league = assignments[key][1]
+                self.log.info(f"Adding roles {tier} and {league} to {member.name}")
+                if set_roles:
+                    await member.add_roles(league_role_ids[tier], league_role_ids[league])
 
     @roles.error
     async def roles_error(self, ctx, error):

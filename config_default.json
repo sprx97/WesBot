@@ -11,5 +11,5 @@
 	"beta_discord_token": "", // second bot token for if you're running a beta version
 
 	"challonge_username": "", // for accessing woppa cup matchups
-	"challonge_api_key": "" // for accessing woppa cup matchups
+	"challonge_api_key": "", // for accessing woppa cup matchups
 }
