@@ -1,3 +1,4 @@
+
 # Discord Libraries
 import discord
 from discord.ext import commands, tasks
@@ -14,6 +15,28 @@ from Shared import *
 class OTH(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
+
+        self.league_role_ids = {}
+        self.league_role_ids["D1"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340870807137812480)
+        self.league_role_ids["D2"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
+        self.league_role_ids["D3"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
+        self.league_role_ids["D4"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
+        self.league_role_ids["Gretzky"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
+        self.league_role_ids["Brodeur"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
+        self.league_role_ids["Hasek"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
+        self.league_role_ids["Roy"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133440902561803)
+        self.league_role_ids["Lemieux"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
+        self.league_role_ids["Jagr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
+        self.league_role_ids["Yzerman"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133873658396683)
+        self.league_role_ids["Howe"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
+        self.league_role_ids["Dionne"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
+        self.league_role_ids["Bourque"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384675141648385)
+        self.league_role_ids["Orr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384733228564530)
+        self.league_role_ids["Lidstrom"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
+        self.league_role_ids["Niedermayer"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
+        self.league_role_ids["Leetch"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
+        self.league_role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
+        self.league_role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
 
     async def cog_load(self):
         self.bot.loop.create_task(self.start_loops())
@@ -242,7 +265,7 @@ class OTH(WesCog):
     @commands.command(name="roles")
     @commands.is_owner()
     @is_tech_channel()
-    async def roles(self, ctx, set_roles=False):
+    async def roles(self, ctx, set="false"):
         # TODO: Add a tier input variable to allow for one tier at a time
         # TODO: Use slash commands to force a true/false input on set_roles
         # TODO: Add some fuzzy logic to assign roles based on FF username if we don't have discord username
@@ -253,8 +276,10 @@ class OTH(WesCog):
             await ctx.send("Roles file not found.")
             return
 
-        if set_roles == "true":
+        set_roles = False
+        if set == "true":
             set_roles = True
+            await ctx.send("Setting all roles from local txt file.")
         else:
             await ctx.send("Reading roles from file but not setting them.")
             await ctx.send("Use `!roles true` to actually change roles.")
@@ -269,15 +294,15 @@ class OTH(WesCog):
         for member in members:
             self.log.info(f"Removing all division/league roles from {member.name}")
             if set_roles:
-                await member.remove_roles(*league_role_ids.values())
-            
+                await member.remove_roles(*self.league_role_ids.values())
+
             key = (member.name.lower(), member.discriminator)
             if key in assignments:
                 tier = assignments[key][0]
                 league = assignments[key][1]
                 self.log.info(f"Adding roles {tier} and {league} to {member.name}")
                 if set_roles:
-                    await member.add_roles(league_role_ids[tier], league_role_ids[league])
+                    await member.add_roles(self.league_role_ids[tier], self.league_role_ids[league])
 
     @roles.error
     async def roles_error(self, ctx, error):
@@ -310,7 +335,7 @@ class OTH(WesCog):
             division = division.lower()
 
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-        wc_id = 10521685 # TODO: hard-coded for now. Need a way to update annually easily. Can be found in the URL of the "report" button on the tourney page
+        wc_id = int(Config.config["woppa_cup_id"])
 
         participants = challonge.participants.index(wc_id)
         me = opp = None
