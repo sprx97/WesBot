@@ -14,9 +14,17 @@ import Shared
 class Wes(commands.Bot):
     def __init__(self, *args, **kwargs):
         self.killed = False
-        Shared.start_timestamp = datetime.utcnow()
+        self.start_timestamp = datetime.utcnow()
         self.log = self.create_log("Bot")
         super(Wes, self).__init__(*args, **kwargs)
+
+    # Returns the days, hours, minutes, and seconds since the bot was last initialized
+    def calculate_uptime(self):
+        uptime = (datetime.utcnow() - self.start_timestamp)
+        hours, remainder = divmod(uptime.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        return uptime.days, hours, minutes, seconds
 
     # Creates or returns a log file of the given name.
     def create_log(self, name):
@@ -41,6 +49,10 @@ class Wes(commands.Bot):
         await bot.load_extension("Cogs.OTChallenge")
         await bot.load_extension("Cogs.OTH")
         await bot.load_extension("Cogs.Scoreboard")
+
+        # for guild in [discord.Object(id=Shared.OTH_GUILD_ID), discord.Object(id=Shared.KK_GUILD_ID)]:
+        #     self.tree.copy_global_to(guild=guild)
+        #     await self.tree.sync(guild=guild)
 
 intents = discord.Intents.default()
 intents.members = True

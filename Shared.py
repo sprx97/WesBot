@@ -1,5 +1,6 @@
 # Discord Libraries
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 
 # Python Libraries
@@ -194,15 +195,6 @@ class TeamDoesNotPlayToday(discord.ext.commands.CommandError):
 
 ######################## Helper functions ########################
 
-# Returns the days, hours, minutes, and seconds since the bot was last initialized
-start_timestamp = datetime.utcnow()
-def calculate_uptime():
-    uptime = (datetime.utcnow() - start_timestamp)
-    hours, remainder = divmod(uptime.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    return uptime.days, hours, minutes, seconds
-
 DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)
 DB.autocommit(True)
 
@@ -320,6 +312,11 @@ def LoadPickleFile(file):
     return data
 
 ######################## Decorator command checks ########################
+
+def is_tech_channel_2():
+    def predicate(interaction: discord.Interaction) -> bool:
+        return interaction.channel.id == OTH_TECH_CHANNEL_ID or interaction.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID or interaction.guild.id == TEST_GUILD_ID
+    return app_commands.check(predicate)
 
 def is_OTH_guild():
     def check(ctx):

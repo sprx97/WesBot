@@ -14,36 +14,42 @@ from Shared import *
 class Debug(WesCog):
     async def cog_load(self):
         self.bot.loop.create_task(self.start_loops())
-        self.bot.tree.add_command(self.DebugGroup())
 
     async def start_loops(self):
         self.rollover_loop.start()
         self.loops.append(self.rollover_loop)
 
-    # @app_commands.guilds(OTH_GUILD_ID)
-    class DebugGroup(app_commands.Group, name="debug"):
-        @app_commands.command(name="ping", description="Checks the bot for a response.")
-        async def ping(self, interaction: discord.Interaction):
-            await interaction.response.send_message("pong", ephemeral=True)
+    @app_commands.command(name="ping", description="Checks the bot for a response.")
+    async def ping(self, interaction: discord.Interaction):
+        await interaction.response.send_message("pong", ephemeral=True)
 
-        @app_commands.command(name="pong", description="Checks the bot for a response.")
-        async def pong(self, interaction: discord.Interaction):
-            await interaction.response.send_message("ping", ephemeral=True)
+    @app_commands.command(name="pong", description="Checks the bot for a response.")
+    async def pong(self, interaction: discord.Interaction):
+        await interaction.response.send_message("ping", ephemeral=True)
 
-        @app_commands.command(name="uptime", description="Displays how long since the bot last crashed/restarted.")
-        async def uptime(self, interaction: discord.Interaction):
-            days, hours, minutes, seconds = Shared.calculate_uptime() 
+    @app_commands.command(name="uptime", description="Displays how long since the bot last crashed/restarted.")
+    async def uptime(self, interaction: discord.Interaction):
+        days, hours, minutes, seconds = self.bot.calculate_uptime() 
 
-            msg = "It has been "
-            if days > 0:
-                msg += str(days) + " day(s), "
-            if days > 0 or hours > 0:
-                msg += str(hours) + " hour(s), "
-            if days > 0 or hours > 0 or minutes > 0:
-                msg += str(minutes) + " minute(s), "
-            msg += str(seconds) + " second(s) since last accident."
+        msg = "It has been "
+        if days > 0:
+            msg += str(days) + " day(s), "
+        if days > 0 or hours > 0:
+            msg += str(hours) + " hour(s), "
+        if days > 0 or hours > 0 or minutes > 0:
+            msg += str(minutes) + " minute(s), "
+        msg += str(seconds) + " second(s) since last accident."
 
-            await interaction.response.send_message(msg, ephemeral=True)
+        await interaction.response.send_message(msg, ephemeral=True)
+
+    @app_commands.command(name="resync", description="Resyncs the command tree.")
+    @commands.is_owner()
+    @is_tech_channel_2()
+    async def resync(self, interaction: discord.Interaction):
+        for guild in [OTH_GUILD_ID, KK_GUILD_ID]:
+            self.bot.tree.clear_commands(guild=discord.Object(id=guild))
+            await self.bot.tree.sync(guild=discord.Object(id=guild))
+        await interaction.response.send_message("All guilds resynced.")
 
     # Displays a list of commands that can be used in this server.
     # @app_commands.command(name="help")
