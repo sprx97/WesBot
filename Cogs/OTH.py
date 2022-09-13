@@ -304,6 +304,8 @@ class OTH(WesCog):
                 if set_roles:
                     await member.add_roles(self.league_role_ids[tier], self.league_role_ids[league])
 
+        self.log.info(f"Finished updating roles.")
+
     @roles.error
     async def roles_error(self, ctx, error):
         await ctx.send(error)
