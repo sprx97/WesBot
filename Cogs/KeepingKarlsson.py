@@ -20,9 +20,6 @@ class KeepingKarlsson(WesCog):
         self.bot.loop.create_task(self.start_loops())
 
     async def start_loops(self):
-        self.check_threads_loop.start()
-        self.loops.append(self.check_threads_loop)
-
         self.check_league_activity_loop.start()
         self.loops.append(self.check_league_activity_loop)
 
@@ -100,47 +97,6 @@ class KeepingKarlsson(WesCog):
         embed = await self.fasttrack_core(worksheet, author, rowstart, rowend)
         await ctx.channel.send(embed=embed)
 
-    @commands.command(name="unlock")
-    @is_KK_guild()
-    async def unlock(self, ctx):
-        if ctx.channel.category and ctx.channel.category.id == MAKE_A_THREAD_CATEGORY_ID:
-            for role_name in [PATRONS_ROLE_ID, PARTONS_ROLE_ID]:
-                role = self.bot.get_guild(KK_GUILD_ID).get_role(role_name)
-                perms = ctx.channel.overwrites_for(role)
-                perms.send_messages=True
-                await ctx.channel.set_permissions(role, overwrite=perms)
-
-    # Thread management loop
-    @tasks.loop(hours=1.0)
-    async def check_threads_loop(self):
-        for channel in self.bot.get_channel(MAKE_A_THREAD_CATEGORY_ID).text_channels[1:]:
-            last_message = [messages async for messages in channel.history(limit=1)][0]
-            last_message_delta = datetime.now(timezone.utc) - last_message.created_at
-
-            # If the last message in the threads was more than a day ago and we aren't keeping it, lock it and mark for removal
-            if last_message_delta > timedelta(hours=24) and "tkeep" not in channel.name and last_message.author != self.bot.user:
-                self.log.info(f"{channel.name} is stale.")
-                for role_name in [PATRONS_ROLE_ID, PARTONS_ROLE_ID]:
-                    role = self.bot.get_guild(KK_GUILD_ID).get_role(role_name)
-                    perms = channel.overwrites_for(role)
-                    perms.send_messages=False
-                    await channel.set_permissions(role, overwrite=perms)
-                await channel.send("This thread has been locked due to 24h of inactivity, and will be deleted in 12 hours. Tag @zebra in #tech-support if you'd like to keep the thread open longer.")
-            # If the last message was more than 12 hours ago by this bot, delete the thread
-            elif last_message_delta > timedelta(hours=12) and "tkeep" not in channel.name and last_message.author == self.bot.user:
-                self.log.info(f"{channel.name} deleted.")
-                await channel.delete()
-
-        self.log.info("Thread check complete.")
-
-    @check_threads_loop.before_loop
-    async def before_check_threads_loop(self):
-        await self.bot.wait_until_ready()
-
-    @check_threads_loop.error
-    async def check_threads_loop_error(self, error):
-        self.log.error(error)
-
     # League activity checker loop
     @tasks.loop(hours=24.0)
     async def check_league_activity_loop(self):
@@ -189,4 +145,4 @@ class KeepingKarlsson(WesCog):
 
 
 async def setup(bot):
-    await bot.add_cog(KeepingKarlsson(bot))
+    await bot.add_cog(KeepingKarlsson(bot), guild=discord.Object(id=KK_GUILD_ID))
