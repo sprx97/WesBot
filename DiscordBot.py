@@ -50,9 +50,17 @@ class Wes(commands.Bot):
         await bot.load_extension("Cogs.OTH")
         await bot.load_extension("Cogs.Scoreboard")
 
-        # for guild in [discord.Object(id=Shared.OTH_GUILD_ID), discord.Object(id=Shared.KK_GUILD_ID)]:
-        #     self.tree.copy_global_to(guild=guild)
-        #     await self.tree.sync(guild=guild)
+        self.log.info("OTH Commands")
+        for command in self.tree.get_commands(guild=discord.Object(id=Shared.OTH_GUILD_ID)):
+            self.log.info(f"\t{command.name}")
+        await self.tree.sync(guild=discord.Object(id=Shared.OTH_GUILD_ID))
+        self.log.info("Synced OTH")
+
+        self.log.info("KK Commands")
+        for command in self.tree.get_commands(guild=discord.Object(id=Shared.KK_GUILD_ID)):
+            self.log.info(f"\t{command.name}")
+        await self.tree.sync(guild=discord.Object(id=Shared.KK_GUILD_ID))
+        self.log.info("Synced KK")
 
 intents = discord.Intents.default()
 intents.members = True

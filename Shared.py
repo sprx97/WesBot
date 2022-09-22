@@ -135,9 +135,6 @@ PARTONS_ROLE_ID = 784239280591601694
 
 TEST_ROLE_ROLE_ID = 801477256744403025
 
-# User IDs
-MINNE_USER_ID = 144483356531228672
-
 # Config settings
 MIN_INACTIVE_DAYS = 7 # Number of days where we deem a team to be "inactive" on fleaflicker
 OT_CHALLENGE_BUFFER_MINUTES = 2 # Mintues left in the 3rd at which OT challenge submissions are accepted
@@ -313,9 +310,13 @@ def LoadPickleFile(file):
 
 ######################## Decorator command checks ########################
 
+# TODO: Move to a Checks.py file (separate shared into other files)
+# TODO: Create a check_all/check_any -- https://www.reddit.com/r/Discord_Bots/comments/xfqee1/discordpy_20_creating_a_check_any_decorator_for/
+
 def is_tech_channel_2():
     def predicate(interaction: discord.Interaction) -> bool:
         return interaction.channel.id == OTH_TECH_CHANNEL_ID or interaction.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID or interaction.guild.id == TEST_GUILD_ID
+
     return app_commands.check(predicate)
 
 def is_OTH_guild():

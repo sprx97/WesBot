@@ -1,4 +1,5 @@
 # Discord Libraries
+import discord
 from discord import app_commands
 from discord.ext import commands
 
@@ -46,9 +47,11 @@ class Debug(WesCog):
     @commands.is_owner()
     @is_tech_channel_2()
     async def resync(self, interaction: discord.Interaction):
-        for guild in [OTH_GUILD_ID, KK_GUILD_ID]:
-            self.bot.tree.clear_commands(guild=discord.Object(id=guild))
-            await self.bot.tree.sync(guild=discord.Object(id=guild))
+        for guild_id in [OTH_GUILD_ID, KK_GUILD_ID]:
+            guild = discord.Object(id=guild_id)
+            self.bot.tree.clear_commands(guild=guild)
+            commands = await self.bot.tree.sync(guild=guild)
+            self.log.info(f"Synced the following commands to {guild.id}: {commands}")
         await interaction.response.send_message("All guilds resynced.")
 
     # Displays a list of commands that can be used in this server.
