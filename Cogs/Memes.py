@@ -46,7 +46,7 @@ class Memes(WesCog):
     @memes_group.command(name="fuck")
     @app_commands.checks.cooldown(1, 60.0)
     async def fuck(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Bruce Boudreau would not approve of such language. Please try `!darn` instead.")
+        await interaction.response.send_message("Bruce Boudreau would not approve of such language. Please try `memes darn` instead.")
 
     @memes_group.command(name="laine")
     @app_commands.checks.cooldown(1, 60.0)

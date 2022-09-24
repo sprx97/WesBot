@@ -42,14 +42,7 @@ class Wes(commands.Bot):
 
         return logger
 
-    async def setup_hook(self):
-        await bot.load_extension("Cogs.Debug")
-        await bot.load_extension("Cogs.KeepingKarlsson")
-        await bot.load_extension("Cogs.Memes")
-        await bot.load_extension("Cogs.OTChallenge")
-        await bot.load_extension("Cogs.OTH")
-        await bot.load_extension("Cogs.Scoreboard")
-
+    async def sync_command_trees(self):
         self.log.info("OTH Commands")
         for command in self.tree.get_commands(guild=discord.Object(id=Shared.OTH_GUILD_ID)):
             self.log.info(f"\t{command.name}")
@@ -62,12 +55,20 @@ class Wes(commands.Bot):
         await self.tree.sync(guild=discord.Object(id=Shared.KK_GUILD_ID))
         self.log.info("Synced KK")
 
+    async def setup_hook(self):
+        await bot.load_extension("Cogs.Debug")
+        await bot.load_extension("Cogs.KeepingKarlsson")
+        await bot.load_extension("Cogs.Memes")
+        await bot.load_extension("Cogs.OTChallenge")
+        await bot.load_extension("Cogs.OTH")
+        await bot.load_extension("Cogs.Scoreboard")
+
 intents = discord.Intents.default()
 intents.members = True
 intents.reactions = True
 intents.message_content = True
 
-bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout = 120)
+bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout=120)
 
 @bot.event
 async def on_connect():
@@ -82,6 +83,11 @@ async def on_connect():
 async def on_disconnect():
     days, hours, minutes, seconds = bot.calculate_uptime()
     bot.log.info(f"Bot disconnected after {days} day(s), {hours} hour(s), {minutes} minute(s), {seconds} seconds(s).")
+
+@bot.event
+async def on_ready():
+    await bot.sync_command_trees()
+    bot.log.info("Bot ready.")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
