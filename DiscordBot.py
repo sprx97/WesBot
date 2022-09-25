@@ -73,7 +73,7 @@ bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=
 @bot.event
 async def on_connect():
     Shared.start_timestamp = datetime.utcnow()
-    await bot.tree.sync()
+    await bot.sync_command_trees()
     await bot.change_presence(activity=discord.Game(name="NHL '94"))
     await bot.user.edit(username="Wes McCauley")
     # avatar=fp.read()
