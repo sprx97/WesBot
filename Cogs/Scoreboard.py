@@ -190,9 +190,13 @@ class Scoreboard(WesCog):
         try:
             game_id, event_id = key.split(":")
             media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
-            for event in media["media"]["milestones"]["items"]:
-                if event["statsEventId"] == event_id:
-                    return event["highlight"]["playbacks"][3]["url"] #, event["highlight"]["image"]["cuts"]["640x360"]["src"]
+            for event in media["highlights"]["scoreboard"]["items"]:
+                for keyword in event["keywords"]:
+                    if keyword["type"] == "statsEventId" and keyword["value"] == event_id:
+                        return event["playbacks"][3]["url"] #, event["highlight"]["image"]["cuts"]["640x360"]["src"]
+#            for event in media["media"]["milestones"]["items"]:
+#                if event["statsEventId"] == event_id:
+#                    return event["highlight"]["playbacks"][3]["url"] #, event["highlight"]["image"]["cuts"]["640x360"]["src"]
         except:
             return None #, None
 
