@@ -374,7 +374,7 @@ class Scoreboard(WesCog):
                 await self.post_goal(disallow_key, disallow_str, None, None)
 
     # Checks to see if OT challenge starting for a game
-    def check_for_ot_challenge_start(self, key, playbyplay):
+    async def check_for_ot_challenge_start(self, key, playbyplay):
         status = playbyplay["gameData"]["status"]["detailedState"]
         # Game not in progress
         if "In Progress" not in status:
@@ -386,7 +386,7 @@ class Scoreboard(WesCog):
 
         # Game not in final 5 minutes of 3rd or OT intermission
         ot = self.bot.get_cog("OTChallenge")
-        ot.processot(None)
+        await ot.processot(None)
         if not ot.is_ot_challenge_window(playbyplay):
             return False
 
@@ -418,7 +418,7 @@ class Scoreboard(WesCog):
         # Check for OT Challenge start notifications
         ot_key = key + ":O"
         ot_string = f"OT Challenge for {away_emoji} {away} at {home_emoji} {home} is open."
-        if self.check_for_ot_challenge_start(key, playbyplay):
+        if await self.check_for_ot_challenge_start(key, playbyplay):
             await self.post_goal(ot_key, ot_string, None, None)
         elif ot_key in self.messages:
             ot_string = f"~~{ot_string}~~"
