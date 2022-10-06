@@ -1,6 +1,10 @@
 
 # Discord Libraries
+from distutils.log import debug
+from xmlrpc.client import Boolean
 import discord
+from discord import app_commands
+from discord.app_commands import Choice
 from discord.ext import commands, tasks
 
 # Python Libraries
@@ -16,28 +20,6 @@ class OTH(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
-        self.league_role_ids = {}
-        self.league_role_ids["D1"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340870807137812480)
-        self.league_role_ids["D2"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
-        self.league_role_ids["D3"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
-        self.league_role_ids["D4"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
-        self.league_role_ids["Gretzky"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
-        self.league_role_ids["Brodeur"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
-        self.league_role_ids["Hasek"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
-        self.league_role_ids["Roy"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133440902561803)
-        self.league_role_ids["Lemieux"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
-        self.league_role_ids["Jagr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
-        self.league_role_ids["Yzerman"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133873658396683)
-        self.league_role_ids["Howe"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
-        self.league_role_ids["Dionne"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
-        self.league_role_ids["Bourque"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384675141648385)
-        self.league_role_ids["Orr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384733228564530)
-        self.league_role_ids["Lidstrom"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
-        self.league_role_ids["Niedermayer"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
-        self.league_role_ids["Leetch"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
-        self.league_role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
-        self.league_role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
-
     async def cog_load(self):
         self.bot.loop.create_task(self.start_loops())
 
@@ -47,6 +29,31 @@ class OTH(WesCog):
 
         self.inactives_loop.start()
         self.loops.append(self.inactives_loop)
+
+    def get_role_ids(self):
+        league_role_ids = {}
+        league_role_ids["D1"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340870807137812480)
+        league_role_ids["D2"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
+        league_role_ids["D3"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
+        league_role_ids["D4"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
+        league_role_ids["Gretzky"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
+        league_role_ids["Brodeur"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
+        league_role_ids["Hasek"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
+        league_role_ids["Roy"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133440902561803)
+        league_role_ids["Lemieux"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
+        league_role_ids["Jagr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
+        league_role_ids["Yzerman"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133873658396683)
+        league_role_ids["Howe"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
+        league_role_ids["Dionne"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
+        league_role_ids["Bourque"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384675141648385)
+        league_role_ids["Orr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384733228564530)
+        league_role_ids["Lidstrom"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
+        league_role_ids["Niedermayer"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
+        league_role_ids["Leetch"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
+        league_role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
+        league_role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
+
+        return league_role_ids
 
 ######################## Cog-specific Exceptions ########################
 
@@ -68,8 +75,6 @@ class OTH(WesCog):
 
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
-        return # disabled for the offseason
-
         channel = self.bot.get_channel(MODS_CHANNEL_ID)
         leagues = get_leagues_from_database(Config.config["year"])
         for league in leagues:
@@ -113,6 +118,10 @@ class OTH(WesCog):
 
         self.log.info("Sleeping inactives_loop for " + str(delta))
         await asyncio.sleep(delta.total_seconds())
+
+    @inactives_loop.error
+    async def inactives_loop_error(self, error):
+        await self.cog_command_error(None, error)
 
     # Checks for any inactive OTH teams on FF
     @commands.command(name="inactives")
@@ -201,10 +210,6 @@ class OTH(WesCog):
     async def trades_loop_error(self, error):
         await self.cog_command_error(None, error)
 
-    @inactives_loop.error
-    async def inactives_loop_error(self, error):
-        await self.cog_command_error(None, error)
-
     # Checks for any new OTH trades
     @commands.command(name="trades")
     @is_tradereview_channel()
@@ -248,6 +253,8 @@ class OTH(WesCog):
         else:
             await ctx.send(error)
 
+####################### Member Management (Box and Roles) ##########################
+
     @commands.command(name="box", aliases=["penalty", "penaltybox"])
     @commands.is_owner()
     async def box(self, ctx, member: discord.Member):
@@ -261,6 +268,20 @@ class OTH(WesCog):
     @box.error
     async def box_error(self, ctx, error):
         await ctx.send(error)
+
+    # TODO: Add autocomplete method to help fill
+    @app_commands.command(name="rolesnew", description="Resets league/division roles based on the arguments")
+    @app_commands.describe(debug="Debug mode. Log but don't set roles.", 
+                           clear="Clear mode. Remove all league roles from all members before assigning.", 
+                           scope="Which tiers or leagues to update roles for.")
+    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)],
+                          clear=[Choice(name="True", value=1), Choice(name="False", value=0)],
+                          scope=[Choice(name="All", value=0)])
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def rolesnew(self, interaction: discord.Interaction, debug: Choice[int], clear: Choice[int], scope: Choice[int]):
+        await interaction.response.send_message("Working.")
 
     @commands.command(name="roles")
     @commands.is_owner()
@@ -290,19 +311,23 @@ class OTH(WesCog):
             name, discrim, tier, league = line.strip().split("\t")
             assignments[(name.lower(), discrim)] = (tier, league)
 
+        league_role_ids = self.get_role_ids()
+
         members = self.bot.get_guild(OTH_GUILD_ID).members
         for member in members:
-            self.log.info(f"Removing all division/league roles from {member.name}")
-            if set_roles:
-                await member.remove_roles(*self.league_role_ids.values())
+#            self.log.info(f"Removing all division/league roles from {member.name}")
+#            if set_roles:
+#                await member.remove_roles(*league_role_ids.values())
 
+            # TODO: Futz with this manually to make things work as needed. Working on improving this
             key = (member.name.lower(), member.discriminator)
             if key in assignments:
                 tier = assignments[key][0]
                 league = assignments[key][1]
-                self.log.info(f"Adding roles {tier} and {league} to {member.name}")
-                if set_roles:
-                    await member.add_roles(self.league_role_ids[tier], self.league_role_ids[league])
+                if tier == "D4" and league == "Coffey":
+                    self.log.info(f"Adding roles {tier} and {league} to {member.name}")
+                    if set_roles:
+                        await member.add_roles(league_role_ids[tier], league_role_ids[league])
 
         self.log.info(f"Finished updating roles.")
 
@@ -431,7 +456,6 @@ class OTH(WesCog):
         if opp == None:
             raise self.WoppaCupOpponentNotFound(user)
 
-
     @woppacup.error
     async def woppacup_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
@@ -446,4 +470,4 @@ class OTH(WesCog):
             await ctx.send(error)
 
 async def setup(bot):
-    await bot.add_cog(OTH(bot))
+    await bot.add_cog(OTH(bot), guild=discord.Object(id=OTH_GUILD_ID))
