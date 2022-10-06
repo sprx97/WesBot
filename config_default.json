@@ -1,6 +1,6 @@
 {
 	"srcroot": "/var/www/DiscordBot",
-	"year": "2021",
+	"year": "2022",
 
 	"sql_hostname": "localhost",
 	"sql_username": "", // update this to be your local mysql username
@@ -12,5 +12,5 @@
 
 	"challonge_username": "", // for accessing woppa cup matchups
 	"challonge_api_key": "", // for accessing woppa cup matchups
-        "woppa_cup_id": ""
+	"woppa_cup_id": ""
 }
