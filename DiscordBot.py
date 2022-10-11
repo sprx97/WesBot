@@ -43,25 +43,28 @@ class Wes(commands.Bot):
         return logger
 
     async def sync_command_trees(self):
-        self.log.info("OTH Commands")
-        for command in self.tree.get_commands(guild=discord.Object(id=Shared.OTH_GUILD_ID)):
-            self.log.info(f"\t{command.name}")
-        await self.tree.sync(guild=discord.Object(id=Shared.OTH_GUILD_ID))
-        self.log.info("Synced OTH")
+        OTH_GUILD = bot.get_guild(Shared.OTH_GUILD_ID)
+        KK_GUILD = bot.get_guild(Shared.KK_GUILD_ID)
+        guilds = [None, OTH_GUILD, KK_GUILD]
 
-        self.log.info("KK Commands")
-        for command in self.tree.get_commands(guild=discord.Object(id=Shared.KK_GUILD_ID)):
-            self.log.info(f"\t{command.name}")
-        await self.tree.sync(guild=discord.Object(id=Shared.KK_GUILD_ID))
-        self.log.info("Synced KK")
+        for guild in guilds:
+            if guild == None:
+                self.log.info("Global Commands...")
+            else:
+                self.log.info(f"{guild.name} Commands...")
+
+            # Print commands in this group
+            for command in self.tree.get_commands(guild=guild):
+                self.log.info(f"\t{command.name}")
+
+            # self.tree.clear_commands(guild=guild)
+            await self.tree.sync(guild=guild)
+
+            self.log.info("...Synced")
 
     async def setup_hook(self):
-        await bot.load_extension("Cogs.Debug")
-        await bot.load_extension("Cogs.KeepingKarlsson")
-        await bot.load_extension("Cogs.Memes")
-        await bot.load_extension("Cogs.OTChallenge")
-        await bot.load_extension("Cogs.OTH")
-        await bot.load_extension("Cogs.Scoreboard")
+        for cog in Shared.all_cogs:
+            await bot.load_extension(cog)
 
 intents = discord.Intents.default()
 intents.members = True
@@ -73,7 +76,6 @@ bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=
 @bot.event
 async def on_connect():
     Shared.start_timestamp = datetime.utcnow()
-    await bot.sync_command_trees()
     await bot.change_presence(activity=discord.Game(name="NHL '94"))
     await bot.user.edit(username="Wes McCauley")
     # avatar=fp.read()

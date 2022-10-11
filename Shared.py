@@ -142,6 +142,13 @@ ROLLOVER_HOUR_UTC = 11 # 11am UTC = 6am EST = 3am PST
 
 ######################## Base Cog Class ########################
 
+all_cogs = ["Cogs.Debug",
+            "Cogs.KeepingKarlsson",
+            "Cogs.Memes",
+            "Cogs.OTChallenge",
+            "Cogs.OTH",
+            "Cogs.Scoreboard"]
+
 # Base cog class
 class WesCog(commands.Cog):
     def __init__(self, bot):
@@ -274,8 +281,8 @@ def get_channels_from_ids(bot, ids):
     return channels
 
 def sanitize(name):
-    name = name.replace("è", "e") # Lafreniere
-    name = name.replace("ü", "u") # Stutzle
+    name = name.replace("è", "e") # Lafrenière
+    name = name.replace("ü", "u") # Stützle
     name = name.replace("'", "") # O'Reilly
     name = name.replace("’", "") # O’Reilly
     return name

@@ -1,7 +1,6 @@
 # Discord Libraries
 import discord
 from discord import app_commands
-from discord.ext import commands
 
 # Python Libraries
 import asyncio
@@ -20,123 +19,9 @@ class Debug(WesCog):
         self.rollover_loop.start()
         self.loops.append(self.rollover_loop)
 
-    @app_commands.command(name="ping", description="Checks the bot for a response.")
-    async def ping(self, interaction: discord.Interaction):
-        await interaction.response.send_message("pong", ephemeral=True)
-
-    @app_commands.command(name="pong", description="Checks the bot for a response.")
-    async def pong(self, interaction: discord.Interaction):
-        await interaction.response.send_message("ping", ephemeral=True)
-
-    @app_commands.command(name="uptime", description="Displays how long since the bot last crashed/restarted.")
-    async def uptime(self, interaction: discord.Interaction):
-        days, hours, minutes, seconds = self.bot.calculate_uptime() 
-
-        msg = "It has been "
-        if days > 0:
-            msg += str(days) + " day(s), "
-        if days > 0 or hours > 0:
-            msg += str(hours) + " hour(s), "
-        if days > 0 or hours > 0 or minutes > 0:
-            msg += str(minutes) + " minute(s), "
-        msg += str(seconds) + " second(s) since last accident."
-
-        await interaction.response.send_message(msg, ephemeral=True)
-
-    @app_commands.command(name="resync", description="Resyncs the command tree.")
-    @commands.is_owner()
-    @is_tech_channel_2()
-    async def resync(self, interaction: discord.Interaction):
-        for guild_id in [OTH_GUILD_ID, KK_GUILD_ID]:
-            guild = discord.Object(id=guild_id)
-            self.bot.tree.clear_commands(guild=guild)
-            commands = await self.bot.tree.sync(guild=guild)
-            self.log.info(f"Synced the following commands to {guild.id}: {commands}")
-        await interaction.response.send_message("All guilds resynced.")
-
-    # Displays a list of commands that can be used in this server.
-    # @app_commands.command(name="help")
-    # async def help(self, interaction: discord.Interaction):
-    #     interaction.response.send_message("I'm Wes McCauley, your referee. ")
-        # if commands.check(is_OTH_guild()):
-        #     await ctx.send("I'm Wes McCauley, the official referee of /r/OldTimeHockey. Here are some of the commands I respond to:\n" + \
-        #                     "**`!help`**\n\tDisplays this list of commands.\n" + \
-        #                     "**`!ping` or `!pong`**\n\tGets a response to check that bot is up.\n" + \
-        #                     "**`!matchup [fleaflicker username]`**\n\tPosts the score of the user's fantasy matchup this week. Optionally takes a division argument.\n" + \
-        #                     "**`!wc [fleaflicker username]`**\n\tPosts the score of the user's Woppa Cup matchup this week. Optionally takes a division argument.\n" + \
-        #                     "**`!score [NHL team]`**\n\tPosts the score of the given NHL team's game tonight. Accepts a variety of nicknames and abbreviations.\n" + \
-        #                     "**`!ot [NHL team] [player name/number]`**\n\tAllows you to predict a player to score the OT winner.\n\tMust be done between 5 minutes left" + \
-        #                     "in the 3rd period and the start of OT of a tied game.\n\tCan only guess one player per game.\n" + \
-        #                     "**`!otstandings`**\n\tDisplays the standings for the season-long OT prediction contest on this server." + \
-        #                     "**`!otlist [NHL team or @User]`**\n\tDisplays the guesses for the given team or user in today's OT Challenge.")
-        # elif commands.check(is_KK_guild()):
-        #     await ctx.send("I'm Wes McCauley, the official referee of Keeping Karlsson. Here are some of the commands I respond to:\n" + \
-        #                     "**`!help`**\n\tDisplays this list of commands.\n" + \
-        #                     "**`!ping` or `!pong`**\n\tGets a response to check that bot is up.\n" + \
-        #                     "**`!ft` or `!ft [user]`**\n\tChecks your or another user's placement in the KKUPFL Fast Track Standings. Can also include a year argument.\n" + \
-        #                     "**`!score [NHL team]`**\n\tPosts the score of the given NHL team's game tonight. Accepts a variety of nicknames and abbreviations.\n" + \
-        #                     "**`!ot [NHL team] [player name/number]`**\n\tAllows you to predict a player to score the OT winner.\n\tMust be done between 5 minutes left" + \
-        #                     "in the 3rd period and the start of OT of a tied game.\n\tCan only guess one player per game.\n" + \
-        #                     "**`!otstandings`**\n\tDisplays the standings for the season-long OT prediction contest on this server." + \
-        #                     "**`!otlist [NHL team or @User]`**\n\tDisplays the guesses for the given team or user in today's OT Challenge.")
-        # else:
-        #     await ctx.send("I'm Wes McCauley, an NHL scoreboard bot!\n" + \
-        #                    "To setup a scoreboard channel and OT Challenge channel for this guild, checkout the command `!scoresstart`. Once that's done, the following commands should work.\n" + \
-        #                     "**`!score [NHL team]`**\n\tPosts the score of the given NHL team's game tonight. Accepts a variety of nicknames and abbreviations.\n" + \
-        #                     "**`!ot [NHL team] [player name/number]`**\n\tAllows you to predict a player to score the OT winner.\n\tMust be done between 5 minutes left" + \
-        #                     "in the 3rd period and the start of OT of a tied game.\n\tCan only guess one player per game.\n" + \
-        #                     "**`!otstandings`**\n\tDisplays the standings for the season-long OT prediction contest on this server." + \
-        #                     "**`!otlist [NHL team or @User]`**\n\tDisplays the guesses for the given team or user in today's OT Challenge.")
-
-    # Shuts down the bot or a cog
-    @commands.command(name="kill", aliases=["shutdown", "unload"])
-    @commands.is_owner()
-    @is_tech_channel()
-    async def kill(self, ctx, cog="all"):
-        if cog == "all":
-            self.bot.killed = True
-            await self.bot.close()
-            self.log.info("Manually killed bot.")
-        else:
-            self.bot.unload_extension(f"Cogs.{cog}")
-            ctx.send(f"Cogs.{cog} successfully unloaded.")
-            self.log.info(f"Unloaded Cogs.{cog}.")
-
-    # Error handler for kill command
-    @kill.error
-    async def kill_error(self, ctx, error):
-        await ctx.send(msg = "Failure in kill: " + str(error))
-
-    async def reload_single_cog(self, ctx, cog):
-        await self.bot.reload_extension(f"Cogs.{cog}")
-        await ctx.send(f"Cogs.{cog} successfully reloaded.")
-        self.log.info(f"Reloaded Cogs.{cog}.")
-
-    # Reloads a cog
-    @commands.command(name="reload", aliases=["reboot", "restart", "update"])
-    @commands.is_owner()
-    @is_tech_channel()
-    async def reload(self, ctx, cog):
-        importlib.reload(Shared)
-
-        # Aliases
-        if cog.lower() == "kk":
-            cog = "KeepingKarlsson"
-
-        if cog.lower() == "all":
-            all_cogs = list(self.bot.cogs.keys())
-            for cog in all_cogs:
-                await self.reload_single_cog(ctx, cog)
-            await ctx.send("All cogs successfully reloaded.")
-            return
-
-        await self.reload_single_cog(ctx, cog)
-
-    # Error handler for reloading cog
-    @reload.error
-    async def reload_error(self, ctx, error):
-        await ctx.send("Failure in reload: " + str(error))
-
+    #
+    # Loops
+    #
     @tasks.loop(hours=24.0)
     async def rollover_loop(self):
         self.log.info("Rolling over date.")
@@ -166,20 +51,119 @@ class Debug(WesCog):
 
         await asyncio.sleep((target_time-current_time).total_seconds())
 
-    # Prints the last 5 lines of the error file
-    @commands.command(name="error", aliases=["errors", "log", "logs"])
-    @commands.is_owner()
-    @is_tech_channel()
-    async def kill(self, ctx, cog, num_lines=5):
-        num_lines = int(num_lines)
+    #
+    # Basic debug commands
+    #
+    @app_commands.command(name="ping", description="Checks the bot for a response.")
+    async def ping(self, interaction: discord.Interaction):
+        await interaction.response.send_message("pong", ephemeral=True)
+
+    @app_commands.command(name="pong", description="Checks the bot for a response.")
+    async def pong(self, interaction: discord.Interaction):
+        await interaction.response.send_message("ping", ephemeral=True)
+
+    @app_commands.command(name="uptime", description="Displays how long since the bot last crashed/restarted.")
+    async def uptime(self, interaction: discord.Interaction):
+        days, hours, minutes, seconds = self.bot.calculate_uptime() 
+
+        msg = "It has been "
+        if days > 0:
+            msg += str(days) + " day(s), "
+        if days > 0 or hours > 0:
+            msg += str(hours) + " hour(s), "
+        if days > 0 or hours > 0 or minutes > 0:
+            msg += str(minutes) + " minute(s), "
+        msg += str(seconds) + " second(s) since last accident."
+
+        await interaction.response.send_message(msg, ephemeral=True)
+
+    #
+    # Bot Admin Commands
+    #
+    cog_choices = []
+    cog_choices.append(discord.app_commands.Choice(name="All", value="All"))
+    for cog in all_cogs:
+        cog_choices.append(discord.app_commands.Choice(name=cog, value=cog))
+
+    @app_commands.command(name="kill", description="Shuts down a cog.")
+    @app_commands.describe(cog="Which cog to shut down.")
+    @app_commands.choices(cog=cog_choices)
+    @app_commands.default_permissions(view_audit_log=True)
+    @app_commands.checks.has_permissions(view_audit_log=True)
+    async def kill(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
+        if not await self.bot.is_owner(interaction.user):
+            raise Exception("This command can only be run by the bot owner.")
+
+        cog = cog.value
+        if cog == "All":
+            self.bot.killed = True
+            await interaction.response.send_message("⚔️ Committing honorable sudoku...")
+            await self.bot.close()
+            self.log.info("Manually killed bot.")
+        else:
+            await self.bot.unload_extension(cog)
+            await interaction.response.send_message(f"{cog} successfully unloaded.")
+            self.log.info(f"Unloaded {cog}.")
+
+    @kill.error
+    async def kill_error(self, interaction, error):
+        await interaction.response.send_message(f"Failure in kill: {error}", ephemeral=True)
+
+    async def reload_single_cog(self, interaction, cog):
+        await self.bot.reload_extension(cog)
+        self.log.info(f"Reloaded {cog}.")
+
+    @app_commands.command(name="reload", description="Reloads a cog.")
+    @app_commands.describe(cog="Which cog to reload.")
+    @app_commands.choices(cog=cog_choices)
+    @app_commands.default_permissions(view_audit_log=True)
+    @app_commands.checks.has_permissions(view_audit_log=True)
+    async def reload(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
+        if not await self.bot.is_owner(interaction.user):
+            raise Exception("This command can only be run by the bot owner.")
+
+        await interaction.response.defer(ephemeral=False, thinking=True)
+
+        importlib.reload(Shared)
+
+        cog = cog.value
+        if cog == "All":
+            for cog in all_cogs:
+                await self.reload_single_cog(interaction, cog)
+            await interaction.edit_original_response(content="All cogs successfully reloaded.")
+        else:
+            await self.reload_single_cog(interaction, cog)
+            await interaction.edit_original_response(content=f"{cog} successfully reloaded.")
+
+    @reload.error
+    async def reload_error(self, interaction, error):
+        await interaction.response.send_message(f"Failure in kill: {error}", ephemeral=True)
+
+    @app_commands.command(name="log", description="Displays recent lines in the log file for a cog.")
+    @app_commands.describe(cog="Which log to view.", num_lines="How many lines to display.")
+    @app_commands.choices(cog=cog_choices)
+    @app_commands.default_permissions(view_audit_log=True)
+    @app_commands.checks.has_permissions(view_audit_log=True)
+    async def reload(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str], num_lines: int=5):
+        if not await self.bot.is_owner(interaction.user):
+            raise Exception("This command can only be run by the bot owner.")
+
+        await interaction.response.defer(ephemeral=False, thinking=True)
+
+        cog = cog.value
+        if cog == "All":
+            cog = "Bot"
+        else:
+            cog = cog[5:]
+
         try:
             f = open(f"{config['srcroot']}Logs/{cog}.log")
-            lines = f.readlines()[-num_lines:]
-            msg = "\n".join(lines)
+            lines = f.readlines()[-num_lines:] # Last num_lines lines
             for line in lines:
-                await ctx.send(line)
+                await interaction.channel.send(line)
+            await interaction.edit_original_response(content=f"Request complete.")
         except:
-            await ctx.send(f"Could not find file {cog}.log.")
+            await interaction.edit_original_response(content=f"Could not find file {cog}.log.")
 
 async def setup(bot):
     await bot.add_cog(Debug(bot))
