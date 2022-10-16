@@ -92,7 +92,7 @@ class OTH(WesCog):
                 last_seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ")
                 time_since_seen = datetime.utcnow()-last_seen
                 if time_since_seen.days > MIN_INACTIVE_DAYS:
-                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} not seen in last {MIN_INACTIVE_DAYS} days*\n"
+                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} not seen in last {time_since_seen.days} days*\n"
 
             if msg != "":
                 await channel.send(msg)
