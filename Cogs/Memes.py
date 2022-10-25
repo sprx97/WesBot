@@ -1,5 +1,5 @@
-# Discord Libraries
-from discord.ext import commands
+# Python includes
+import random
 
 # Local Includes
 from Shared import *
@@ -28,7 +28,8 @@ class Memes(WesCog):
     @memes_group.command(name="darn")
     @app_commands.checks.cooldown(1, 60.0)
     async def darn(self, interaction: discord.Interaction):
-        await interaction.response.send_message("https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif")
+        darns = ["https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif", "https://i.redd.it/wdhnfsxdl3v91.gif"]
+        await interaction.response.send_message(random.choice(darns))
 
     @memes_group.command(name="fifi")
     @app_commands.checks.cooldown(1, 60.0)
