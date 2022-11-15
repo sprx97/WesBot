@@ -417,11 +417,6 @@ class OTH(WesCog):
             opp_div = opp[0]
             opp_name = opp[-1]
 
-            if me_div == "Luuuuu":
-                me_div = "Luuuuuuu"
-            if opp_div == "Luuuuu":
-                opp_div = "Luuuuuuu"
-
             # Get the user matchup from the database
             me_matchup = get_user_matchup_from_database(me_name, me_div)
             if len(me_matchup) == 0:
