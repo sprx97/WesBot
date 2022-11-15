@@ -374,9 +374,18 @@ class OTH(WesCog):
         if me == None:
             raise self.UserNotFound(user, division)
 
+        curr_round = None
         for m in challonge.matches.index(wc_id):
             # Skip completed matches, because we only want the current one
             if m["state"] != "open":
+                continue
+
+            # Assume the first open match has the correct round, and set for the entire bracket
+            if curr_round == None:
+                curr_round = m["round"]
+
+            # Skip matches for other rounds
+            if m["round"] != curr_round:
                 continue
 
             # See if this match has the right player
@@ -446,6 +455,11 @@ class OTH(WesCog):
 
             await ctx.send(embed=embed)
             break # Only show the first "open" match because that's the one happening this week. Should work the whole way through...
+
+        if opp == None and curr_round <= 6:
+            embed = discord.Embed(title=f"User {user} is on bye", url=None)
+            await ctx.send(embed=embed)
+            return
 
         # Raise exception if no opponent was found -- meaning the user is no longer in the tournament.
         if opp == None:
