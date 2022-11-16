@@ -271,8 +271,8 @@ class OTH(WesCog):
 
     # TODO: Add autocomplete method to help fill
     @app_commands.command(name="rolesnew", description="Resets league/division roles based on the arguments")
-    @app_commands.describe(debug="Debug mode. Log but don't set roles.", 
-                           clear="Clear mode. Remove all league roles from all members before assigning.", 
+    @app_commands.describe(debug="Debug mode. Log but don't set roles.",
+                           clear="Clear mode. Remove all league roles from all members before assigning.",
                            scope="Which tiers or leagues to update roles for.")
     @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)],
                           clear=[Choice(name="True", value=1), Choice(name="False", value=0)],
@@ -375,6 +375,7 @@ class OTH(WesCog):
             raise self.UserNotFound(user, division)
 
         curr_round = None
+        is_group_stage = True
         for m in challonge.matches.index(wc_id):
             # Skip completed matches, because we only want the current one
             if m["state"] != "open":
@@ -383,6 +384,8 @@ class OTH(WesCog):
             # Assume the first open match has the correct round, and set for the entire bracket
             if curr_round == None:
                 curr_round = m["round"]
+                if m["group_id"] == None:
+                    is_group_stage = False
 
             # Skip matches for other rounds
             if m["round"] != curr_round:
@@ -454,16 +457,14 @@ class OTH(WesCog):
             embed.set_footer(text=f"(Link is to opponent's matchup)")
 
             await ctx.send(embed=embed)
-            break # Only show the first "open" match because that's the one happening this week. Should work the whole way through...
-
-        if opp == None and curr_round <= 6:
-            embed = discord.Embed(title=f"User {user} is on bye", url=None)
-            await ctx.send(embed=embed)
             return
 
-        # Raise exception if no opponent was found -- meaning the user is no longer in the tournament.
         if opp == None:
-            raise self.WoppaCupOpponentNotFound(user)
+            if is_group_stage:
+                embed = discord.Embed(title=f"User {user} is on bye.", url=None)
+            else:
+                embed = discord.Embed(title=f"User {user} is no longer in tournament.", url=None)
+            await ctx.send(embed=embed)
 
     @woppacup.error
     async def woppacup_error(self, ctx, error):
