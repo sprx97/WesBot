@@ -350,6 +350,8 @@ class OTH(WesCog):
 
 ######################## Woppa Cup ########################
 
+    NUM_KNOCKOUT_ROUNDS = 7
+
     # Posts the current woppacup matchup score for the given user
     @commands.command(name="woppacup", aliases=["cup", "wc"])
     async def woppacup(self, ctx, user, division = None):
@@ -454,6 +456,19 @@ class OTH(WesCog):
             link = f"https://www.fleaflicker.com/nhl/leagues/{opp_matchup['league_id']}/scores/{opp_matchup['matchup_id']}"
 
             embed = discord.Embed(title=msg, url=link)
+
+            round_name = "Group Stage"
+            if not is_group_stage:
+                round_name = ""
+                if round == 7:
+                    round_name = "Championship"
+                elif round == 7:
+                    round_name = "Semifinal"
+                elif round == 6:
+                    round_name = "Quarterfinal"
+                else:
+                    round_name = f"Round of {2**(8-round)}"
+            embed.set_author(name=f"Woppa Cup {round_name}")
             embed.set_footer(text=f"(Link is to opponent's matchup)")
 
             await ctx.send(embed=embed)
