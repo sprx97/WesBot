@@ -458,16 +458,18 @@ class OTH(WesCog):
             embed = discord.Embed(title=msg, url=link)
 
             round_name = "Group Stage"
-            if not is_group_stage:
+            if is_group_stage:
+                round_name = f"{round_name} Week {curr_round}"
+            else:
                 round_name = ""
-                if round == 7:
+                if curr_round == 7:
                     round_name = "Championship"
-                elif round == 6:
+                elif curr_round == 6:
                     round_name = "Semifinal"
-                elif round == 5:
+                elif curr_round == 5:
                     round_name = "Quarterfinal"
                 else:
-                    round_name = f"Round of {2**(8-round)}"
+                    round_name = f"Round of {2**(8-curr_round)}"
             embed.set_author(name=f"Woppa Cup {round_name}")
             embed.set_footer(text=f"(Link is to opponent's matchup)")
 
