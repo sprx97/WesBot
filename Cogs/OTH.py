@@ -462,9 +462,9 @@ class OTH(WesCog):
                 round_name = ""
                 if round == 7:
                     round_name = "Championship"
-                elif round == 7:
-                    round_name = "Semifinal"
                 elif round == 6:
+                    round_name = "Semifinal"
+                elif round == 5:
                     round_name = "Quarterfinal"
                 else:
                     round_name = f"Round of {2**(8-round)}"
