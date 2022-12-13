@@ -75,6 +75,14 @@ class Memes(WesCog):
                        "than a monotone listing-off of conventional goalie skills. Puck handles? When you're in constant tune with the precise Hz pitch of the ice like Nedeljkovic, " + \
                        "English words like 'good save' cannot encapsulate even a fractoid of the scientific and metaphysical majesty of Alex.")
 
+    @memes_group.command(name="pathetic")
+    @app_commands.checks.cooldown(1, 60.0)
+    async def pathetic(self, interaction: discord.Interaction, user: discord.Member):
+        if user == None:
+            user = interaction.user
+        await interaction.response.send_message(f"I don’t know what’s more pathetic <@{user.id}>, that you actually took the time out of your afternoon to do this, " + \
+                        " or that you waited several minutes after the conversation and it still bothers you enough to provoke you to do this")
+
     @memes_group.command(name="petey")
     @app_commands.checks.cooldown(1, 60.0)
     async def petey(self, interaction: discord.Interaction):
@@ -90,8 +98,10 @@ class Memes(WesCog):
 
     @memes_group.command(name="toughguy")
     @app_commands.checks.cooldown(1, 60.0)
-    async def toughguy(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"<@{interaction.user.id}> watch your mouth. Just cuz you tell me to do something doesn't " + \
+    async def toughguy(self, interaction: discord.Interaction, user: discord.Member):
+        if user == None:
+            user = interaction.user
+        await interaction.response.send_message(f"<@{user.id}> watch your mouth. Just cuz you tell me to do something doesn't " + \
                                     "mean I'm going to do it. Being a keyboard tough guy making smart ass remarks doesn't " + \
                                     "make you funny or clever, just a coward hiding behind a computer")
 
