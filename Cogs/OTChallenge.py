@@ -212,6 +212,13 @@ class OTChallenge(WesCog):
             mins_remaining = 0
         mins_remaining = int(mins_remaining)
 
+        # Check the playsByPeriod log to ensure this is actually isn't the end of the 2nd
+        plays_by_period = game["liveData"]["plays"]["playsByPeriod"]
+        if len(plays_by_period) < 3:
+            return False # not 3rd period yet
+        if len(plays_by_period[2]["plays"]) < 5:
+            return False # false alarm, 3rd period has very few plays
+
         is_late_3rd = (mins_remaining < OT_CHALLENGE_BUFFER_MINUTES and current_period == 3)
         is_pre_OT = (current_period > 3 and ((mins_remaining == 5 and game_type == "R") or (mins_remaining == 20 and game_type == "P")))
 
@@ -257,6 +264,8 @@ class OTChallenge(WesCog):
             if game["gameData"]["teams"]["away"]["triCode"] == team or game["gameData"]["teams"]["home"]["triCode"] == team:
                 found = True
                 break
+
+        # TODO: Prevent command use for preseason games (should be part of game json object)
 
         if not found:
             raise TeamDoesNotPlayToday(team)

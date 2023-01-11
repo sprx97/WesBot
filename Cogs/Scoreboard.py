@@ -270,6 +270,15 @@ class Scoreboard(WesCog):
         for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
             msg = await channel.send(embed=embed)
             msgids[channel.id] = msg.id
+
+            # TESTING
+            try:
+                if "OT Challenge for" in string and channel.guild.id == OTH_GUILD_ID:
+                    await msg.create_thread("ot-challenge-test", auto_archive_duration=12*60)
+            except Exception as e:
+                self.log.info(f"OT Thread error: {e}")
+            # TESTING
+
         self.log.info(f"Post: {key} {string} {link} {thumb}")
 
         self.messages[key] = {"msg_id":msgids, "msg_text":string, "msg_link":link, "msg_thumb":thumb}
@@ -370,7 +379,7 @@ class Scoreboard(WesCog):
             if disallow_key not in self.messages:
                 away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
                 home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-                disallow_str = f"Goal disallowed in {away}-{home}."
+                disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
                 await self.post_goal(disallow_key, disallow_str, None, None)
 
     # Checks to see if OT challenge starting for a game
@@ -386,7 +395,7 @@ class Scoreboard(WesCog):
 
         # Game not in final 5 minutes of 3rd or OT intermission
         ot = self.bot.get_cog("OTChallenge")
-        await ot.processot(None)
+        await ot.processot(None) # TODO: Why is this here?
         if not ot.is_ot_challenge_window(playbyplay):
             return False
 
@@ -416,6 +425,7 @@ class Scoreboard(WesCog):
         await self.check_for_goals(key, playbyplay)
 
         # Check for OT Challenge start notifications
+        # TODO: Move this logic into OTChallenge.py, and load the cog
         ot_key = key + ":O"
         ot_string = f"OT Challenge for {away_emoji} {away} at {home_emoji} {home} is open."
         if await self.check_for_ot_challenge_start(key, playbyplay):

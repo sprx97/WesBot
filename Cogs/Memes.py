@@ -28,7 +28,7 @@ class Memes(WesCog):
     @memes_group.command(name="darn")
     @app_commands.checks.cooldown(1, 60.0)
     async def darn(self, interaction: discord.Interaction):
-        darns = ["https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif", "https://i.redd.it/wdhnfsxdl3v91.gif"]
+        darns = ["https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif", "https://i.redd.it/wdhnfsxdl3v91.gif", "https://media.discordapp.net/attachments/507616755510673409/1062797234841845862/I_am_deceased.gif"]
         await interaction.response.send_message(random.choice(darns))
 
     @memes_group.command(name="fifi")
