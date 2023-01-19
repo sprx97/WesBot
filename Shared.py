@@ -228,6 +228,8 @@ def sanitize_user(user):
         user = "coyle1096"
     elif user == "chizzle":
         user = "ch1zzle"
+    elif user == "edge":
+        user = "edgies"
 
     return user
 
