@@ -379,8 +379,8 @@ class Scoreboard(WesCog):
             if disallow_key not in self.messages:
                 away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
                 home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-                disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
-                await self.post_goal(disallow_key, disallow_str, None, None)
+#                disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
+#                await self.post_goal(disallow_key, disallow_str, None, None)
 
     # Checks to see if OT challenge starting for a game
     async def check_for_ot_challenge_start(self, key, playbyplay):
