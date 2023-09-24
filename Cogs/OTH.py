@@ -52,6 +52,7 @@ class OTH(WesCog):
         league_role_ids["Leetch"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
         league_role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
         league_role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
+        league_role_ids["Coffey"] = self.bot.get_guild(OTH_GUILD_ID).get_role(1026259761265651742)
 
         return league_role_ids
 
@@ -308,28 +309,38 @@ class OTH(WesCog):
         assignments = {}
         f = open(rolesfile)
         for line in f.readlines():
-            name, discrim, tier, league = line.strip().split("\t")
-            assignments[(name.lower(), discrim)] = (tier, league)
+            name, tier, league = line.strip().split("\t")
+            assignments[name.lower()] = (tier, league)
 
         league_role_ids = self.get_role_ids()
 
+        # Clear all roles except ones I'm overriding.
         members = self.bot.get_guild(OTH_GUILD_ID).members
         for member in members:
-#            self.log.info(f"Removing all division/league roles from {member.name}")
-#            if set_roles:
-#                await member.remove_roles(*league_role_ids.values())
+            d1_role = discord.utils.get(ctx.guild.roles, name="D1")
+            if d1_role not in member.roles:
+                # check if member has any league roles.
+                for league_role in league_role_ids.values():
+                    if league_role in member.roles:
+                        self.log.info(f"Removing all division/league roles from {member.name}")
+                        if set_roles:
+                            await member.remove_roles(*league_role_ids.values())
+                            break
 
             # TODO: Futz with this manually to make things work as needed. Working on improving this
-            key = (member.name.lower(), member.discriminator)
+            key = member.name.lower()
             if key in assignments:
                 tier = assignments[key][0]
                 league = assignments[key][1]
-                if tier == "D4" and league == "Coffey":
-                    self.log.info(f"Adding roles {tier} and {league} to {member.name}")
-                    if set_roles:
-                        await member.add_roles(league_role_ids[tier], league_role_ids[league])
+
+                # Add if statement here to update only certain leagues/tiers
+                self.log.info(f"Adding roles {tier} and {league} to {member.name}")
+                if set_roles:
+#                    await member.remove_roles(*league_role_ids.values())
+                    await member.add_roles(league_role_ids[tier], league_role_ids[league])
 
         self.log.info(f"Finished updating roles.")
+        await ctx.send("Finished updating roles.")
 
     @roles.error
     async def roles_error(self, ctx, error):
