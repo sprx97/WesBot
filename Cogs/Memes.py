@@ -49,6 +49,11 @@ class Memes(WesCog):
     async def fuck(self, interaction: discord.Interaction):
         await interaction.response.send_message("Bruce Boudreau would not approve of such language. Please try `memes darn` instead.")
 
+    @memes_group.command(name="jonas")
+    @app_commands.checks.cooldown(1, 60.0)
+    async def jonas(self, interaction: discord.Interaction):
+        await interaction.response.send_message("I can say without hesitation that the Avs are getting the worst goalie I've seen during my 19 seasons covering the Sabres. He doesn't stop pucks in practice or games.")
+
     @memes_group.command(name="laine")
     @app_commands.checks.cooldown(1, 60.0)
     async def laine(self, interaction: discord.Interaction):
@@ -96,6 +101,11 @@ class Memes(WesCog):
     async def price(self, interaction: discord.Interaction):
         await interaction.response.send_message("Carey Price has a $10.5 million cap hit through 2025-26. The Price is WRONG, Bob Barker.")
 
+    @memes_group.command(name="tapthesign")
+    @app_commands.checks.cooldown(1, 60.0)
+    async def tapthesign(self, interaction: discord.Interaction):
+        await interaction.response.send_message("https://media.discordapp.net/attachments/207638168269225984/1160383890721083432/IMG_7356.jpg")
+
     @memes_group.command(name="toughguy")
     @app_commands.checks.cooldown(1, 60.0)
     async def toughguy(self, interaction: discord.Interaction, user: discord.Member):
@@ -116,23 +126,11 @@ class Memes(WesCog):
         await interaction.response.send_message("I have studied tapes of him and I must disagree. While he is highly skilled, he does not have 'it' if you know what I mean. " + \
                        "That 'x-factor'. The 'above and beyond' trait.")
 
-    @bryz.error
-    @cat.error
-    @dahlin.error
-    @darn.error
-    @fifi.error
-    @fuck.error
-    @laine.error
-    @mcavoy.error
-    @ned.error
-    @petey.error
-    @price.error
-    @toughguy.error
-    @tuukka.error
-    @xfactor.error
-    async def on_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+    async def cog_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(f"Command on cooldown. Try in {error.retry_after} seconds.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"An error occurred in command: {interaction.command}, error: {str(error)}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Memes(bot), guild=discord.Object(id=OTH_GUILD_ID))
