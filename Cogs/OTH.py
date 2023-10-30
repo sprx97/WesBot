@@ -1,20 +1,20 @@
 
 # Discord Libraries
+# Python Libraries
+import asyncio
+import os
+from datetime import datetime, timedelta
 from distutils.log import debug
 from xmlrpc.client import Boolean
+
+import challonge
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands, tasks
-
-# Python Libraries
-import asyncio
-import challonge
-from datetime import datetime, timedelta
-import os
-
 # Local Includes
 from Shared import *
+
 
 class OTH(WesCog):
     def __init__(self, bot):
@@ -29,32 +29,6 @@ class OTH(WesCog):
 
 #        self.inactives_loop.start()
 #        self.loops.append(self.inactives_loop)
-
-    def get_role_ids(self):
-        league_role_ids = {}
-        league_role_ids["D1"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340870807137812480)
-        league_role_ids["D2"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
-        league_role_ids["D3"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
-        league_role_ids["D4"] = self.bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
-        league_role_ids["Gretzky"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
-        league_role_ids["Brodeur"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
-        league_role_ids["Hasek"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
-        league_role_ids["Roy"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133440902561803)
-        league_role_ids["Lemieux"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
-        league_role_ids["Jagr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
-        league_role_ids["Yzerman"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133873658396683)
-        league_role_ids["Howe"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
-        league_role_ids["Dionne"] = self.bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
-        league_role_ids["Bourque"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384675141648385)
-        league_role_ids["Orr"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384733228564530)
-        league_role_ids["Lidstrom"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
-        league_role_ids["Niedermayer"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
-        league_role_ids["Leetch"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
-        league_role_ids["Chelios"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
-        league_role_ids["Pronger"] = self.bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
-        league_role_ids["Coffey"] = self.bot.get_guild(OTH_GUILD_ID).get_role(1026259761265651742)
-
-        return league_role_ids
 
 ######################## Cog-specific Exceptions ########################
 
@@ -270,94 +244,117 @@ class OTH(WesCog):
     async def box_error(self, ctx, error):
         await ctx.send(error)
 
-    # TODO: Add autocomplete method to help fill
-    @app_commands.command(name="rolesnew", description="Resets league/division roles based on the arguments")
-    @app_commands.describe(debug="Debug mode. Log but don't set roles.",
-                           clear="Clear mode. Remove all league roles from all members before assigning.",
-                           scope="Which tiers or leagues to update roles for.")
-    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)],
-                          clear=[Choice(name="True", value=1), Choice(name="False", value=0)],
-                          scope=[Choice(name="All", value=0)])
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_roles=True)
-    @app_commands.checks.has_permissions(manage_roles=True)
-    async def rolesnew(self, interaction: discord.Interaction, debug: Choice[int], clear: Choice[int], scope: Choice[int]):
-        await interaction.response.send_message("Working.")
+    roles_group = app_commands.Group(name="roles", description="Help the OTH Server with setting league/division roles.")
 
-    @commands.command(name="roles")
-    @commands.is_owner()
-    @is_tech_channel()
-    async def roles(self, ctx, set="false"):
-        # TODO: Add a tier input variable to allow for one tier at a time
-        # TODO: Use slash commands to force a true/false input on set_roles
-        # TODO: Add some fuzzy logic to assign roles based on FF username if we don't have discord username
+    def roles_scope_choices_helper():
+        choices = [Choice(name="All", value="All")]
 
+        for division in ["D1", "D2", "D3", "D4"]:
+            choices.append(Choice(name=division, value=division))
+
+        for league in get_leagues_from_database(Config.config["year"]):
+            choices.append(Choice(name=league["name"], value=league["name"]))
+
+        return choices
+    
+    # TODO: Move the Emailer to a shared location instead of the other project, and use direct sheet access instead of the rolesfile
+
+    def get_role_assignments(self):
         rolesfile = Config.config["srcroot"] + "/Roles.txt"
 
         if not os.path.isfile(rolesfile):
-            await ctx.send("Roles file not found.")
-            return
-
-        set_roles = False
-        if set == "true":
-            set_roles = True
-            await ctx.send("Setting all roles from local txt file.")
-        else:
-            await ctx.send("Reading roles from file but not setting them.")
-            await ctx.send("Use `!roles true` to actually change roles.")
+            return None
 
         assignments = {}
         f = open(rolesfile)
         for line in f.readlines():
-            name, tier, league = line.strip().split("\t")
-            assignments[name.lower()] = (tier, league)
+            name, division, league = line.strip().split("\t")
+            assignments[name.lower()] = (division, league)
+        
+        return assignments
 
-        league_role_ids = self.get_role_ids()
+    @roles_group.command(name="clear", description="Clear all league and division roles from all users.")
+    @app_commands.describe(debug="Debug mode. Log but don't set roles.")
+    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)])
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def roles_clear(self, interaction: discord.Interaction, debug: Choice[int]):
+        debug = (debug.value == 1)
 
-        # Clear all roles except ones I'm overriding.
+        # Early return if the roles assignment file is missing
+        assignments = self.get_role_assignments()
+        if assignments == None:
+            await interaction.response.send_message("Could not find role assignments list.")
+            return
+
+        await interaction.response.send_message(f"Removing all league/division roles.")
+        if debug:
+            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
+
+        league_roles = get_roles_from_ids(self.bot)
+
+        count = 0
         members = self.bot.get_guild(OTH_GUILD_ID).members
         for member in members:
-            d1_role = discord.utils.get(ctx.guild.roles, name="D1")
-            if d1_role not in member.roles:
-                # check if member has any league roles.
-                for league_role in league_role_ids.values():
-                    if league_role in member.roles:
-                        self.log.info(f"Removing all division/league roles from {member.name}")
-                        if set_roles:
-                            await member.remove_roles(*league_role_ids.values())
-                            break
+            for league_role in league_roles.values():
+                if league_role in member.roles:
+                    count += 1
+                    self.log.info(f"Removing all league/division roles from {member.name}.")
+                    if not debug:
+                        await member.remove_roles(*league_roles.values())
+                    break
 
-            # TODO: Futz with this manually to make things work as needed. Working on improving this
+        self.log.info(f"Found league/division roles on {count} members.")
+        if not debug:
+            await interaction.channel.send(f"Removed league/division roles from {count} members.")
+
+        await interaction.channel.send(f"Completed.")
+
+    @roles_group.command(name="assign", description="Assign league and division roles to a subset of members.")
+    @app_commands.describe(debug="Debug mode. Log but don't set roles.", scope="Which league or division to assign roles for.")
+    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)], scope=roles_scope_choices_helper())
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def roles_assign(self, interaction: discord.Interaction, debug: Choice[int], scope: Choice[str]):
+        debug = (debug.value == 1)
+        scope = scope.value
+
+        # Early return if the roles assignment file is missing
+        assignments = self.get_role_assignments()
+        if assignments == None:
+            await interaction.response.send_message("Could not find role assignments list.")
+            return
+
+        await interaction.response.send_message(f"Assigning roles for scope '{scope}'.")
+        if debug:
+            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
+
+        league_roles = get_roles_from_ids(self.bot)
+
+        count = 0
+        members = self.bot.get_guild(OTH_GUILD_ID).members
+        for member in members:
             key = member.name.lower()
             if key in assignments:
-                tier = assignments[key][0]
+                division = assignments[key][0]
                 league = assignments[key][1]
 
-                # Add if statement here to update only certain leagues/tiers
-                self.log.info(f"Adding roles {tier} and {league} to {member.name}")
-                if set_roles:
-#                    await member.remove_roles(*league_role_ids.values())
-                    await member.add_roles(league_role_ids[tier], league_role_ids[league])
+                # Skip members that are not in our desired scope
+                if scope != division and scope != league:
+                    continue
 
-        self.log.info(f"Finished updating roles.")
-        await ctx.send("Finished updating roles.")
+                count += 1
+                self.log.info(f"Adding roles {division} and {league} to {member.name}")
+                if not debug:
+                    await member.add_roles(league_roles[division], league_roles[league])
 
-    @roles.error
-    async def roles_error(self, ctx, error):
-        await ctx.send(error)
+        self.log.info(f"Added league/division roles to {count} members.")
+        if not debug:
+            await interaction.channel.send(f"Added league/division roles to {count} members.")
 
-    @commands.command(name="rolesclear")
-    @commands.is_owner()
-    @is_tech_channel()
-    async def rolesclear(self, ctx):
-       members = self.bot.get_guild(OTH_GUILD_ID).members
-       for member in members:
-            self.log.info(f"Removing all division/league roles from {member.name}")
-            await member.remove_roles(*role_ids.values())
-
-    @rolesclear.error
-    async def roles_error(self, ctx, error):
-        await ctx.send(error)
+        await interaction.channel.send(f"Completed.")
 
 ######################## Woppa Cup ########################
 
