@@ -76,14 +76,20 @@ class Scoreboard(WesCog):
 
     # Gets the game recap link
     def get_recap_link(self, key):
-        try:
+        try: # Try using new brightcove link
             game_id = key.split(":")[0]
-            media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
-            for item in media["media"]["epg"]:
-                if item["title"] == "Recap":
-                    return item["items"][0]["playbacks"][3]["url"] #, item["items"][0]["image"]["cuts"]["640x360"]["src"]
-        except:
-            return None #, None
+            media = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/boxscore")
+            recap = media["gameVideo"]["threeMinRecap"]
+            return f"https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId={recap}"
+        except: # Fallback to statsapi.web.nhl call, which appears to no longer have media
+            try:
+                game_id = key.split(":")[0]
+                media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
+                for item in media["media"]["epg"]:
+                    if item["title"] == "Recap":
+                        return item["items"][0]["playbacks"][3]["url"] #, item["items"][0]["image"]["cuts"]["640x360"]["src"]
+            except:
+                return None #, None
 
     def get_score_string(self, game):
         away = team_map[game["teams"]["away"]["team"]["name"].split(" ")[-1].lower()]
