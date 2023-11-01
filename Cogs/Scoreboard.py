@@ -76,20 +76,13 @@ class Scoreboard(WesCog):
 
     # Gets the game recap link
     def get_recap_link(self, key):
-        try: # Try using new brightcove link
+        try:
             game_id = key.split(":")[0]
             media = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/boxscore")
             recap = media["gameVideo"]["threeMinRecap"]
             return f"https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId={recap}"
-        except: # Fallback to statsapi.web.nhl call, which appears to no longer have media
-            try:
-                game_id = key.split(":")[0]
-                media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
-                for item in media["media"]["epg"]:
-                    if item["title"] == "Recap":
-                        return item["items"][0]["playbacks"][3]["url"] #, item["items"][0]["image"]["cuts"]["640x360"]["src"]
-            except:
-                return None #, None
+        except:
+            return None
 
     def get_score_string(self, game):
         away = team_map[game["teams"]["away"]["team"]["name"].split(" ")[-1].lower()]
@@ -192,19 +185,20 @@ class Scoreboard(WesCog):
             await ctx.send(error)
 
     # Gets the highlight link for a goal
-    def get_media_link(self, key):
+    def get_media_link(self, key, time):
         try:
-            game_id, event_id = key.split(":")
-            media = make_api_call(f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/content")
-            for event in media["highlights"]["scoreboard"]["items"]:
-                for keyword in event["keywords"]:
-                    if keyword["type"] == "statsEventId" and keyword["value"] == event_id:
-                        return event["playbacks"][3]["url"] #, event["highlight"]["image"]["cuts"]["640x360"]["src"]
-#            for event in media["media"]["milestones"]["items"]:
-#                if event["statsEventId"] == event_id:
-#                    return event["highlight"]["playbacks"][3]["url"] #, event["highlight"]["image"]["cuts"]["640x360"]["src"]
+            game_id = int(key.split(":")[0])
+            games = make_api_call(f"https://api-web.nhle.com/v1/score/now")["games"]
+            for game in games:
+                if game["id"] == game_id:
+                    timestamp, period = time.split(" ")
+                    for goal in game["goals"]:
+                        period_match = (goal["period"] > 3 and period == "OT") or goal["period"] == int(period[0])
+                        timestamp_match = timestamp == goal["timeInPeriod"]
+                        if period_match and timestamp_match: # Could do more matching here, such as playerId
+                            return f"https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId={goal['highlightClip']}"
         except:
-            return None #, None
+            return None
 
     # Gets the strength (EV, PP, SH, EN) of a goal
     def get_goal_strength(self, playbyplay, goal):
@@ -331,14 +325,12 @@ class Scoreboard(WesCog):
             goal_str += score
 
             # Find the media link if we don't have one for this goal yet
-            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None: # or self.messages[goal_key]["msg_thumb"] == None:
-                goal_link = self.get_media_link(goal_key)
-#                goal_link, goal_thumb = self.get_media_link(goal_key)
+            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None:
+                goal_link = self.get_media_link(goal_key, time)
             else:
                 goal_link = self.messages[goal_key]["msg_link"]
-#                goal_link, goal_thumb = self.messages[goal_key]["msg_link"], self.messages[goal_key]["msg_thumb"]
 
-            await self.post_goal(goal_key, goal_str, goal_link, None) #goal_thumb)
+            await self.post_goal(goal_key, goal_str, goal_link, None)
 
     # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
     async def check_for_disallowed_goals(self, key, playbyplay):
@@ -475,11 +467,10 @@ class Scoreboard(WesCog):
                 await self.post_goal(end_key, final_str, None, None)
 
         # Find the game recap link if we don't have it already.
-        if game_state == "Final" and end_key in self.messages and (self.messages[end_key]["msg_link"] == None): # or self.messages[end_key]["msg_thumb"] == None):
+        if game_state == "Final" and end_key in self.messages and (self.messages[end_key]["msg_link"] == None):
             recap_link = self.get_recap_link(end_key)
-#            recap_link, recap_thumb = self.get_recap_link(end_key)
             if recap_link != None:
-                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, None) #recap_thumb)
+                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, None)
 
         async with self.messages_lock:
             WritePickleFile(messages_datafile, self.messages)
