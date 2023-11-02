@@ -93,7 +93,7 @@ class Scoreboard(WesCog):
             away_record = game["awayTeam"]["record"]
             home_record = game["homeTeam"]["record"]
 
-            return f"{away} ({away_record}) at {home} ({home_record}) starts at {time} ET"
+            return f"{time}: {away} ({away_record}) at {home} ({home_record})"
         elif game_state == "OVER" or game_state == "FINAL" or game_state == "OFF":
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
@@ -111,7 +111,7 @@ class Scoreboard(WesCog):
 
             # TODO: Get time remaining in period. Need to check what the json looks like during live games
 
-            return f"Current score: {away} {away_score}, {home} {home_score} ({period})"
+            return f"Live: {away} {away_score}, {home} {home_score} ({period})"
         else:
             raise Exception(f"Unrecognized game state {game_state}")
 
