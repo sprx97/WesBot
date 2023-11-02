@@ -244,8 +244,6 @@ class OTH(WesCog):
     async def box_error(self, ctx, error):
         await ctx.send(error)
 
-    roles_group = app_commands.Group(name="roles", description="Help the OTH Server with setting league/division roles.")
-
     def roles_scope_choices_helper():
         choices = [Choice(name="All", value="All")]
 
@@ -272,6 +270,8 @@ class OTH(WesCog):
             assignments[name.lower()] = (division, league)
         
         return assignments
+
+    roles_group = app_commands.Group(name="roles", description="Help the OTH Server with setting league/division roles.")
 
     @roles_group.command(name="clear", description="Clear all league and division roles from all users.")
     @app_commands.describe(debug="Debug mode. Log but don't set roles.")

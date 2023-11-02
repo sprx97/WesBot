@@ -29,39 +29,102 @@ class Scoreboard(WesCog):
         def __init__(self, id):
             self.message = f"Could not find channel {id}."
 
-    @commands.command(name="scoresstart")
-    @commands.has_permissions(manage_guild=True)
-    async def scoresstart(self, ctx, scores_channel_id):
-        scores_channel_id = int(scores_channel_id)
-        scores_channel = self.bot.get_channel(scores_channel_id)
-        if not scores_channel:
-            raise self.ChannelNotFound(scores_channel_id)
+    scores_group = app_commands.Group(name="scores", description="Live NHL Scoreboard.")
 
-        self.scoreboard_channel_ids[ctx.guild.id] = scores_channel_id
+    @scores_group.command(name="start", description="Start the live scoreboard in a channel.")
+    @app_commands.describe(channel="The channel to start the scoreboard in.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def scores_start(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
+        self.scoreboard_channel_ids[channel.guild.id] = channel.id
 
         async with self.channels_lock:
             WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
 
-        await ctx.send("Scoreboard setup complete.")
+        await interaction.send_response("Scoreboard setup complete.")
 
-    @scoresstart.error
-    async def scoresstart_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Usage:\n\t`!scoresstart [Scoreboard Channel Id]`")
-        elif isinstance(error, self.ChannelNotFound):
-            await ctx.send(error.message)
+    @scores_group.command(name="stop", description="Stop the live scoreboard in this server.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def scores_stop(self, interaction: discord.Interaction):
+        self.scoreboard_channel_ids.pop(interaction.guild_id)
+
+        async with self.channels_lock:
+            WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
+
+        await interaction.send_response("Scoreboard disabled.")
+
+    def get_score_string_2(game):
+        away = game["awayTeam"]["abbrev"]
+        home = game["homeTeam"]["abbrev"]
+
+        away = get_emoji(away) + " " + away
+        home = get_emoji(home) + " " + home
+
+        # First check for TBD, PPD, SUSP, or CNCL because it's behind a different key
+        game_state = game["gameScheduleState"]
+        if game_state != "OK":
+            return f"{away} at {home} {game_state}"
+        
+        # Now check for "normal" states
+        game_state = game["gameState"]
+        if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
+            utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
+            local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
+            time = local_time.strftime("%-I:%M%P")
+
+            away_record = game["awayTeam"]["record"]
+            home_record = game["homeTeam"]["record"]
+
+            return f"{away} ({away_record}) at {home} ({home_record}) starts at {time} ET"
+        elif game_state == "OVER" or game_state == "FINAL" or game_state == "OFF":
+            away_score = game["awayTeam"]["score"]
+            home_score = game["homeTeam"]["score"]
+
+            return f"Final: {away} {away_score}, {home} {home_score}"
+        elif game_state == "LIVE" or game_state == "CRIT":
+            away_score = game["awayTeam"]["score"]
+            home_score = game["homeTeam"]["score"]
+
+            period = game["period"]
+            if period == 4:
+                period = "OT"
+            elif period > 4:
+                period = f"{period-3}OT"
+
+            # TODO: Get time remaining in period. Need to check what the json looks like during live games
+
+            return f"Current score: {away} {away_score}, {home} {home_score} ({period})"
         else:
-            await ctx.send(error)
+            raise Exception(f"Unrecognized game state {game_state}")
 
-    @commands.command(name="scoresstop")
-    @commands.has_permissions(manage_guild=True)
-    async def scoresstop(self, ctx):
-        self.scoreboard_channel_ids.pop(ctx.guild.id)
+    @app_commands.command(name="scores", description="Full scoreboard for today.")
+    @app_commands.guild_only()
+    async def scores(self, interaction: discord.Interaction):
+        try:
+            # Get the week scoreboard and today's date
+            root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
+            date = root["focusedDate"]
 
-        async with self.channels_lock:
-            WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
+            # Get the list of games for the correct date
+            for games in root["gamesByDate"]:
+                if games["date"] == date:
+                    break
+            games = games["games"]
 
-        await ctx.send("Scoreboard disabled.")
+            if len(games) == 0:
+                msg = "No games found for today."
+            else:
+                msg = ""
+                for game in games:
+                    msg += self.get_score_string_2(game) + "\n"
+
+            await interaction.send_response(msg)
+
+        except Exception as e:
+            interaction.send_response(f"Error in scoreboard function: {e}")
 
     # Gets a list of games for the current date
     def get_games_for_today(self):
