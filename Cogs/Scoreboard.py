@@ -227,7 +227,11 @@ class Scoreboard(WesCog):
                 if game["id"] == game_id:
                     timestamp, period = time.split(" ")
                     for goal in game["goals"]:
-                        period_match = (goal["period"] > 3 and period == "OT") or goal["period"] == int(period[0])
+                        period_match = False
+                        if period[-2:] == "OT":
+                            period_match = (goal["period"] > 3)
+                        else:
+                            period_match = (goal["period"] == int(period[0]))
                         timestamp_match = timestamp == goal["timeInPeriod"]
                         if period_match and timestamp_match: # Could do more matching here, such as playerId
                             return f"https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId={goal['highlightClip']}"
