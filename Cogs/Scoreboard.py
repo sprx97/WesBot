@@ -25,6 +25,25 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
+    @tasks.loop(seconds=10.0)
+    async def scores_loop(self):
+        games = self.get_games_for_today_old()
+        for game in games:
+            await self.parse_game(game)
+
+    @scores_loop.before_loop
+    async def before_scores_loop(self):
+        await self.bot.wait_until_ready()
+
+        # Load any messages we've sent previously today
+        async with self.messages_lock:
+            self.messages = LoadPickleFile(messages_datafile)
+
+    @scores_loop.error
+    async def scores_loop_error(self, error):
+        await self.cog_command_error(None, error)
+        self.scores_loop.restart()
+
     @app_commands.command(name="scores_start", description="Start the live scoreboard in a channel.")
     @app_commands.describe(channel="The channel to start the scoreboard in.")
     @app_commands.guild_only()
@@ -514,24 +533,6 @@ class Scoreboard(WesCog):
 
 
 
-    @tasks.loop(seconds=10.0)
-    async def scores_loop(self):
-        games = self.get_games_for_today_old()
-        for game in games:
-            await self.parse_game(game)
-
-    @scores_loop.before_loop
-    async def before_scores_loop(self):
-        await self.bot.wait_until_ready()
-
-        # Load any messages we've sent previously today
-        async with self.messages_lock:
-            self.messages = LoadPickleFile(messages_datafile)
-
-    @scores_loop.error
-    async def scores_loop_error(self, error):
-        await self.cog_command_error(None, error)
-        self.scores_loop.restart()
 
 async def setup(bot):
     await bot.add_cog(Scoreboard(bot))

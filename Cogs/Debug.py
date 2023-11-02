@@ -55,14 +55,17 @@ class Debug(WesCog):
     # Basic debug commands
     #
     @app_commands.command(name="ping", description="Checks the bot for a response.")
+    @app_commands.default_permissions(manage_guild=True)
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message("pong", ephemeral=True)
 
     @app_commands.command(name="pong", description="Checks the bot for a response.")
+    @app_commands.default_permissions(manage_guild=True)
     async def pong(self, interaction: discord.Interaction):
         await interaction.response.send_message("ping", ephemeral=True)
 
     @app_commands.command(name="uptime", description="Displays how long since the bot last crashed/restarted.")
+    @app_commands.default_permissions(manage_guild=True)
     async def uptime(self, interaction: discord.Interaction):
         days, hours, minutes, seconds = self.bot.calculate_uptime() 
 
@@ -85,11 +88,14 @@ class Debug(WesCog):
     for cog in all_cogs:
         cog_choices.append(discord.app_commands.Choice(name=cog, value=cog))
 
+    def is_bot_owner(interaction: discord.Interaction) -> bool:
+        return interaction.user.id == 228258453599027200
+
     @app_commands.command(name="kill", description="Shuts down a cog.")
     @app_commands.describe(cog="Which cog to shut down.")
     @app_commands.choices(cog=cog_choices)
-    @app_commands.default_permissions(view_audit_log=True)
-    @app_commands.checks.has_permissions(view_audit_log=True)
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.check(is_bot_owner)
     async def kill(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
         if not await self.bot.is_owner(interaction.user):
             raise Exception("This command can only be run by the bot owner.")
@@ -116,8 +122,8 @@ class Debug(WesCog):
     @app_commands.command(name="reload", description="Reloads a cog.")
     @app_commands.describe(cog="Which cog to reload.")
     @app_commands.choices(cog=cog_choices)
-    @app_commands.default_permissions(view_audit_log=True)
-    @app_commands.checks.has_permissions(view_audit_log=True)
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.check(is_bot_owner)
     async def reload(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
         if not await self.bot.is_owner(interaction.user):
             raise Exception("This command can only be run by the bot owner.")
@@ -142,8 +148,8 @@ class Debug(WesCog):
     @app_commands.command(name="log", description="Displays recent lines in the log file for a cog.")
     @app_commands.describe(cog="Which log to view.", num_lines="How many lines to display.")
     @app_commands.choices(cog=cog_choices)
-    @app_commands.default_permissions(view_audit_log=True)
-    @app_commands.checks.has_permissions(view_audit_log=True)
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.check(is_bot_owner)
     async def log(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str], num_lines: int=5):
         if not await self.bot.is_owner(interaction.user):
             raise Exception("This command can only be run by the bot owner.")
@@ -166,4 +172,4 @@ class Debug(WesCog):
             await interaction.edit_original_response(content=f"Could not find file {cog}.log.")
 
 async def setup(bot):
-    await bot.add_cog(Debug(bot))
+    await bot.add_cog(Debug(bot), guild=discord.Object(id=OTH_GUILD_ID))
