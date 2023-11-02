@@ -90,10 +90,12 @@ class Scoreboard(WesCog):
             local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
             time = local_time.strftime("%-I:%M%P")
 
-            away_record = game["awayTeam"]["record"]
-            home_record = game["homeTeam"]["record"]
+            away_record = game["awayTeam"]["record"].split("-")
+            home_record = game["homeTeam"]["record"].split("-")
+            away_points = 2*int(away_record[0]) + int(away_record[2])
+            home_points = 2*int(home_record[0]) + int(home_record[2])
 
-            return f"{time}: {away} ({away_record}) at {home} ({home_record})"
+            return f"{time}: {away} ({away_points} pts) at {home} ({home_points} pts)"
         elif game_state == "OVER" or game_state == "FINAL" or game_state == "OFF":
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
@@ -103,15 +105,19 @@ class Scoreboard(WesCog):
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
 
+            period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
             period = game["period"]
-            if period == 4:
-                period = "OT"
+            if period <= 4:
+                period = period_ordinals[period]
             elif period > 4:
                 period = f"{period-3}OT"
 
-            # TODO: Get time remaining in period. Need to check what the json looks like during live games
+            if game["clock"]["inIntermission"]:
+                time = "INT"
+            else:
+                time = game["clock"]["timeRemaining"]
 
-            return f"Live: {away} {away_score}, {home} {home_score} ({period})"
+            return f"Live: {away} {away_score}, {home} {home_score} ({period} {time})"
         else:
             raise Exception(f"Unrecognized game state {game_state}")
 
