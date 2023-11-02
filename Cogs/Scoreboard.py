@@ -25,13 +25,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    class ChannelNotFound(discord.ext.commands.CommandError):
-        def __init__(self, id):
-            self.message = f"Could not find channel {id}."
-
-    scores_group = app_commands.Group(name="scores", description="Live NHL Scoreboard.")
-
-    @scores_group.command(name="start", description="Start the live scoreboard in a channel.")
+    @app_commands.command(name="scores_start", description="Start the live scoreboard in a channel.")
     @app_commands.describe(channel="The channel to start the scoreboard in.")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
@@ -42,9 +36,9 @@ class Scoreboard(WesCog):
         async with self.channels_lock:
             WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
 
-        await interaction.send_response("Scoreboard setup complete.")
+        await interaction.response.send_message("Scoreboard setup complete.")
 
-    @scores_group.command(name="stop", description="Stop the live scoreboard in this server.")
+    @app_commands.command(name="scores_stop", description="Stop the live scoreboard in this server.")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -54,9 +48,11 @@ class Scoreboard(WesCog):
         async with self.channels_lock:
             WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
 
-        await interaction.send_response("Scoreboard disabled.")
+        await interaction.response.send_message("Scoreboard disabled.")
 
-    def get_score_string_2(game):
+    # Helper function to parse a game JSON object into a score string
+    # Works for games that haven't started, are in progress, or are finished
+    def get_score_string(self, game):
         away = game["awayTeam"]["abbrev"]
         home = game["homeTeam"]["abbrev"]
 
@@ -100,44 +96,21 @@ class Scoreboard(WesCog):
         else:
             raise Exception(f"Unrecognized game state {game_state}")
 
-    @app_commands.command(name="scores", description="Full scoreboard for today.")
-    @app_commands.guild_only()
-    async def scores(self, interaction: discord.Interaction):
-        try:
-            # Get the week scoreboard and today's date
-            root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
-            date = root["focusedDate"]
-
-            # Get the list of games for the correct date
-            for games in root["gamesByDate"]:
-                if games["date"] == date:
-                    break
-            games = games["games"]
-
-            if len(games) == 0:
-                msg = "No games found for today."
-            else:
-                msg = ""
-                for game in games:
-                    msg += self.get_score_string_2(game) + "\n"
-
-            await interaction.send_response(msg)
-
-        except Exception as e:
-            interaction.send_response(f"Error in scoreboard function: {e}")
-
-    # Gets a list of games for the current date
+    # Helper function to get all of the game JSON objects for the current day
+    # from the NHL.com api.
     def get_games_for_today(self):
-        date = (datetime.utcnow()-timedelta(hours=ROLLOVER_HOUR_UTC)).strftime("%Y-%m-%d")
+        # Get the week scoreboard and today's date
+        root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
+        date = root["focusedDate"]
 
-        root = make_api_call(f"https://statsapi.web.nhl.com/api/v1/schedule?date={date}&expand=schedule.linescore")
+        # Get the list of games for the correct date
+        for games in root["gamesByDate"]:
+            if games["date"] == date:
+                break
 
-        if len(root["dates"]) == 0:
-            return []
-
-        return root["dates"][0]["games"]
-
-    # Gets the game recap link
+        return games["games"]
+    
+    # Gets the game recap video link if it's available
     def get_recap_link(self, key):
         try:
             game_id = key.split(":")[0]
@@ -147,105 +120,84 @@ class Scoreboard(WesCog):
         except:
             return None
 
-    def get_score_string(self, game):
-        away = team_map[game["teams"]["away"]["team"]["name"].split(" ")[-1].lower()]
-        home = team_map[game["teams"]["home"]["team"]["name"].split(" ")[-1].lower()]
+    @app_commands.command(name="scoreboard", description="Check out today's full scoreboard.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def scores_scoreboard(self, interaction: discord.Interaction):
+        try:
+            games = self.get_games_for_today()
 
-        home_emoji = get_emoji(home)
-        away_emoji = get_emoji(away)
-
-        game_state = game["status"]["detailedState"]
-        # Game hasn't started yet
-        if game_state == "Scheduled" or game_state == "Pre-Game":
-            utctime = datetime.strptime(game["gameDate"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
-            localtime = utctime.astimezone(pytz.timezone("America/New_York"))
-            time = localtime.strftime("%-I:%M%P")
-            return f"{away_emoji} {away} vs {home_emoji} {home} starts at {time} ET.", None
-        elif game_state == "Postponed":
-            return f"{away_emoji} {away} vs {home_emoji} {home} was postponed.", None
-        else:
-            period = "(" + game["linescore"]["currentPeriodOrdinal"] + ")"
-            away_score = game["teams"]["away"]["score"]
-            home_score = game["teams"]["home"]["score"]
-
-            # Game is over
-            if game_state == "Final":
-                if period == "(3rd)":
-                    period = ""
-                status = "Final:"
-            # Game is in progress
+            if len(games) == 0:
+                msg = "No games found for today."
             else:
-                timeleft = game["linescore"]["currentPeriodTimeRemaining"]
-                period = period[:-1] + " " + timeleft + period[-1]
-                status = "Current score:"
+                msg = ""
+                for game in games:
+                    msg += self.get_score_string(game) + "\n"
 
-            return f"{status} {away_emoji} {away} {away_score}, {home_emoji} {home} {home_score} {period}", self.get_recap_link(str(game["gamePk"]))
+            await interaction.response.send_message(msg)
 
-    @commands.command(name="scores")
-    async def scores(self, ctx):
-        # Loop through each game in today's schedule
-        games = self.get_games_for_today()
+        except Exception as e:
+            await interaction.response.send_message(f"Error in `/scores scoreboard` function: {e}")
 
-        if len(games) == 0:
-            msg = "No games found for today."
-        else:
-            msg = ""
+    @app_commands.command(name="score", description="Check the score for a specific team.")
+    @app_commands.describe(team="An NHL team abbreviation, name, or nickname.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def scores_score(self, interaction: discord.Interaction, team: str):
+        try:
+            # Get the proper abbreviation from our aliases
+            team = team.lower()
+            team = team_map.get(team)
+            if team == None:
+                await interaction.response.send_message(f"Team '{team}' not found.")
+                return
+
+            # Loop through the games searching for this team
+            games = self.get_games_for_today()
+            found = False
             for game in games:
-                msg += self.get_score_string(game)[0] + "\n"
+                if game["awayTeam"]["abbrev"] == team or game["homeTeam"]["abbrev"] == team:
+                    found = True
+                    break
 
-        await ctx.send(msg)
+            # If the team doesn't play today, return
+            if not found:
+                await interaction.response.send_message(f"{emojis[team]} {team} does not play today.")
+                return
 
-    @commands.command(name="score")
-    async def score(self, ctx, input, *extras):
-        # Account for teams with two-word names (San Jose, St. Louis, Tampa Bay, etc)
-        team = input
-        if len(extras) > 0:
-            team += " " + " ".join(extras)
-        team = team.replace("[", "").replace("]", "")
-        team = team.lower()
+            # Get the score and recap
+            msg = self.get_score_string(game)
+            link = self.get_recap_link(str(game["id"]))
 
-        if team not in team_map:
-            raise NHLTeamNotFound(input)
+            # Create and send the embed
+            embed=discord.Embed(title=msg, url=link)
+            await interaction.response.send_message(embed=embed)
 
-        team = team_map[team]
+        except Exception as e:
+            await interaction.response.send_message(f"Error in `/scores score` function: {e}")
 
-        # Loop through each game in today's schedule
-        games = self.get_games_for_today()
-        found = False
-        for game in games:
-            away = team_map[game["teams"]["away"]["team"]["name"].split(" ")[-1].lower()]
-            home = team_map[game["teams"]["home"]["team"]["name"].split(" ")[-1].lower()]
+    @scores_start.error
+    @scores_stop.error
+    @scores_scoreboard.error
+    @scores_score.error
+    async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.response.send_message(f"{error}")
 
-            # These are not the teams you are looking for 👋🏻
-            if home != team and away != team:
-                continue
 
-            msg, links = self.get_score_string(game)
-            embed=discord.Embed(title=msg, url=links) # links[0]
-#            if links[1]:
-#                embed.set_thumbnail(url=links[1])
-            await ctx.send(embed=embed)
 
-            found = True
-            break
 
-        if not found:
-            raise TeamDoesNotPlayToday(team)
 
-    @score.error
-    async def score_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Usage: `!score [NHL team]`")
-        elif isinstance(error, NHLTeamNotFound):
-            await ctx.send(error.message)
-        elif isinstance(error, LinkError):
-            await ctx.send(error.message)
-        elif isinstance(error, NoGamesTodayError):
-            await ctx.send(error.message)
-        elif isinstance(error, TeamDoesNotPlayToday):
-            await ctx.send(error.message)
-        else:
-            await ctx.send(error)
+
+
+
+
+
+
+
+
+
 
     # Gets the highlight link for a goal
     def get_media_link(self, key, time):
@@ -538,9 +490,33 @@ class Scoreboard(WesCog):
         async with self.messages_lock:
             WritePickleFile(messages_datafile, self.messages)
 
+    # Gets a list of games for the current date
+    def get_games_for_today_old(self):
+        date = (datetime.utcnow()-timedelta(hours=ROLLOVER_HOUR_UTC)).strftime("%Y-%m-%d")
+
+        root = make_api_call(f"https://statsapi.web.nhl.com/api/v1/schedule?date={date}&expand=schedule.linescore")
+
+        if len(root["dates"]) == 0:
+            return []
+
+        return root["dates"][0]["games"]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @tasks.loop(seconds=10.0)
     async def scores_loop(self):
-        games = self.get_games_for_today()
+        games = self.get_games_for_today_old()
         for game in games:
             await self.parse_game(game)
 
