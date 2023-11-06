@@ -31,6 +31,10 @@ class Scoreboard(WesCog):
         for game in games:
             await self.parse_game(game)
 
+        games = self.get_games_for_today()
+        for game in games:
+            await self.parse_game_new(game)
+
     @scores_loop.before_loop
     async def before_scores_loop(self):
         await self.bot.wait_until_ready()
@@ -105,12 +109,7 @@ class Scoreboard(WesCog):
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
 
-            period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
-            period = game["period"]
-            if period <= 4:
-                period = period_ordinals[period]
-            elif period > 4:
-                period = f"{period-3}OT"
+            period = self.get_period_ordinal(game["period"])
 
             if game["clock"]["inIntermission"]:
                 time = "INT"
@@ -215,6 +214,142 @@ class Scoreboard(WesCog):
 
 
 
+    async def post_goal_new(self, key, string, link):
+        # Bail if this message has already been sent and hasn't changed.
+        if key in self.messages and string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
+            return
+
+        # Add emoji to end of string to indicate a replay exists.
+        if link != None:
+            string += " :movie_camera:"
+
+        embed = discord.Embed(title=string, url=link)
+
+        # Update the goal if it's already been posted, but changed.
+        if key in self.messages:
+            post_type = "EDITING"
+            msgs = self.messages[key]["msg_id"]
+            for msg in msgs:
+                # msg = await self.bot.get_channel(msg.channel).fetch_message(msg.id)
+                # await msg.edit(embed=embed)
+                pass
+        else:
+            post_type = "POSTING"
+            msgs = []
+            for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
+                # msg = await channel.send(embed=embed)
+                # msgs.append(msg)
+                pass
+
+        self.log.info(f"{post_type} {key}: {string} {link}")
+        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_link":link}
+
+    def get_period_ordinal(self, period):
+        period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
+        if period <= 4:
+            period = period_ordinals[period]
+        else:
+            period = f"{period-3}OT"
+
+        return period
+
+    def get_goal_strength_new(self, goal):
+        strength = goal["strength"]
+        modifier = goal["goalModifier"]
+
+        ret = " "
+        if strength != "ev":
+            ret += f"({strength.upper()}) "
+
+        if modifier == "penalty-shot":
+            ret += "(PS) "
+
+        if modifier == "empty-net":
+            ret += "(EN) "
+
+        return ret
+
+    async def parse_game_new(self, game):
+        state = game["gameState"]
+        id = str(game["id"])
+        if state == "LIVE" or state == "CRIT":
+            landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
+           
+            away = landing["awayTeam"]["abbrev"]
+            home = landing["homeTeam"]["abbrev"]
+            away = f"{get_emoji(away)} {away}"
+            home = f"{get_emoji(home)} {home}"
+
+            # Post the game starting notification
+            start_key = f"{id}:S2"
+            if start_key not in self.messages:
+                start_string = f"{away} at {home} Starting."
+                await self.post_goal_new(start_key, start_string, None)
+            
+            # TODO: Check for Disallowed Goals
+
+            # Check for Goals
+            for period in landing["summary"]["scoring"]:
+                for goal in period["goals"]:
+                    period_num = period["period"]
+                    period_ord = self.get_period_ordinal(period["period"])
+                    time = goal["timeInPeriod"]
+                    goal_key = f"{id}:{period_num}.{time.replace(':','')}"
+
+                    strength = self.get_goal_strength_new(goal)
+                    team = goal["teamAbbrev"]
+                    team = f"{get_emoji(team)} {team}"
+                    shot_type = f" {goal['shotType']}" if "shotType" in goal else ""
+
+                    scorer = f"{goal['firstName']} {goal['lastName']} ({goal['goalsToDate']}){shot_type}"
+                    primary = None
+                    secondary = None
+
+                    goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
+                    if primary != None:
+                        goal_str += f" assists: {primary}"
+                    if secondary != None:
+                        goal_str += f", {secondary}"
+                    goal_str += f" ({away} {goal['awayScore']}, {home} {goal['homeScore']})"
+
+                    await self.post_goal_new(goal_key, goal_str, None)
+    
+            # TODO: Start OT Challenge Thread (maybe move logic to OTChallenge.cog)
+
+        # TODO: Rethink this, because goals will stop updating after the game if
+        #       we wait for this. Maybe that's the difference between FINAL and OFF
+        elif state == "FINAL" or state == "OFF":
+            end_key = id + ":E2"
+            if end_key not in self.messages:
+                landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
+
+                away = landing["awayTeam"]["abbrev"]
+                home = landing["homeTeam"]["abbrev"]
+                away = f"{get_emoji(away)} {away}"
+                home = f"{get_emoji(home)} {home}"
+
+                linescore = landing["summary"]["linescore"]
+
+                away_score = linescore["totals"]["away"]
+                home_score = linescore["totals"]["home"]
+
+                modifier = ""
+                last_period = linescore["byPeriod"][-1]["periodDescriptor"]
+                if last_period["periodType"] == "OT":
+                    ot_num = last_period["number"] - 3
+                    if ot_num == 1:
+                        ot_num = ""
+                    modifier = f"({ot_num}OT)"
+                elif last_period["periodType"] == "SO":
+                    modifier = "(SO)"
+
+                end_string = f"{away} {away_score}, {home} {home_score} Final {modifier}"
+                await self.post_goal_new(end_key, end_string, None)
+
+            # Find Recap link
+
+        async with self.messages_lock:
+            WritePickleFile(messages_datafile, self.messages)
 
 
 
@@ -274,6 +409,10 @@ class Scoreboard(WesCog):
 
     # Update a message string that has already been sent
     async def update_goal(self, key, string, link, thumb):
+        # Is V2 goal, ignore
+        if type(self.messages[key]["msg_id"]) is list:
+            return
+
         # Do nothing if nothing has changed, including the link.
         if string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]: # and thumb == self.messages[key]["msg_thumb"]:
             return
@@ -529,6 +668,8 @@ class Scoreboard(WesCog):
             return []
 
         return root["dates"][0]["games"]
+
+
 
 
 
