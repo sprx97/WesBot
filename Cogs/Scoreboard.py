@@ -29,13 +29,9 @@ class Scoreboard(WesCog):
 
     @tasks.loop(seconds=10.0)
     async def scores_loop(self):
-        # games = self.get_games_for_today_old()
-        # for game in games:
-        #     await self.parse_game(game)
-
         games = self.get_games_for_today()
         for game in games:
-            await self.parse_game_new(game)
+            await self.parse_game(game)
 
     @scores_loop.before_loop
     async def before_scores_loop(self):
@@ -211,7 +207,7 @@ class Scoreboard(WesCog):
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}")
 
-    async def post_goal_new(self, key, string, link):
+    async def post_goal(self, key, string, link):
         # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
@@ -249,7 +245,7 @@ class Scoreboard(WesCog):
 
         return period
 
-    def get_goal_strength_new(self, goal):
+    def get_goal_strength(self, goal):
         strength = goal["strength"]
         modifier = goal["goalModifier"]
 
@@ -265,7 +261,8 @@ class Scoreboard(WesCog):
 
         return ret
 
-    async def parse_game_new(self, game):
+    # TODO: Break this down into a few more helper methods
+    async def parse_game(self, game):
         state = game["gameState"]
         id = str(game["id"])
 
@@ -279,6 +276,7 @@ class Scoreboard(WesCog):
             home = landing["homeTeam"]["abbrev"]
             away = f"{get_emoji(away)} {away}"
             home = f"{get_emoji(home)} {home}"
+            # TODO: May need some special handling for ASG emoji
 
             # Post the game starting notification
             start_key = f"{id}:S"
@@ -296,7 +294,7 @@ class Scoreboard(WesCog):
                     time = goal["timeInPeriod"]
                     goal_key = f"{id}:{period_num}.{time.replace(':','')}"
 
-                    strength = self.get_goal_strength_new(goal)
+                    strength = self.get_goal_strength(goal)
                     team = goal["teamAbbrev"]
                     team = f"{get_emoji(team)} {team}"
                     shot_type = f" {goal['shotType']}" if "shotType" in goal else ""
@@ -313,7 +311,7 @@ class Scoreboard(WesCog):
 
                     highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
 
-                    await self.post_goal_new(goal_key, goal_str, highlight)
+                    await self.post_goal(goal_key, goal_str, highlight)
     
             # TODO: Start OT Challenge Thread (maybe move logic to OTChallenge.cog)
 
@@ -348,174 +346,16 @@ class Scoreboard(WesCog):
                 recap_link = self.get_recap_link(end_key)
 
                 end_string = f"{away} {away_score}, {home} {home_score} Final {modifier}"
-                await self.post_goal_new(end_key, end_string, recap_link)
+                await self.post_goal(end_key, end_string, recap_link)
 
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
-
-
-
-
-
-
-
-
-    # Gets the highlight link for a goal
-    def get_media_link(self, key, time):
-        try:
-            game_id = int(key.split(":")[0])
-            games = make_api_call(f"https://api-web.nhle.com/v1/score/now")["games"]
-            for game in games:
-                if game["id"] == game_id:
-                    timestamp, period = time.split(" ")
-                    for goal in game["goals"]:
-                        period_match = False
-                        if period[-2:] == "OT":
-                            period_match = (goal["period"] > 3)
-                        else:
-                            period_match = (goal["period"] == int(period[0]))
-                        timestamp_match = timestamp == goal["timeInPeriod"]
-                        if period_match and timestamp_match: # Could do more matching here, such as playerId
-                            return f"https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId={goal['highlightClip']}"
-        except:
-            return None
-
-    # Gets the strength (EV, PP, SH, EN) of a goal
-    def get_goal_strength(self, playbyplay, goal):
-        strength = f"({goal['result']['strength']['code']}) "
-        if strength == "(EVEN) ":
-            strength = ""
-        if "emptyNet" in goal["result"] and goal["result"]["emptyNet"]:
-            strength += "(EN) "
-
-        # Check if it was a penalty shot by looking at previous play
-        # Sample game: https://statsapi.web.nhl.com/api/v1/game/2020020074/feed/live
-        try:
-            prev_id = goal["about"]["eventIdx"] - 1
-            prev_play = playbyplay["liveData"]["plays"]["allPlays"][prev_id]["result"]
-            if "eventTypeId" in prev_play and prev_play["eventTypeId"] == "PENALTY" and prev_play["penaltySeverity"] == "Penalty Shot":
-                strength += "(PS) "
-
-            # For some weird reason, the penalty is reported AFTER the penalty shot in some cases, so check that too.
-            # Sample game: https://statsapi.web.nhl.com/api/v1/game/2020020509/feed/live
-            next_id = goal["about"]["eventIdx"] + 1
-            if next_id in playbyplay["liveData"]["plays"]["allPlays"]:
-                next_play = playbyplay["liveData"]["plays"]["allPlays"][next_id]["result"]
-                if "eventTypeId" in next_play and next_play["eventTypeId"] == "PENALTY" and next_play["penaltySeverity"] == "Penalty Shot":
-                    strength += "(PS) "
-        except:
-            self.log.info("Failure in PS check.")
-
-        return strength
-
-    # Update a message string that has already been sent
-    async def update_goal(self, key, string, link, thumb):
-        # Is V2 goal, ignore
-        if type(self.messages[key]["msg_id"]) is list:
-            return
-
-        # Do nothing if nothing has changed, including the link.
-        if string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]: # and thumb == self.messages[key]["msg_thumb"]:
-            return
-
-        self.messages[key]["msg_text"] = string
-        self.messages[key]["msg_link"] = link
-        self.messages[key]["msg_thumb"] = thumb
-        embed = discord.Embed(title=string, url=link)
-#        if thumb:
-#            embed.set_thumbnail(url=thumb)
-
-        # Update all the messages that have been posted containing this
-        for channel_id, msg_id in self.messages[key]["msg_id"].items():
-            try:
-                msg = await self.bot.get_channel(channel_id).fetch_message(msg_id)
-                await msg.edit(embed=embed)
-                self.log.info(f"Edit: {key} {channel_id}:{msg_id} {string} {link} {thumb}")
-            except Exception as e:
-                self.log.warn(e)
-                continue
-
-    # Post a goal (or other related message) string to chat and track the data
-    async def post_goal(self, key, string, link, thumb):
-        # Add emoji to end of string to indicate a replay exists.
-        if link != None:
-            string += " :movie_camera:"
-
-        # If this key already exists, we're updating, not posting
-        if key in self.messages:
-            await self.update_goal(key, string, link, thumb)
-            return
-
-        embed = discord.Embed(title=string, url=link)
-#        if thumb:
-#            embed.set_thumbnail(url=thumb)
-
-        msgids = {}
-        for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
-            msg = await channel.send(embed=embed)
-            msgids[channel.id] = msg.id
-
-            # TESTING
-            try:
-                if "OT Challenge for" in string and channel.guild.id == OTH_GUILD_ID:
-                    await msg.create_thread("ot-challenge-test", auto_archive_duration=12*60)
-            except Exception as e:
-                self.log.info(f"OT Thread error: {e}")
-            # TESTING
-
-        self.log.info(f"Post: {key} {string} {link} {thumb}")
-
-        self.messages[key] = {"msg_id":msgids, "msg_text":string, "msg_link":link, "msg_thumb":thumb}
-
-    # Checks for new goals in the play-by-play and posts them
-    async def check_for_goals(self, key, playbyplay):
-        # Get list of scoring play ids
-        goals = playbyplay["liveData"]["plays"]["scoringPlays"]
-        away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
-        home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-
-        # Check all the goals to report new ones
-        for goal in goals:
-            goal = playbyplay["liveData"]["plays"]["allPlays"][goal]
-            goal_key = f"{key}:{goal['about']['eventId']}"
-
-            # Find the strength of the goal
-            strength = self.get_goal_strength(playbyplay, goal)
-
-            # Find the team that scored the goal
-            try:
-                team_code = goal["team"]["triCode"]
-            except:
-                team_id = goal["team"]["id"]
-                if team_id == 87:
-                    team_code = "ATL"
-                elif team_id == 88:
-                    team_code = "MET"
-                elif team_id == 89:
-                    team_code = "CEN"
-                elif team_id == 90:
-                    team_code = "PAC"
-                else:
-                    self.log.error(f"Unknown team of id {team_id} at link https://statsapi.web.nhl.com{playbyplay['link']}")
-            team = f"{get_emoji(team_code)} {team_code}"
-
-            # Find the period and time the goal was scored in
-            time = f"{goal['about']['periodTime']} {goal['about']['ordinalNum']}"
-
-            # Create the full string to post to chat
-            # NB, the spacing after strength is handled in get_goal_strength
-            goal_str = f"{get_emoji('goal')} GOAL {strength}{team} {time}: {goal['result']['description']}"
-            score = f" ({away} {goal['about']['goals']['away']}, {home} {goal['about']['goals']['home']})"
-            goal_str += score
-
-            # Find the media link if we don't have one for this goal yet
-            if goal_key not in self.messages or self.messages[goal_key]["msg_link"] == None:
-                goal_link = self.get_media_link(goal_key, time)
-            else:
-                goal_link = self.messages[goal_key]["msg_link"]
-
-            await self.post_goal(goal_key, goal_str, goal_link, None)
+###############################################################################################################################
+#
+# Old stuff I'm keeping around for later
+#
+###############################################################################################################################
 
     # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
     async def check_for_disallowed_goals(self, key, playbyplay):
@@ -562,8 +402,8 @@ class Scoreboard(WesCog):
             if disallow_key not in self.messages:
                 away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
                 home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-#                disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
-#                await self.post_goal(disallow_key, disallow_str, None, None)
+                disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
+                await self.post_goal(disallow_key, disallow_str, None, None)
 
     # Checks to see if OT challenge starting for a game
     async def check_for_ot_challenge_start(self, key, playbyplay):
@@ -583,109 +423,8 @@ class Scoreboard(WesCog):
             return False
 
         return True
-
-    # Parses a game play-by-play and posts start, goals, and end messages
-    async def parse_game(self, game):
-        # TODO: Only make this API call if the game is in certain states
-        # Get the game from NHL.com
-        playbyplay = make_api_call(f"https://statsapi.web.nhl.com{game['link']}")
-
-        away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
-        home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-        away_emoji = get_emoji(away)
-        home_emoji = get_emoji(home)
-        key = str(playbyplay["gamePk"])
-        game_state = playbyplay["gameData"]["status"]["detailedState"]
-
-        # Send game starting notification if necessary
-        start_key = key + ":S"
-        if game_state == "In Progress" and start_key not in self.messages: 
-            start_string = away_emoji + " " + away + " at " + home_emoji + " " + home + " Starting."
-            await self.post_goal(start_key, start_string, None, None)
-
-        # Send goal and disallowed goal notifications
-        await self.check_for_disallowed_goals(key, playbyplay)
-        await self.check_for_goals(key, playbyplay)
-
-        # Check for OT Challenge start notifications
-        # TODO: Move this logic into OTChallenge.py, and load the cog
-        ot_key = key + ":O"
-        ot_string = f"OT Challenge for {away_emoji} {away} at {home_emoji} {home} is open."
-        if await self.check_for_ot_challenge_start(key, playbyplay):
-            await self.post_goal(ot_key, ot_string, None, None)
-        elif ot_key in self.messages:
-            ot_string = f"~~{ot_string}~~"
-            await self.post_goal(ot_key, ot_string, None, None)
-
-        # Check whether the game finished notification needs to be sent
-        end_key = key + ":E"
-        if game_state == "Final" and end_key not in self.messages:
-            # Some exhibition games don't get play-by-play data. Skip these.
-            all_plays = playbyplay["liveData"]["plays"]["allPlays"]
-            if len(all_plays) == 0:
-                return
-
-            event_type_id = all_plays[-1]["result"]["eventTypeId"]
-            if event_type_id == "GAME_END" or event_type_id == "GAME_OFFICIAL":
-                away_score = all_plays[-1]["about"]["goals"]["away"]
-                home_score = all_plays[-1]["about"]["goals"]["home"]
-
-                # Sometimes shootout winners take longer to report, so allow this to defer to the next cycle
-                skip = False
-                if away_score == home_score: # adjust for shootout winner
-                    shootout_info = playbyplay["liveData"]["linescore"]["shootoutInfo"]
-                    if shootout_info["away"]["scores"] > shootout_info["home"]["scores"]:
-                        away_score += 1
-                    elif shootout_info["away"]["scores"] < shootout_info["home"]["scores"]:
-                        home_score += 1
-                    else:
-                        skip = True
-
-                if skip:
-                    return
-
-                # Report the final score, including the OT/SO tag
-                period = f"({all_plays[-1]['about']['ordinalNum']})"
-                if period == "(3rd)": # No additional tag for a regulation final
-                    period = ""
-                final_str = f"{get_emoji(away)} {away} {away_score}, {get_emoji(home)} {home} {home_score} Final {period}"
-                await self.post_goal(end_key, final_str, None, None)
-
-        # Find the game recap link if we don't have it already.
-        if game_state == "Final" and end_key in self.messages and (self.messages[end_key]["msg_link"] == None):
-            recap_link = self.get_recap_link(end_key)
-            if recap_link != None:
-                await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, None)
-
-        async with self.messages_lock:
-            WritePickleFile(messages_datafile, self.messages)
-
-    # Gets a list of games for the current date
-    def get_games_for_today_old(self):
-        date = (datetime.utcnow()-timedelta(hours=ROLLOVER_HOUR_UTC)).strftime("%Y-%m-%d")
-
-        root = make_api_call(f"https://statsapi.web.nhl.com/api/v1/schedule?date={date}&expand=schedule.linescore")
-
-        if len(root["dates"]) == 0:
-            return []
-
-        return root["dates"][0]["games"]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
+###############################################################################################################################
 
 async def setup(bot):
     await bot.add_cog(Scoreboard(bot))
