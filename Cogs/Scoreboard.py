@@ -212,13 +212,13 @@ class Scoreboard(WesCog):
         await interaction.response.send_message(f"{error}")
 
     async def post_goal_new(self, key, string, link):
-        # Bail if this message has already been sent and hasn't changed.
-        if key in self.messages and string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
-            return
-
         # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
+
+        # Bail if this message has already been sent and hasn't changed.
+        if key in self.messages and string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
+            return
 
         embed = discord.Embed(title=string, url=link)
 
