@@ -1,9 +1,9 @@
 # Discord Libraries
-from discord.ext import commands, tasks
+from discord.ext import tasks
 
 # Python Libraries
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import pytz
 
 # Local Includes
@@ -29,7 +29,7 @@ class Scoreboard(WesCog):
 
     @tasks.loop(seconds=10.0)
     async def scores_loop(self):
-        games = self.get_games_for_today()
+        games = await self.get_games_for_today()
         for game in games:
             await self.parse_game(game)
 
@@ -120,10 +120,16 @@ class Scoreboard(WesCog):
 
     # Helper function to get all of the game JSON objects for the current day
     # from the NHL.com api.
-    def get_games_for_today(self):
+    async def get_games_for_today(self):
         # Get the week scoreboard and today's date
         root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
         date = root["focusedDate"]
+
+        # Execute rollover if the date has changed
+        if "date" not in self.messages or self.messages["date"] != date:
+            async with self.messages_lock:
+                self.messages = {"date": date}
+                WriteJsonFile(messages_datafile, self.messages)
 
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
@@ -148,7 +154,7 @@ class Scoreboard(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def scores_scoreboard(self, interaction: discord.Interaction):
         try:
-            games = self.get_games_for_today()
+            games = await self.get_games_for_today()
 
             if len(games) == 0:
                 msg = "No games found for today."
@@ -177,7 +183,7 @@ class Scoreboard(WesCog):
                 return
 
             # Loop through the games searching for this team
-            games = self.get_games_for_today()
+            games = await self.get_games_for_today()
             found = False
             for game in games:
                 if game["awayTeam"]["abbrev"] == team or game["homeTeam"]["abbrev"] == team:
@@ -269,7 +275,7 @@ class Scoreboard(WesCog):
         # First check all the goals in a game if the game is live or even after it ends
         # It's bit inefficient to continue doing, but scoring changes and highlight links
         #  can sometimes come after the game is over.
-        if state == "LIVE" or state == "CRIT" or state == "FINAL" or state == "OFF":
+        if state == "LIVE" or state == "CRIT" or state == "OVER" or state == "FINAL" or state == "OFF":
             landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
            
             away = landing["awayTeam"]["abbrev"]
@@ -282,7 +288,7 @@ class Scoreboard(WesCog):
             start_key = f"{id}:S"
             if start_key not in self.messages:
                 start_string = f"{away} at {home} Starting."
-                await self.post_goal_new(start_key, start_string, None)
+                await self.post_goal(start_key, start_string, None)
             
             # TODO: Check for Disallowed Goals and strikethrough the message
 

@@ -32,10 +32,7 @@ class Debug(WesCog):
 
         # TODO: ImportPickems cog, and run their Process Standings methods
 
-        scoreboard = self.bot.get_cog("Scoreboard")
-        async with scoreboard.messages_lock:
-            scoreboard.messages = {}
-            WritePickleFile(messages_datafile, scoreboard.messages) # reset file
+        return
 
     # Wait to start the first iteration of this loop at the appropriate time
     @rollover_loop.before_loop
