@@ -27,8 +27,8 @@ class OTH(WesCog):
         self.trades_loop.start()
         self.loops.append(self.trades_loop)
 
-#        self.inactives_loop.start()
-#        self.loops.append(self.inactives_loop)
+        self.inactives_loop.start()
+        self.loops.append(self.inactives_loop)
 
 ######################## Cog-specific Exceptions ########################
 
