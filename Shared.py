@@ -5,6 +5,7 @@ from discord.ext import commands, tasks
 
 # Python Libraries
 from datetime import datetime
+import json
 import pickle
 import pymysql
 import requests
@@ -318,11 +319,28 @@ def sanitize(name):
 ######################## Pickle File commands ########################
 
 channels_datafile = "data/channels.pickle"
-messages_datafile = "data/messages.pickle"
+messages_datafile = "data/messages.json"
 ot_datafile = "data/ot.pickle"
 otstandings_datafile = "data/otstandings.pickle"
 pickems_datafile = "data/pickems.pickle"
 pickemsstandings_datafile = "data/pickemsstandings.pickle"
+
+def WriteJsonFile(file, data):
+    try:
+        with open(f"{Config.config['srcroot']}/{file}", "w") as f:
+            json.dump(data, f)
+    except:
+        raise DataFileNotFound(file)
+    
+def LoadJsonFile(file):
+    try:
+        with open(f"{Config.config['srcroot']}/{file}", "r") as f:
+            try:
+                return json.load(f)
+            except:
+                return {}
+    except:
+        raise DataFileNotFound(file)
 
 def WritePickleFile(file, data):
     try:

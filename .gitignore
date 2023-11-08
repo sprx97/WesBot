@@ -7,7 +7,7 @@ config.json
 service_client_secret*.json
 
 # Bot data files
-data/messages.pickle
+data/messages.json
 data/ot.pickle
 data/pickems.pickle
 Roles.txt

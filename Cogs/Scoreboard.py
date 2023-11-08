@@ -27,9 +27,9 @@ class Scoreboard(WesCog):
 
     @tasks.loop(seconds=10.0)
     async def scores_loop(self):
-        games = self.get_games_for_today_old()
-        for game in games:
-            await self.parse_game(game)
+        # games = self.get_games_for_today_old()
+        # for game in games:
+        #     await self.parse_game(game)
 
         games = self.get_games_for_today()
         for game in games:
@@ -41,7 +41,7 @@ class Scoreboard(WesCog):
 
         # Load any messages we've sent previously today
         async with self.messages_lock:
-            self.messages = LoadPickleFile(messages_datafile)
+            self.messages = LoadJsonFile(messages_datafile)
 
     @scores_loop.error
     async def scores_loop_error(self, error):
@@ -230,16 +230,15 @@ class Scoreboard(WesCog):
             post_type = "EDITING"
             msgs = self.messages[key]["msg_id"]
             for msg in msgs:
-                # msg = await self.bot.get_channel(msg.channel).fetch_message(msg.id)
-                # await msg.edit(embed=embed)
+                msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
+                await msg.edit(embed=embed)
                 pass
         else:
             post_type = "POSTING"
             msgs = []
             for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
-                # msg = await channel.send(embed=embed)
-                # msgs.append(msg)
-                pass
+                msg = await channel.send(embed=embed)
+                msgs.append((msg.channel.id, msg.id))
 
         self.log.info(f"{post_type} {key}: {string} {link}")
         self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_link":link}
@@ -349,7 +348,7 @@ class Scoreboard(WesCog):
             # Find Recap link
 
         async with self.messages_lock:
-            WritePickleFile(messages_datafile, self.messages)
+            WriteJsonFile(messages_datafile, self.messages)
 
 
 
@@ -656,7 +655,7 @@ class Scoreboard(WesCog):
                 await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, None)
 
         async with self.messages_lock:
-            WritePickleFile(messages_datafile, self.messages)
+            WriteJsonFile(messages_datafile, self.messages)
 
     # Gets a list of games for the current date
     def get_games_for_today_old(self):
