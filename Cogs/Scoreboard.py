@@ -13,6 +13,8 @@ class Scoreboard(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+        self.media_link_base = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
+
         self.scoreboard_channel_ids = LoadPickleFile(channels_datafile)
         self.channels_lock = asyncio.Lock()
 
@@ -140,7 +142,7 @@ class Scoreboard(WesCog):
             game_id = key.split(":")[0]
             media = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/boxscore")
             recap = media["gameVideo"]["threeMinRecap"]
-            return f"https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId={recap}"
+            return f"{self.media_link_base}{recap}"
         except:
             return None
 
@@ -209,11 +211,6 @@ class Scoreboard(WesCog):
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}")
 
-
-
-
-
-
     async def post_goal_new(self, key, string, link):
         # Bail if this message has already been sent and hasn't changed.
         if key in self.messages and string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
@@ -225,6 +222,7 @@ class Scoreboard(WesCog):
 
         embed = discord.Embed(title=string, url=link)
 
+        # TODO: This seems to be infinitely editing even when nothing changes
         # Update the goal if it's already been posted, but changed.
         if key in self.messages:
             post_type = "EDITING"
@@ -232,7 +230,6 @@ class Scoreboard(WesCog):
             for msg in msgs:
                 msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
                 await msg.edit(embed=embed)
-                pass
         else:
             post_type = "POSTING"
             msgs = []
@@ -271,7 +268,11 @@ class Scoreboard(WesCog):
     async def parse_game_new(self, game):
         state = game["gameState"]
         id = str(game["id"])
-        if state == "LIVE" or state == "CRIT":
+
+        # First check all the goals in a game if the game is live or even after it ends
+        # It's bit inefficient to continue doing, but scoring changes and highlight links
+        #  can sometimes come after the game is over.
+        if state == "LIVE" or state == "CRIT" or state == "FINAL" or state == "OFF":
             landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
            
             away = landing["awayTeam"]["abbrev"]
@@ -280,12 +281,12 @@ class Scoreboard(WesCog):
             home = f"{get_emoji(home)} {home}"
 
             # Post the game starting notification
-            start_key = f"{id}:S2"
+            start_key = f"{id}:S"
             if start_key not in self.messages:
                 start_string = f"{away} at {home} Starting."
                 await self.post_goal_new(start_key, start_string, None)
             
-            # TODO: Check for Disallowed Goals
+            # TODO: Check for Disallowed Goals and strikethrough the message
 
             # Check for Goals
             for period in landing["summary"]["scoring"]:
@@ -301,25 +302,27 @@ class Scoreboard(WesCog):
                     shot_type = f" {goal['shotType']}" if "shotType" in goal else ""
 
                     scorer = f"{goal['firstName']} {goal['lastName']} ({goal['goalsToDate']}){shot_type}"
-                    primary = None
-                    secondary = None
+                    assists = []
+                    for assist in goal["assists"]:
+                        assists.append(f"{assist['firstName']} {assist['lastName']} ({assist['assistsToDate']})")
 
                     goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
-                    if primary != None:
-                        goal_str += f" assists: {primary}"
-                    if secondary != None:
-                        goal_str += f", {secondary}"
+                    if len(assists) > 0:
+                        goal_str += f" assists: {', '.join(assists)}"
                     goal_str += f" ({away} {goal['awayScore']}, {home} {goal['homeScore']})"
 
-                    await self.post_goal_new(goal_key, goal_str, None)
+                    highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
+
+                    await self.post_goal_new(goal_key, goal_str, highlight)
     
             # TODO: Start OT Challenge Thread (maybe move logic to OTChallenge.cog)
 
-        # TODO: Rethink this, because goals will stop updating after the game if
-        #       we wait for this. Maybe that's the difference between FINAL and OFF
-        elif state == "FINAL" or state == "OFF":
-            end_key = id + ":E2"
-            if end_key not in self.messages:
+            # TODO: Shootout data. Would like to do it all in the same messages this time around
+
+        # If the game is over, announce the final.
+        if state == "FINAL" or state == "OFF":
+            end_key = id + ":E"
+            if end_key not in self.messages or self.messages[end_key]["msg_link"] == None:
                 landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
 
                 away = landing["awayTeam"]["abbrev"]
@@ -342,10 +345,10 @@ class Scoreboard(WesCog):
                 elif last_period["periodType"] == "SO":
                     modifier = "(SO)"
 
-                end_string = f"{away} {away_score}, {home} {home_score} Final {modifier}"
-                await self.post_goal_new(end_key, end_string, None)
+                recap_link = self.get_recap_link(end_key)
 
-            # Find Recap link
+                end_string = f"{away} {away_score}, {home} {home_score} Final {modifier}"
+                await self.post_goal_new(end_key, end_string, recap_link)
 
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
@@ -655,7 +658,7 @@ class Scoreboard(WesCog):
                 await self.post_goal(end_key, self.messages[end_key]["msg_text"], recap_link, None)
 
         async with self.messages_lock:
-            WriteJsonFile(messages_datafile, self.messages)
+            WritePickleFile(messages_datafile, self.messages)
 
     # Gets a list of games for the current date
     def get_games_for_today_old(self):
