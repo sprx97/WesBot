@@ -213,7 +213,7 @@ class Scoreboard(WesCog):
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}")
 
-    async def post_goal(self, key, string, link):
+    async def post_goal(self, key, string, desc, link):
         # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
@@ -222,7 +222,7 @@ class Scoreboard(WesCog):
         if key in self.messages and string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
             return
 
-        embed = discord.Embed(title=string, url=link)
+        embed = discord.Embed(title=string, description=desc, url=link)
 
         # TODO: This seems to be infinitely editing even when nothing changes
         # Update the goal if it's already been posted, but changed.
@@ -267,6 +267,10 @@ class Scoreboard(WesCog):
 
         return ret
 
+    def convert_timestamp_to_seconds(self, period, time):
+        mins, secs = time.split(":")
+        return 20*60*(period-1) + (60*int(mins) + int(secs))
+
     # TODO: Break this down into a few more helper methods
     async def parse_game(self, game):
         state = game["gameState"]
@@ -280,80 +284,76 @@ class Scoreboard(WesCog):
            
             away = landing["awayTeam"]["abbrev"]
             home = landing["homeTeam"]["abbrev"]
-            away = f"{get_emoji(away)} {away}"
-            home = f"{get_emoji(home)} {home}"
+            away_emoji = get_emoji(away)
+            home_emoji = get_emoji(home)
             # TODO: May need some special handling for ASG emoji
 
             # Post the game starting notification
             start_key = f"{id}:S"
             if start_key not in self.messages:
-                start_string = f"{away} at {home} Starting."
-                await self.post_goal(start_key, start_string, None)
+                start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
+                await self.post_goal(start_key, start_string, desc=None, link=None)
             
             # TODO: Check for Disallowed Goals and strikethrough the message
 
             # Check for Goals
-            for period in landing["summary"]["scoring"]:
-                for goal in period["goals"]:
-                    period_num = period["period"]
-                    period_ord = self.get_period_ordinal(period["period"])
-                    time = goal["timeInPeriod"]
-                    goal_key = f"{id}:{period_num}.{time.replace(':','')}"
+            if "summary" in landing and "scoring" in landing["summary"]:
+                for period in landing["summary"]["scoring"]:
+                    for goal in period["goals"]:
+                        period_num = period["period"]
+                        period_ord = self.get_period_ordinal(period["period"])
+                        time = goal["timeInPeriod"]
+                        goal_key = f"{id}:{self.convert_timestamp_to_seconds(period_num, time)}"
+                        # TODO: Compare the goal_key to existing keys, and give a 3-second buffer in case the time of the goal changes by a second
 
-                    strength = self.get_goal_strength(goal)
-                    team = goal["teamAbbrev"]
-                    team = f"{get_emoji(team)} {team}"
-                    shot_type = f" {goal['shotType']}" if "shotType" in goal else ""
+                        strength = self.get_goal_strength(goal)
+                        team = goal["teamAbbrev"]
+                        team = f"{get_emoji(team)} {team}"
+                        shot_type = f" {goal['shotType']}," if "shotType" in goal else ""
 
-                    scorer = f"{goal['firstName']} {goal['lastName']} ({goal['goalsToDate']}){shot_type}"
-                    assists = []
-                    for assist in goal["assists"]:
-                        assists.append(f"{assist['firstName']} {assist['lastName']} ({assist['assistsToDate']})")
+                        scorer = f"{goal['firstName']} {goal['lastName']} ({goal['goalsToDate']}){shot_type}"
+                        assists = []
+                        for assist in goal["assists"]:
+                            assists.append(f"{assist['firstName']} {assist['lastName']} ({assist['assistsToDate']})")
 
-                    goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
-                    if len(assists) > 0:
-                        goal_str += f" assists: {', '.join(assists)}"
-                    goal_str += f" ({away} {goal['awayScore']}, {home} {goal['homeScore']})"
+                        goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
+                        if len(assists) > 0:
+                            goal_str += f" assists: {', '.join(assists)}"
+                        score_str = f"{away_emoji} {away} **{goal['awayScore']} - {goal['homeScore']}** {home} {home_emoji}"
 
-                    highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
+                        highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
 
-                    await self.post_goal(goal_key, goal_str, highlight)
+                        await self.post_goal(goal_key, goal_str, score_str, highlight)
     
             # TODO: Start OT Challenge Thread (maybe move logic to OTChallenge.cog)
 
             # TODO: Shootout data. Would like to do it all in the same messages this time around
 
-        # If the game is over, announce the final.
-        if state == "FINAL" or state == "OFF":
-            end_key = id + ":E"
-            if end_key not in self.messages or self.messages[end_key]["msg_link"] == None:
-                landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
+            # If the game is over, announce the final.
+            if state == "FINAL" or state == "OFF":
+                end_key = id + ":E"
+                if end_key not in self.messages or self.messages[end_key]["msg_link"] == None:
+                    linescore = landing["summary"]["linescore"]
 
-                away = landing["awayTeam"]["abbrev"]
-                home = landing["homeTeam"]["abbrev"]
-                away = f"{get_emoji(away)} {away}"
-                home = f"{get_emoji(home)} {home}"
+                    away_score = linescore["totals"]["away"]
+                    home_score = linescore["totals"]["home"]
 
-                linescore = landing["summary"]["linescore"]
+                    modifier = ""
+                    last_period = linescore["byPeriod"][-1]["periodDescriptor"]
+                    if last_period["periodType"] == "OT":
+                        ot_num = last_period["number"] - 3
+                        if ot_num == 1:
+                            ot_num = ""
+                        modifier = f" ({ot_num}OT)"
+                    elif last_period["periodType"] == "SO":
+                        modifier = " (SO)"
 
-                away_score = linescore["totals"]["away"]
-                home_score = linescore["totals"]["home"]
+                    recap_link = self.get_recap_link(end_key)
 
-                modifier = ""
-                last_period = linescore["byPeriod"][-1]["periodDescriptor"]
-                if last_period["periodType"] == "OT":
-                    ot_num = last_period["number"] - 3
-                    if ot_num == 1:
-                        ot_num = ""
-                    modifier = f"({ot_num}OT)"
-                elif last_period["periodType"] == "SO":
-                    modifier = "(SO)"
+                    end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
+                    await self.post_goal(end_key, end_string, desc=None, link=recap_link)
 
-                recap_link = self.get_recap_link(end_key)
-
-                end_string = f"{away} {away_score}, {home} {home_score} Final {modifier}"
-                await self.post_goal(end_key, end_string, recap_link)
-
+        # TODO: Consider writing after EVERY message post, to avoid spam
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
