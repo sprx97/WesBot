@@ -27,7 +27,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=10.0)
+    @tasks.loop(seconds=5.0)
     async def scores_loop(self):
         games = await self.get_games_for_today()
         for game in games:
@@ -127,6 +127,7 @@ class Scoreboard(WesCog):
 
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] != date:
+            self.log.info(f"Updating date to {date}")
             async with self.messages_lock:
                 self.messages = {"date": date}
                 WriteJsonFile(messages_datafile, self.messages)
@@ -152,7 +153,7 @@ class Scoreboard(WesCog):
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
-    async def scores_scoreboard(self, interaction: discord.Interaction):
+    async def scoreboard(self, interaction: discord.Interaction):
         try:
             games = await self.get_games_for_today()
 
@@ -173,7 +174,7 @@ class Scoreboard(WesCog):
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
-    async def scores_score(self, interaction: discord.Interaction, team: str):
+    async def score(self, interaction: discord.Interaction, team: str):
         try:
             # Get the proper abbreviation from our aliases
             team = team.lower()
@@ -208,8 +209,8 @@ class Scoreboard(WesCog):
 
     @scores_start.error
     @scores_stop.error
-    @scores_scoreboard.error
-    @scores_score.error
+    @scoreboard.error
+    @score.error
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}")
 
@@ -239,8 +240,10 @@ class Scoreboard(WesCog):
                 msg = await channel.send(embed=embed)
                 msgs.append((msg.channel.id, msg.id))
 
-        self.log.info(f"{post_type} {key}: {string} {link}")
-        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_link":link}
+        # TODO: Store a more-sane json struct here, and reconstrcut the embed from it each time
+        #       This will allow for easier of comparisons between events
+        self.log.info(f"{post_type} {key}: {string} {desc} {link}")
+        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_link":link}
 
     def get_period_ordinal(self, period):
         period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
@@ -252,7 +255,7 @@ class Scoreboard(WesCog):
         return period
 
     def get_goal_strength(self, goal):
-        strength = goal["strength"]
+        strength = goal["strength"] if "strength" in goal else "ev"
         modifier = goal["goalModifier"]
 
         ret = " "
@@ -303,8 +306,8 @@ class Scoreboard(WesCog):
                         period_num = period["period"]
                         period_ord = self.get_period_ordinal(period["period"])
                         time = goal["timeInPeriod"]
-                        goal_key = f"{id}:{self.convert_timestamp_to_seconds(period_num, time)}"
-                        # TODO: Compare the goal_key to existing keys, and give a 3-second buffer in case the time of the goal changes by a second
+                        time_in_seconds = self.convert_timestamp_to_seconds(period_num, time)
+                        goal_key = f"{id}:{time_in_seconds}"
 
                         strength = self.get_goal_strength(goal)
                         team = goal["teamAbbrev"]
@@ -319,15 +322,74 @@ class Scoreboard(WesCog):
                         goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
                         if len(assists) > 0:
                             goal_str += f" assists: {', '.join(assists)}"
+                        else:
+                            goal_str += " unassisted"
                         score_str = f"{away_emoji} {away} **{goal['awayScore']} - {goal['homeScore']}** {home} {home_emoji}"
 
                         highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
+
+                        # TODO: Remove try-except once this is surely working
+                        # Compare goal_key to existing keys, and replace if it's just an existing one shifted by a few seconds
+                        try:
+                            for t in range(time_in_seconds - 3, time_in_seconds + 4):
+                                check_key = f"{id}:{t}"
+                                if check_key == goal_key:
+                                    continue
+
+                                if check_key in self.messages and score_str == self.messages[check_key]["msg_desc"]:
+                                    self.messages[goal_key] = self.messages[check_key]
+                                    del self.messages[check_key]
+                        except Exception as e:
+                            self.log.info(f"Error in timestamp fudging: {e}")
 
                         await self.post_goal(goal_key, goal_str, score_str, highlight)
     
             # TODO: Start OT Challenge Thread (maybe move logic to OTChallenge.cog)
 
-            # TODO: Shootout data. Would like to do it all in the same messages this time around
+            # TODO: Remove try-except once this is surely working
+            try:
+                if "summary" in landing and "shootout" in landing["summary"] and len(landing["summary"]["shootout"]) > 0:
+                    so_key = f"{id}:SO"
+                    shootout = landing["summary"]["shootout"]
+
+                    title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
+                    away_shooters = ""
+                    home_shooters = ""
+                    for shooter in shootout:
+                        shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
+                        shooter_str += f" {shooter['firstName']} {shooter['lastName']}"
+                        if shooter["teamAbbbrev"] == home:
+                            home_shooters += shooter_str + "\n"
+                        else:
+                            away_shooters += shooter_str + "\n"
+
+                    if so_key not in self.messages or self.messages[so_key]["msg_text"] != (away_shooters, home_shooters):
+                        embed=discord.Embed(title=title)
+                        embed.add_field(f"{away_emoji} {away}", away_shooters, inline=True)
+                        embed.add_field(f"{home_emoji} {home}", home_shooters, inline=True)
+
+                    # TODO: This is duplicated from post_goal, I can probably extract that part even further
+                    #       out into a post_embed submethod
+                    if so_key in self.messages:
+                        post_type = "EDITING"
+                        msgs = self.messages[so_key]["msg_id"]
+                        for msg in msgs:
+                            msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
+                            await msg.edit(embed=embed)
+                    else:
+                        post_type = "POSTING"
+                        msgs = []
+                        for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
+                            msg = await channel.send(embed=embed)
+                            msgs.append((msg.channel.id, msg.id))
+
+                    self.log.info(f"{post_type} {so_key}: {away_shooters} {home_shooters}")
+                    self.messages[so_key] = {"msg_id":msgs, "msg_text":(away_shooters, home_shooters), "msg_link":None}
+
+                    ########################################################################################
+
+            except Exception as e:
+                self.log.info(f"Error in Shootout block: {e}")
 
             # If the game is over, announce the final.
             if state == "FINAL" or state == "OFF":
@@ -353,82 +415,82 @@ class Scoreboard(WesCog):
                     end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
                     await self.post_goal(end_key, end_string, desc=None, link=recap_link)
 
-        # TODO: Consider writing after EVERY message post, to avoid spam
+        # TODO: Consider writing after EVERY message post, to avoid potential spam
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
 ###############################################################################################################################
 #
-# Old stuff I'm keeping around for later
+# Old stuff I'm keeping around for later to help with implementing
 #
 ###############################################################################################################################
 
-    # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
-    async def check_for_disallowed_goals(self, key, playbyplay):
-        # Get list of scoring play ids
-        goals = playbyplay["liveData"]["plays"]["scoringPlays"]
-        all_plays = playbyplay["liveData"]["plays"]["allPlays"]
+    # # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
+    # async def check_for_disallowed_goals(self, key, playbyplay):
+    #     # Get list of scoring play ids
+    #     goals = playbyplay["liveData"]["plays"]["scoringPlays"]
+    #     all_plays = playbyplay["liveData"]["plays"]["allPlays"]
 
-        # Skip if there aren't any plays or goals. Seems like feeds "disappear" for short periods of time occasionally,
-        # and we don't want this to incorrectly trigger disallows.
-        if len(all_plays) == 0:
-            return
+    #     # Skip if there aren't any plays or goals. Seems like feeds "disappear" for short periods of time occasionally,
+    #     # and we don't want this to incorrectly trigger disallows.
+    #     if len(all_plays) == 0:
+    #         return
 
-        # Loop through all of our pickled goals
-     	# If one of them doesn't exist in the list of scoring plays anymore
-     	# We should cross it out and notify that it was disallowed.
-        for pickle_key in list(self.messages.keys()):
-            game_id, event_id = pickle_key.split(":")
+    #     # Loop through all of our pickled goals
+    #  	# If one of them doesn't exist in the list of scoring plays anymore
+    #  	# We should cross it out and notify that it was disallowed.
+    #     for pickle_key in list(self.messages.keys()):
+    #         game_id, event_id = pickle_key.split(":")
 
-            # Skip goals from other games, or start, end, overtime start, and disallow events
-            if game_id != key or event_id == "S" or event_id == "E" or event_id == "O" or event_id[-1] == "D":
-                continue
+    #         # Skip goals from other games, or start, end, overtime start, and disallow events
+    #         if game_id != key or event_id == "S" or event_id == "E" or event_id == "O" or event_id[-1] == "D":
+    #             continue
 
-            # Skip events for games that are already over, as these are often false alarms
-            if f"{game_id}:E" in self.messages.keys():
-                continue
+    #         # Skip events for games that are already over, as these are often false alarms
+    #         if f"{game_id}:E" in self.messages.keys():
+    #             continue
 
-            found = False
-            for goal in goals:
-                if event_id == str(all_plays[goal]["about"]["eventId"]):
-                    found = True
-                    break
+    #         found = False
+    #         for goal in goals:
+    #             if event_id == str(all_plays[goal]["about"]["eventId"]):
+    #                 found = True
+    #                 break
 
-            # This goal is still there, no need to disallow
-            # Continue onto next pickle_key
-            if found:
-                continue
+    #         # This goal is still there, no need to disallow
+    #         # Continue onto next pickle_key
+    #         if found:
+    #             continue
 
-            # Skip updating goals that have already been crossed out
-            if self.messages[pickle_key]["msg_text"][0] != "~":
-                await self.post_goal(pickle_key, f"~~{self.messages[pickle_key]['msg_text']}~~", None, None)
+    #         # Skip updating goals that have already been crossed out
+    #         if self.messages[pickle_key]["msg_text"][0] != "~":
+    #             await self.post_goal(pickle_key, f"~~{self.messages[pickle_key]['msg_text']}~~", None, None)
 
-            # Announce that the goal has been disallowed
-            disallow_key = pickle_key + "D"
-            if disallow_key not in self.messages:
-                away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
-                home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-                disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
-                await self.post_goal(disallow_key, disallow_str, None, None)
+    #         # Announce that the goal has been disallowed
+    #         disallow_key = pickle_key + "D"
+    #         if disallow_key not in self.messages:
+    #             away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
+    #             home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
+    #             disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
+    #             await self.post_goal(disallow_key, disallow_str, None, None)
 
-    # Checks to see if OT challenge starting for a game
-    async def check_for_ot_challenge_start(self, key, playbyplay):
-        status = playbyplay["gameData"]["status"]["detailedState"]
-        # Game not in progress
-        if "In Progress" not in status:
-            return False
+    # # Checks to see if OT challenge starting for a game
+    # async def check_for_ot_challenge_start(self, key, playbyplay):
+    #     status = playbyplay["gameData"]["status"]["detailedState"]
+    #     # Game not in progress
+    #     if "In Progress" not in status:
+    #         return False
 
-        # Game not tied
-        if playbyplay["liveData"]["linescore"]["teams"]["home"]["goals"] != playbyplay["liveData"]["linescore"]["teams"]["away"]["goals"]:
-            return False
+    #     # Game not tied
+    #     if playbyplay["liveData"]["linescore"]["teams"]["home"]["goals"] != playbyplay["liveData"]["linescore"]["teams"]["away"]["goals"]:
+    #         return False
 
-        # Game not in final 5 minutes of 3rd or OT intermission
-        ot = self.bot.get_cog("OTChallenge")
-        await ot.processot(None) # TODO: Why is this here?
-        if not ot.is_ot_challenge_window(playbyplay):
-            return False
+    #     # Game not in final 5 minutes of 3rd or OT intermission
+    #     ot = self.bot.get_cog("OTChallenge")
+    #     await ot.processot(None) # TODO: Why is this here?
+    #     if not ot.is_ot_challenge_window(playbyplay):
+    #         return False
 
-        return True
+    #     return True
  
 ###############################################################################################################################
 
