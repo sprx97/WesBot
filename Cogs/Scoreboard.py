@@ -126,7 +126,7 @@ class Scoreboard(WesCog):
         date = root["focusedDate"]
 
         # Execute rollover if the date has changed
-        if "date" not in self.messages or self.messages["date"] != date:
+        if "date" not in self.messages or self.messages["date"] < date:
             self.log.info(f"Updating date to {date}")
             async with self.messages_lock:
                 self.messages = {"date": date}
@@ -302,6 +302,10 @@ class Scoreboard(WesCog):
             # Check for Goals
             if "summary" in landing and "scoring" in landing["summary"]:
                 for period in landing["summary"]["scoring"]:
+                    # Skip shootout "periods" because we handle those separately
+                    if period["periodDescriptor"]["periodType"] == "SO":
+                        continue
+
                     for goal in period["goals"]:
                         period_num = period["period"]
                         period_ord = self.get_period_ordinal(period["period"])
@@ -357,34 +361,38 @@ class Scoreboard(WesCog):
                     home_shooters = ""
                     for shooter in shootout:
                         shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
-                        shooter_str += f" {shooter['firstName']} {shooter['lastName']}"
-                        if shooter["teamAbbbrev"] == home:
+                        if "firstName" in shooter and "lastName" in shooter:
+                            shooter_str += f" {shooter['firstName']} {shooter['lastName']}"
+                        if shooter["teamAbbrev"] == home:
                             home_shooters += shooter_str + "\n"
                         else:
                             away_shooters += shooter_str + "\n"
+                    away_shooters += "\u200b" # Zero-width character for spacing on mobile
 
                     if so_key not in self.messages or self.messages[so_key]["msg_text"] != (away_shooters, home_shooters):
                         embed=discord.Embed(title=title)
-                        embed.add_field(f"{away_emoji} {away}", away_shooters, inline=True)
-                        embed.add_field(f"{home_emoji} {home}", home_shooters, inline=True)
+                        embed.add_field(name=f"{away_emoji} {away}", value=away_shooters, inline=True)
+                        embed.add_field(name=f"{home_emoji} {home}", value=home_shooters, inline=True)
 
-                    # TODO: This is duplicated from post_goal, I can probably extract that part even further
-                    #       out into a post_embed submethod
-                    if so_key in self.messages:
-                        post_type = "EDITING"
-                        msgs = self.messages[so_key]["msg_id"]
-                        for msg in msgs:
-                            msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
-                            await msg.edit(embed=embed)
-                    else:
-                        post_type = "POSTING"
-                        msgs = []
-                        for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
-                            msg = await channel.send(embed=embed)
-                            msgs.append((msg.channel.id, msg.id))
+                        # TODO: This is duplicated from post_goal, I can probably extract that part even further
+                        #       out into a post_embed submethod
+                        if so_key in self.messages:
+                            post_type = "EDITING"
+                            msgs = self.messages[so_key]["msg_id"]
+                            for msg in msgs:
+                                msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
+                                await msg.edit(embed=embed)
+                        else:
+                            post_type = "POSTING"
+                            msgs = []
+                            for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
+                                msg = await channel.send(embed=embed)
+                                msgs.append((msg.channel.id, msg.id))
 
-                    self.log.info(f"{post_type} {so_key}: {away_shooters} {home_shooters}")
-                    self.messages[so_key] = {"msg_id":msgs, "msg_text":(away_shooters, home_shooters), "msg_link":None}
+                        away_shooters_log = away_shooters.replace("\n", "\\n")
+                        home_shooters_log = home_shooters.replace("\n", "\\n")
+                        self.log.info(f"{post_type} {so_key}: {away_shooters_log} {home_shooters_log}")
+                        self.messages[so_key] = {"msg_id":msgs, "msg_text":(away_shooters, home_shooters), "msg_link":None}
 
                     ########################################################################################
 
