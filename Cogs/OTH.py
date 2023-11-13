@@ -1,5 +1,3 @@
-
-# Discord Libraries
 # Python Libraries
 import asyncio
 import os
@@ -7,11 +5,13 @@ from datetime import datetime, timedelta
 from distutils.log import debug
 from xmlrpc.client import Boolean
 
+# Discord Libraries
 import challonge
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands, tasks
+
 # Local Includes
 from Shared import *
 
