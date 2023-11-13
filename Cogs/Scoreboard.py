@@ -128,8 +128,8 @@ class Scoreboard(WesCog):
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] < date:
             self.log.info(f"Updating date to {date}")
+            self.messages = {"date": date}
             async with self.messages_lock:
-                self.messages = {"date": date}
                 WriteJsonFile(messages_datafile, self.messages)
 
         # Get the list of games for the correct date
