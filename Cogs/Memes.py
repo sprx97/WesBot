@@ -83,8 +83,6 @@ class Memes(WesCog):
     @memes_group.command(name="pathetic")
     @app_commands.checks.cooldown(1, 60.0)
     async def pathetic(self, interaction: discord.Interaction, user: discord.Member):
-        if user == None:
-            user = interaction.user
         await interaction.response.send_message(f"I don’t know what’s more pathetic <@{user.id}>, that you actually took the time out of your afternoon to do this, " + \
                         " or that you waited several minutes after the conversation and it still bothers you enough to provoke you to do this")
 

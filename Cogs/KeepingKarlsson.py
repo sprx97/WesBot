@@ -14,6 +14,7 @@ class KeepingKarlsson(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+        self.MANAGER_CARD_URL_BASE = "https://metabase-kkupfl.herokuapp.com/public/dashboard/43c4f00d-4056-4668-b3ed-652858167dc8?discordid="
         self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_KK.json")
 
     async def cog_load(self):
@@ -22,6 +23,14 @@ class KeepingKarlsson(WesCog):
     async def start_loops(self):
         self.check_league_activity_loop.start()
         self.loops.append(self.check_league_activity_loop)
+
+    @app_commands.command(name="card", description="Show the link to a player's KKUPFL Manager Card.")
+    @app_commands.describe(user="The user to show the card for.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def card(self, interaction: discord.Interaction, user: discord.Member):
+        await interaction.send_response(f"{self.MANAGER_CARD_URL_BASE}/{user.id}")
 
     # fasttrack leaderboard
     async def fasttrack_core(self, worksheet, author, rowstart, rowend):
@@ -142,7 +151,6 @@ class KeepingKarlsson(WesCog):
     @check_league_activity_loop.error
     async def check_league_activity_loop_error(self, error):
         self.log.error(error)
-
 
 async def setup(bot):
     await bot.add_cog(KeepingKarlsson(bot), guild=discord.Object(id=KK_GUILD_ID))
