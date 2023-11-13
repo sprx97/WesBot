@@ -30,7 +30,7 @@ class KeepingKarlsson(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def card(self, interaction: discord.Interaction, user: discord.Member):
-        await interaction.send_response(f"{self.MANAGER_CARD_URL_BASE}/{user.id}")
+        await interaction.response.send_message(f"{self.MANAGER_CARD_URL_BASE}/{user.id}")
 
     # fasttrack leaderboard
     async def fasttrack_core(self, worksheet, author, rowstart, rowend):
