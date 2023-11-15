@@ -118,6 +118,15 @@ class Scoreboard(WesCog):
         else:
             raise Exception(f"Unrecognized game state {game_state}")
 
+    # Rolls over the date in our messages_datafile to the next one.
+    # This needs to be a function so we can await it and not spam all the messages from the previous day
+    # after deleting them from the datafile.
+    async def do_date_rollover(self, date):
+        self.log.info(f"Updating date to {date}")
+        self.messages = {"date": date}
+        async with self.messages_lock:
+            WriteJsonFile(messages_datafile, self.messages)
+
     # Helper function to get all of the game JSON objects for the current day
     # from the NHL.com api.
     async def get_games_for_today(self):
@@ -127,10 +136,7 @@ class Scoreboard(WesCog):
 
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] < date:
-            self.log.info(f"Updating date to {date}")
-            self.messages = await {"date": date} # Needs to be awaited to prevent spam from the previous date
-            async with self.messages_lock:
-                WriteJsonFile(messages_datafile, self.messages)
+            await self.do_date_rollover(date) # Needs to be awaited to prevent spam from the previous date
 
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
