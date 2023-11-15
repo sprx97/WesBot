@@ -128,7 +128,7 @@ class Scoreboard(WesCog):
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] < date:
             self.log.info(f"Updating date to {date}")
-            self.messages = {"date": date}
+            self.messages = await {"date": date} # Needs to be awaited to prevent spam from the previous date
             async with self.messages_lock:
                 WriteJsonFile(messages_datafile, self.messages)
 
@@ -296,7 +296,7 @@ class Scoreboard(WesCog):
             if start_key not in self.messages:
                 start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
                 await self.post_goal(start_key, start_string, desc=None, link=None)
-            
+
             # TODO: Check for Disallowed Goals and strikethrough the message
 
             # Check for Goals
