@@ -134,9 +134,9 @@ class Scoreboard(WesCog):
 
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] < date:
-            self.log.info(f"Date before date rollover: {date}")
+            self.log.info(f"Date before date rollover: {self.messages['date']}")
             await self.do_date_rollover(date) # Needs to be awaited to prevent spam from the previous date
-            self.log.info(f"Date after date rollover: {date}")
+            self.log.info(f"Date after date rollover: {self.messages['date']}")
 
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
