@@ -26,7 +26,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop()
+    @tasks.loop(seconds=5)
     async def scores_loop(self):
         games = await self.get_games_for_today()
         for game in games:
@@ -137,6 +137,7 @@ class Scoreboard(WesCog):
             self.log.info(f"Date before date rollover: {self.messages['date']}")
             await self.do_date_rollover(date) # Needs to be awaited to prevent spam from the previous date
             self.log.info(f"Date after date rollover: {self.messages['date']}")
+            return []
 
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
