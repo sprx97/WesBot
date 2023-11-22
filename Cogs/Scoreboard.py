@@ -142,9 +142,9 @@ class Scoreboard(WesCog):
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
             if games["date"] == date:
-                break
+                return games["games"]
 
-        return games["games"]
+        return []
     
     # Gets the game recap video link if it's available
     def get_recap_link(self, key):
