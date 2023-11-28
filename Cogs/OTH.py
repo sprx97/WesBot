@@ -73,7 +73,6 @@ class OTH(WesCog):
                 await channel.send(msg)
         self.log.info("Inactives check complete.")
 
-    # Check fleaflicker for recent trades
     @tasks.loop(hours=7*24.0) # weekly -- could check more often if MIN_INACTIVE_DAYS is set to smaller
     async def inactives_loop(self):
         await self.check_inactives()
@@ -142,6 +141,7 @@ class OTH(WesCog):
         leagues = get_leagues_from_database(Config.config["year"])
 
         trades_channel = self.bot.get_channel(TRADEREVIEW_CHANNEL_ID)
+        hockey_general_channel = self.bot.get_channel(HOCKEY_GENERAL_CHANNEL_ID)
 
         # Make Fleaflicker API calls to get pending trades in all the leagues
         count = 0
@@ -159,6 +159,8 @@ class OTH(WesCog):
 
                 trade_embed = self.format_trade(league, trade)
                 await trades_channel.send(f"<@&{TRADEREVIEW_ROLE_ID}>", embed=trade_embed)
+                await hockey_general_channel.send(embed=trade_embed)
+
                 count += 1
 
                 # Append this trade ID to the list of trades already covered
