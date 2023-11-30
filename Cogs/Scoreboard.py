@@ -26,11 +26,14 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
+    # TODO: I think multiple loops are running at once and it's not waiting for the previous to finish.
     @tasks.loop(seconds=5)
     async def scores_loop(self):
+#        self.log.info(f"Starting scores loop {self.scores_loop.current_loop}")
         games = await self.get_games_for_today()
         for game in games:
             await self.parse_game(game)
+#        self.log.info(f"Finishing scores loop {self.scores_loop.current_loop}")
 
     @scores_loop.before_loop
     async def before_scores_loop(self):
@@ -301,9 +304,22 @@ class Scoreboard(WesCog):
             start_key = f"{id}:S"
             if start_key not in self.messages:
                 start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
-                await self.post_goal(start_key, start_string, desc=None, link=None)
+                # TODO: This hack should prevent the goal from posting if the date has been changed
+                if self.messages["date"] == landing["gameDate"]:
+                    await self.post_goal(start_key, start_string, desc=None, link=None)
+                else:
+                    self.log.info(f"{self.scores_loop.current_loop} {self.messages}")
 
             # TODO: Check for Disallowed Goals and strikethrough the message
+            # TODO: Remove Try once it's working
+            try:
+                for message in self.messages:
+                    # Loop through all messages
+                    # Compare to the goals in the corresponding game
+                    # Cross out any that no longer exist
+                    continue
+            except Exception as e:
+                self.log.info(f"Error checking disallowed goals {e}")
 
             # Check for Goals
             if "summary" in landing and "scoring" in landing["summary"]:
