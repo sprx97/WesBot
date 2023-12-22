@@ -309,6 +309,7 @@ class Scoreboard(WesCog):
                     await self.post_goal(start_key, start_string, desc=None, link=None)
                 else:
                     self.log.info(f"WRONG DATE {self.scores_loop.current_loop} {self.messages}")
+                    return
 
             # TODO: Check for Disallowed Goals and strikethrough the message
             # TODO: Remove Try once it's working
@@ -396,6 +397,7 @@ class Scoreboard(WesCog):
                     # TODO: This is duplicated from post_goal, I can probably extract that part even further
                     #       out into a post_embed submethod
                     # TODO: This hack should prevent the goal from posting if the date has been changed
+                    post_type = None
                     if self.messages["date"] == landing["gameDate"]:
                         if so_key in self.messages:
                             post_type = "EDITING"
@@ -410,12 +412,12 @@ class Scoreboard(WesCog):
                                 msg = await channel.send(embed=embed)
                                 msgs.append((msg.channel.id, msg.id))
 
-                    # Replace newlines for single-line logging
-                    away_shooters_log = away_shooters.replace("\n", "\\n")
-                    home_shooters_log = home_shooters.replace("\n", "\\n")
+                        # Replace newlines for single-line logging
+                        away_shooters_log = away_shooters.replace("\n", "\\n")
+                        home_shooters_log = home_shooters.replace("\n", "\\n")
 
-                    self.log.info(f"{post_type} {so_key}: {away_shooters_log} {home_shooters_log}")
-                    self.messages[so_key] = {"msg_id":msgs, "msg_text":(away_shooters, home_shooters), "msg_link":None}
+                        self.log.info(f"{post_type} {so_key}: {away_shooters_log} {home_shooters_log}")
+                        self.messages[so_key] = {"msg_id":msgs, "msg_text":(away_shooters, home_shooters), "msg_link":None}
 
             # If the game is over, announce the final.
             if state == "FINAL" or state == "OFF":
