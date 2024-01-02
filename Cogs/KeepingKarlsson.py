@@ -56,7 +56,7 @@ class KeepingKarlsson(WesCog):
         embed = discord.Embed(title="FastTrack Leaderboard", description="This is your ranking in the whole wide KKUPFL", color=0x00aaff)
         embed.add_field(name="Rank", value=line)
         embed.add_field(name="Info", value="Try the commands `!ft @user` or `!fttop` too!", inline=False)
-        embed.set_footer(text="See the full standings at www.kkupfl.com/stat-attack/manager-stats")
+        embed.set_footer(text="See the full standings at https://metabase-kkupfl.herokuapp.com/public/dashboard/20301480-3e1e-483a-8a38-3b67a2b55816")
 
         return embed
 
