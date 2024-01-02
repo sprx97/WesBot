@@ -16,7 +16,6 @@ class KeepingKarlsson(WesCog):
 
         self.MANAGER_CARD_URL_BASE = "https://metabase-kkupfl.herokuapp.com/public/dashboard/43c4f00d-4056-4668-b3ed-652858167dc8?discordid="
         self.FAST_TRACK_URL = "https://metabase-kkupfl.herokuapp.com/public/dashboard/20301480-3e1e-483a-8a38-3b67a2b55816"
-        self.PYGS = pygsheets.authorize(service_file="/var/www/DiscordBot/service_client_secret_KK.json")
 
     async def cog_load(self):
         self.bot.loop.create_task(self.start_loops())
