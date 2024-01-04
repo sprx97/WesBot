@@ -15,9 +15,7 @@ class Scoreboard(WesCog):
 
         self.media_link_base = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 
-        self.scoreboard_channel_ids = LoadPickleFile(channels_datafile)
-        WriteJsonFile("data/channels.json", self.scoreboard_channel_ids)
-
+        self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
         self.scoreboard_lock = asyncio.Lock()
@@ -66,7 +64,7 @@ class Scoreboard(WesCog):
         self.scoreboard_channel_ids[channel.guild.id] = channel.id
 
         async with self.channels_lock:
-            WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
+            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
 
         await interaction.response.send_message("Scoreboard setup complete.")
 
@@ -78,7 +76,7 @@ class Scoreboard(WesCog):
         self.scoreboard_channel_ids.pop(interaction.guild_id)
 
         async with self.channels_lock:
-            WritePickleFile(channels_datafile, self.scoreboard_channel_ids)
+            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
 
         await interaction.response.send_message("Scoreboard disabled.")
 

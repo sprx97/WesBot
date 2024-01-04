@@ -13,8 +13,8 @@ class OTChallenge(WesCog):
         super().__init__(bot)
 
         self.guesses_lock = asyncio.Lock()
-        self.guesses = LoadPickleFile(ot_datafile)
-        self.standings = LoadPickleFile(otstandings_datafile)
+        self.guesses = LoadJsonFile(ot_datafile)
+        self.standings = LoadJsonFile(otstandings_datafile)
 
     class OTException(discord.ext.commands.CommandError):
         def __init__(self, msg):
@@ -25,7 +25,7 @@ class OTChallenge(WesCog):
     @commands.is_owner()
     async def otclearstandings(self, ctx):
         self.standings = {}
-        WritePickleFile(otstandings_datafile, self.standings)
+        WriteJsonFile(otstandings_datafile, self.standings)
 
     # Lists the days OT Challenge guesses for a user or team
     @commands.command(name="otlist")
@@ -193,9 +193,9 @@ class OTChallenge(WesCog):
 
         # Write updated standings and cleared guesses file
         async with self.guesses_lock:
-            WritePickleFile(otstandings_datafile, self.standings)
+            WriteJsonFile(otstandings_datafile, self.standings)
             self.guesses = {}
-            WritePickleFile(ot_datafile, self.guesses)
+            WriteJsonFile(ot_datafile, self.guesses)
 
         # Send a confirmation message if this was manually triggered
         self.log.info("Finished processing ot guesses.")
@@ -305,7 +305,7 @@ class OTChallenge(WesCog):
         # Save the user's guess to the file, locking to prevent from being overwritten
         self.guesses[(game_id, guild, user)] = (team, found_player["id"], found_player["fullName"])
         async with self.guesses_lock:
-            WritePickleFile(ot_datafile, self.guesses)
+            WriteJsonFile(ot_datafile, self.guesses)
 
         confirmation = f"{ctx.author.display_name} selects {found_player['fullName']} for the OT GWG."
         self.log.info(confirmation)

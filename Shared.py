@@ -320,10 +320,10 @@ def sanitize(name):
 
 channels_datafile = "data/channels.json"
 messages_datafile = "data/messages.json"
-ot_datafile = "data/ot.pickle"
-otstandings_datafile = "data/otstandings.pickle"
-pickems_datafile = "data/pickems.pickle"
-pickemsstandings_datafile = "data/pickemsstandings.pickle"
+ot_datafile = "data/ot.json"
+otstandings_datafile = "data/otstandings.json"
+pickems_datafile = "data/pickems.json"
+pickemsstandings_datafile = "data/pickemsstandings.json"
 
 def WriteJsonFile(file, data):
     try:
@@ -341,25 +341,6 @@ def LoadJsonFile(file):
                 return {}
     except:
         raise DataFileNotFound(file)
-
-def WritePickleFile(file, data):
-    try:
-        with open(file, "wb") as f:
-            pickle.dump(data, f)
-    except:
-        raise DataFileNotFound(file)
-
-def LoadPickleFile(file):
-    try:
-        with open(file, "rb") as f:
-            try:
-                data = pickle.load(f)
-            except EOFError:
-                data = {}
-    except:
-        raise DataFileNotFound(file)
-
-    return data
 
 ######################## Decorator command checks ########################
 

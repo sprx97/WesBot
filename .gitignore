@@ -8,8 +8,8 @@ service_client_secret*.json
 
 # Bot data files
 data/messages.json
-data/ot.pickle
-data/pickems.pickle
+data/ot.json
+data/pickems.json
 Roles.txt
 
 # Extraneous stuff
