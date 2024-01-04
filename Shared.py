@@ -318,7 +318,7 @@ def sanitize(name):
 
 ######################## Pickle File commands ########################
 
-channels_datafile = "data/channels.pickle"
+channels_datafile = "data/channels.json"
 messages_datafile = "data/messages.json"
 ot_datafile = "data/ot.pickle"
 otstandings_datafile = "data/otstandings.pickle"

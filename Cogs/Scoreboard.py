@@ -16,6 +16,8 @@ class Scoreboard(WesCog):
         self.media_link_base = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 
         self.scoreboard_channel_ids = LoadPickleFile(channels_datafile)
+        WriteJsonFile("data/channels.json", self.scoreboard_channel_ids)
+
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
         self.scoreboard_lock = asyncio.Lock()
