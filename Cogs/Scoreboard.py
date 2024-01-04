@@ -27,7 +27,6 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    # TODO: I think multiple loops are running at once and it's not waiting for the previous to finish.
     @tasks.loop(seconds=5)
     async def scores_loop(self):
         # Skip this iteration if the last one hasn't finished yet
@@ -35,12 +34,10 @@ class Scoreboard(WesCog):
             self.log.info(f"Skipping scores loop {self.scores_loop.current_loop}")
             return
         
-        self.log.info(f"Starting scores loop {self.scores_loop.current_loop}")
         async with self.scoreboard_lock:
             games = await self.get_games_for_today()
             for game in games:
                 await self.parse_game(game)
-        self.log.info(f"Finishing scores loop {self.scores_loop.current_loop}")
 
     @scores_loop.before_loop
     async def before_scores_loop(self):
@@ -261,6 +258,26 @@ class Scoreboard(WesCog):
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {link}")
         self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_link":link}
 
+    async def check_game_start(self, id, teams):
+        start_key = f"{id}:S"
+        if start_key in self.messages:
+            return
+
+        start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
+        await self.post_goal(start_key, start_string, desc=None, link=None)
+
+    async def check_disallowed_goals(self, id, landing, teams):
+        # TODO: Check for Disallowed Goals and strikethrough the message
+        # TODO: Remove Try once it's working
+        try:
+            for message in self.messages:
+                # Loop through all messages
+                # Compare to the goals in the corresponding game
+                # Cross out any that no longer exist
+                continue
+        except Exception as e:
+            self.log.info(f"Error checking disallowed goals {e}")
+
     def get_period_ordinal(self, period):
         period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
         if period <= 4:
@@ -289,26 +306,6 @@ class Scoreboard(WesCog):
     def convert_timestamp_to_seconds(self, period, time):
         mins, secs = time.split(":")
         return 20*60*(period-1) + (60*int(mins) + int(secs))
-
-    async def check_game_start(self, id, teams):
-        start_key = f"{id}:S"
-        if start_key in self.messages:
-            return
-
-        start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
-        await self.post_goal(start_key, start_string, desc=None, link=None)
-
-    async def check_disallowed_goals(self, id, landing, teams):
-        # TODO: Check for Disallowed Goals and strikethrough the message
-        # TODO: Remove Try once it's working
-        try:
-            for message in self.messages:
-                # Loop through all messages
-                # Compare to the goals in the corresponding game
-                # Cross out any that no longer exist
-                continue
-        except Exception as e:
-            self.log.info(f"Error checking disallowed goals {e}")
 
     async def check_goals(self, id, landing, teams):
         if "summary" not in landing or "scoring" not in landing["summary"]:
@@ -399,6 +396,8 @@ class Scoreboard(WesCog):
         await self.check_disallowed_goals(id, landing, teams) # TODO: Not Implemented
         await self.check_goals(id, landing, teams)
         await self.check_ot_challenge(id, landing, teams) # TODO: Not Implemented
+        # TODO: Check Shootouts
+        # TODO: Check Finals
 
 ###################################
 
@@ -488,6 +487,7 @@ class Scoreboard(WesCog):
                     await self.post_goal(end_key, end_string, desc=None, link=recap_link)
 
         # TODO: Consider writing after EVERY message post, to avoid potential spam
+        #       I think that means this can just go in post_goal?
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
