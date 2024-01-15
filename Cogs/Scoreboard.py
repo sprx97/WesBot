@@ -9,6 +9,16 @@ import pytz
 # Local Includes
 from Shared import *
 
+class embed_field:
+    def __init__(self, name="", value="", inline=True):
+        self.name = name
+        self.value = value
+        self.inline = inline
+
+    def __str__(self):
+        escaped_value = self.value.replace("\n", "\\n")
+        return f"{self.name} {escaped_value} {self.inline}"
+
 class Scoreboard(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
@@ -18,7 +28,6 @@ class Scoreboard(WesCog):
         self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
-        self.scoreboard_lock = asyncio.Lock()
 
     async def cog_load(self):
         self.bot.loop.create_task(self.start_loops())
@@ -27,17 +36,11 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(seconds=1)
     async def scores_loop(self):
-        # Skip this iteration if the last one hasn't finished yet
-        if self.scoreboard_lock.locked():
-            self.log.info(f"Skipping scores loop {self.scores_loop.current_loop}")
-            return
-        
-        async with self.scoreboard_lock:
-            games = await self.get_games_for_today()
-            for game in games:
-                await self.parse_game(game)
+        games = await self.get_games_for_today()
+        for game in games:
+            await self.parse_game(game)
 
     @scores_loop.before_loop
     async def before_scores_loop(self):
@@ -146,6 +149,11 @@ class Scoreboard(WesCog):
             self.log.info(f"Date after date rollover: {self.messages['date']}")
             return []
 
+        # Sometimes the NHL.com API backslides, probably a redundancy issue on there end, so don't re-do yesterday ever
+        if self.messages["date"] > date:
+            self.log.info(f"WRONG DATE {self.scores_loop.current_loop} {self.messages}")
+            return []
+
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
             if games["date"] == date:
@@ -228,16 +236,18 @@ class Scoreboard(WesCog):
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}")
 
-    async def post_goal(self, key, string, desc, link):
-        # Add emoji to end of string to indicate a replay exists.
+    async def post_embed(self, key, string, desc, link, fields=[]):
+       # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
 
         # Bail if this message has already been sent and hasn't changed.
-        if key in self.messages and string == self.messages[key]["msg_text"] and link == self.messages[key]["msg_link"]:
+        if key in self.messages and string == self.messages[key]["msg_text"] and [str(f) for f in fields] == self.messages[key]["msg_fields"] and link == self.messages[key]["msg_link"]:
             return
 
         embed = discord.Embed(title=string, description=desc, url=link)
+        for field in fields:
+            embed.add_field(name=field.name, value=field.value, inline=field.inline)
 
         # Update the goal if it's already been posted, but changed.
         if key in self.messages:
@@ -255,8 +265,10 @@ class Scoreboard(WesCog):
 
         # TODO: Store a more-sane json struct here, and reconstrcut the embed from it each time
         #       This will allow for easier of comparisons between events
-        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {link}")
-        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_link":link}
+        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {fields} {link}")
+        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_fields":[str(f) for f in fields], "msg_link":link}
+        async with self.messages_lock:
+            WriteJsonFile(messages_datafile, self.messages)
 
     async def check_game_start(self, id, teams):
         start_key = f"{id}:S"
@@ -264,11 +276,10 @@ class Scoreboard(WesCog):
             return
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
-        await self.post_goal(start_key, start_string, desc=None, link=None)
+        await self.post_embed(start_key, start_string, desc=None, link=None)
 
+    # TODO: Not Implemented
     async def check_disallowed_goals(self, id, landing, teams):
-        # TODO: Check for Disallowed Goals and strikethrough the message
-        # TODO: Remove Try once it's working
         try:
             for message in self.messages:
                 # Loop through all messages
@@ -346,8 +357,7 @@ class Scoreboard(WesCog):
 
                 highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
 
-                # TODO: Find better way to help with fudging this
-                # TODO: Move into helper method
+                # TODO: Find better way to help with fudging this and move into helper method
                 # Compare goal_key to existing keys, and replace if it's just an existing one shifted by a few seconds
                 for t in range(time_in_seconds - 4, time_in_seconds + 5):
                     check_key = f"{id}:{t}"
@@ -358,17 +368,67 @@ class Scoreboard(WesCog):
                         self.messages[goal_key] = self.messages[check_key]
                         del self.messages[check_key]
 
-                # TODO: This hack should prevent the goal from posting if the date has been changed
-                # TODO: Maybe remove this if the one at the beginning of parse_game catches everything
-                if self.messages["date"] == landing["gameDate"]:
-                    await self.post_goal(goal_key, goal_str, score_str, highlight)
-                else:
-                    self.log.info(f"WRONG GOAL DATE {self.scores_loop.current_loop} {self.messages}")
+                await self.post_embed(goal_key, goal_str, score_str, highlight)
 
+    # TODO: Not Implemented
     async def check_ot_challenge(self, id, landing, teams):
         pass
 
-    # TODO: Break this down into a few more helper methods
+    # Post Shootout results in a single updating embed.
+    async def check_shootout(self, id, landing, teams):
+        if "summary" not in landing or "shootout" not in landing["summary"] or len(landing["summary"]["shootout"]) == 0:
+            return
+
+        so_key = f"{id}:SO"
+        shootout = landing["summary"]["shootout"]
+
+        title = f"Shootout: {teams['away_emoji']} {teams['away']} - {teams['home']} {teams['home_emoji']}"
+        away_shooters = ""
+        home_shooters = ""
+        for shooter in shootout:
+            shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
+            if "firstName" in shooter and "lastName" in shooter:
+                shooter_str += f" {shooter['firstName']} {shooter['lastName']}"
+            if shooter["teamAbbrev"] == teams['home']:
+                home_shooters += shooter_str + "\n"
+            else:
+                away_shooters += shooter_str + "\n"
+        away_shooters += "\u200b" # Zero-width character for spacing on mobile
+
+        fields = [
+            embed_field(name=f"{teams['away_emoji']} {teams['away']}", value=away_shooters, inline=True),
+            embed_field(name=f"{teams['home_emoji']} {teams['home']}", value=home_shooters, inline=True)
+        ]
+
+        await self.post_embed(so_key, title, None, None, fields)
+
+    async def check_final(self, id, landing, teams):
+        end_key = id + ":E"
+        if end_key in self.messages and self.messages[end_key]["msg_link"] != None:
+            return
+        
+        linescore = landing["summary"]["linescore"]
+
+        away_score = linescore["totals"]["away"]
+        home_score = linescore["totals"]["home"]
+
+        # Set the modifier for the final, ie (OT), (2OT), (SO), etc
+        modifier = ""
+        last_period = linescore["byPeriod"][-1]["periodDescriptor"]
+        if last_period["periodType"] == "OT":
+            ot_num = last_period["number"] - 3
+            if ot_num == 1:
+                ot_num = ""
+            modifier = f" ({ot_num}OT)"
+        elif last_period["periodType"] == "SO":
+            modifier = " (SO)"
+
+        recap_link = self.get_recap_link(end_key)
+
+        end_string = f"Final{modifier}: {teams['away_emoji']} {teams['away']} {away_score} - {home_score} {teams['home']} {teams['home_emoji']}"
+
+        await self.post_embed(end_key, end_string, desc=None, link=recap_link)
+
     async def parse_game(self, game):
         state = game["gameState"]
         id = str(game["id"])
@@ -393,103 +453,12 @@ class Scoreboard(WesCog):
             return
 
         await self.check_game_start(id, teams)
-        await self.check_disallowed_goals(id, landing, teams) # TODO: Not Implemented
+        await self.check_disallowed_goals(id, landing, teams)
         await self.check_goals(id, landing, teams)
-        await self.check_ot_challenge(id, landing, teams) # TODO: Not Implemented
-        # TODO: Check Shootouts
-        # TODO: Check Finals
-
-###################################
-
-        # First check all the goals in a game if the game is live or even after it ends
-        # It's bit inefficient to continue doing, but scoring changes and highlight links
-        #  can sometimes come after the game is over.
-        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
-
-        away = landing["awayTeam"]["abbrev"]
-        home = landing["homeTeam"]["abbrev"]
-        away_emoji = get_emoji(away)
-        home_emoji = get_emoji(home)
-
-        # Post Shootout results in a single updating embed.
-        if "summary" in landing and "shootout" in landing["summary"] and len(landing["summary"]["shootout"]) > 0:
-            so_key = f"{id}:SO"
-            shootout = landing["summary"]["shootout"]
-
-            title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
-            away_shooters = ""
-            home_shooters = ""
-            for shooter in shootout:
-                shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
-                if "firstName" in shooter and "lastName" in shooter:
-                    shooter_str += f" {shooter['firstName']} {shooter['lastName']}"
-                if shooter["teamAbbrev"] == home:
-                    home_shooters += shooter_str + "\n"
-                else:
-                    away_shooters += shooter_str + "\n"
-            away_shooters += "\u200b" # Zero-width character for spacing on mobile
-
-            if so_key not in self.messages or self.messages[so_key]["msg_text"] != (away_shooters, home_shooters):
-                embed=discord.Embed(title=title)
-                embed.add_field(name=f"{away_emoji} {away}", value=away_shooters, inline=True)
-                embed.add_field(name=f"{home_emoji} {home}", value=home_shooters, inline=True)
-
-                # TODO: This is duplicated from post_goal, I can probably extract that part even further
-                #       out into a post_embed submethod
-                # TODO: This hack should prevent the goal from posting if the date has been changed
-                post_type = None
-                if self.messages["date"] == landing["gameDate"]:
-                    if so_key in self.messages:
-                        post_type = "EDITING"
-                        msgs = self.messages[so_key]["msg_id"]
-                        for msg in msgs:
-                            msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
-                            await msg.edit(embed=embed)
-                    else:
-                        post_type = "POSTING"
-                        msgs = []
-                        for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
-                            msg = await channel.send(embed=embed)
-                            msgs.append((msg.channel.id, msg.id))
-
-                    # Replace newlines for single-line logging
-                    away_shooters_log = away_shooters.replace("\n", "\\n")
-                    home_shooters_log = home_shooters.replace("\n", "\\n")
-
-                    self.log.info(f"{post_type} {so_key}: {away_shooters_log} {home_shooters_log}")
-                    self.messages[so_key] = {"msg_id":msgs, "msg_text":(away_shooters, home_shooters), "msg_link":None}
-
-        # If the game is over, announce the final.
-        if state == "FINAL" or state == "OFF":
-            end_key = id + ":E"
-            if end_key not in self.messages or self.messages[end_key]["msg_link"] == None:
-                linescore = landing["summary"]["linescore"]
-
-                away_score = linescore["totals"]["away"]
-                home_score = linescore["totals"]["home"]
-
-                modifier = ""
-                last_period = linescore["byPeriod"][-1]["periodDescriptor"]
-                if last_period["periodType"] == "OT":
-                    ot_num = last_period["number"] - 3
-                    if ot_num == 1:
-                        ot_num = ""
-                    modifier = f" ({ot_num}OT)"
-                elif last_period["periodType"] == "SO":
-                    modifier = " (SO)"
-
-                recap_link = self.get_recap_link(end_key)
-
-                end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
-
-                # TODO: This hack should prevent the goal from posting if the date has been changed
-                if self.messages["date"] == landing["gameDate"]:
-                    await self.post_goal(end_key, end_string, desc=None, link=recap_link)
-
-        # TODO: Consider writing after EVERY message post, to avoid potential spam
-        #       I think that means this can just go in post_goal?
-        async with self.messages_lock:
-            WriteJsonFile(messages_datafile, self.messages)
+        await self.check_ot_challenge(id, landing, teams)
+        await self.check_shootout(id, landing, teams)
+        if state in ["FINAL", "OFF"]:
+            await self.check_final(id, landing, teams)
 
 ###############################################################################################################################
 #
