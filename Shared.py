@@ -328,7 +328,7 @@ pickemsstandings_datafile = "data/pickemsstandings.json"
 def WriteJsonFile(file, data):
     try:
         with open(f"{Config.config['srcroot']}/{file}", "w") as f:
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
     except:
         raise DataFileNotFound(file)
     

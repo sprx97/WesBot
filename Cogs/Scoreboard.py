@@ -145,13 +145,8 @@ class Scoreboard(WesCog):
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] < date:
             self.log.info(f"Date before date rollover: {self.messages['date']}, Loop Iteration: {self.scores_loop.current_loop}")
-            await self.do_date_rollover(date) # Needs to be awaited to prevent spam from the previous date
+            await self.do_date_rollover(date)
             self.log.info(f"Date after date rollover: {self.messages['date']}")
-            return []
-
-        # Sometimes the NHL.com API backslides, probably a redundancy issue on there end, so don't re-do yesterday ever
-        if self.messages["date"] > date:
-            self.log.info(f"WRONG DATE {self.scores_loop.current_loop} {self.messages}")
             return []
 
         # Get the list of games for the correct date
@@ -444,10 +439,9 @@ class Scoreboard(WesCog):
             "home_emoji": get_emoji(landing["homeTeam"]["abbrev"])
         }
 
-        # TODO: This hack should prevent the goal from posting if the date has been changed
-        #       It may be a simple as encasing the below messages in "with self.messages_lock" to ensure
-        #       only one iteration of the loop is running at a time. Really what I want is a continuous loop,
-        #       not something that runs every n seconds and can get backed up
+        # This hack should prevent the goal from posting if the date has gone backwards
+        # NHL.com backslides sometimes right around the rollover time, probably due to
+        # site redundancy.
         if self.messages["date"] != landing["gameDate"]:
             self.log.info(f"WRONG START DATE {self.scores_loop.current_loop} {self.messages}")
             return
@@ -459,81 +453,6 @@ class Scoreboard(WesCog):
         await self.check_shootout(id, landing, teams)
         if state in ["FINAL", "OFF"]:
             await self.check_final(id, landing, teams)
-
-###############################################################################################################################
-#
-# Old stuff I'm keeping around for later to help with implementing
-#
-###############################################################################################################################
-
-    # # Checks for disallowed goals (ones we have posted, but are no longer in the play-by-play) and updates them
-    # async def check_for_disallowed_goals(self, key, playbyplay):
-    #     # Get list of scoring play ids
-    #     goals = playbyplay["liveData"]["plays"]["scoringPlays"]
-    #     all_plays = playbyplay["liveData"]["plays"]["allPlays"]
-
-    #     # Skip if there aren't any plays or goals. Seems like feeds "disappear" for short periods of time occasionally,
-    #     # and we don't want this to incorrectly trigger disallows.
-    #     if len(all_plays) == 0:
-    #         return
-
-    #     # Loop through all of our pickled goals
-    #  	# If one of them doesn't exist in the list of scoring plays anymore
-    #  	# We should cross it out and notify that it was disallowed.
-    #     for pickle_key in list(self.messages.keys()):
-    #         game_id, event_id = pickle_key.split(":")
-
-    #         # Skip goals from other games, or start, end, overtime start, and disallow events
-    #         if game_id != key or event_id == "S" or event_id == "E" or event_id == "O" or event_id[-1] == "D":
-    #             continue
-
-    #         # Skip events for games that are already over, as these are often false alarms
-    #         if f"{game_id}:E" in self.messages.keys():
-    #             continue
-
-    #         found = False
-    #         for goal in goals:
-    #             if event_id == str(all_plays[goal]["about"]["eventId"]):
-    #                 found = True
-    #                 break
-
-    #         # This goal is still there, no need to disallow
-    #         # Continue onto next pickle_key
-    #         if found:
-    #             continue
-
-    #         # Skip updating goals that have already been crossed out
-    #         if self.messages[pickle_key]["msg_text"][0] != "~":
-    #             await self.post_goal(pickle_key, f"~~{self.messages[pickle_key]['msg_text']}~~", None, None)
-
-    #         # Announce that the goal has been disallowed
-    #         disallow_key = pickle_key + "D"
-    #         if disallow_key not in self.messages:
-    #             away = playbyplay["gameData"]["teams"]["away"]["abbreviation"]
-    #             home = playbyplay["gameData"]["teams"]["home"]["abbreviation"]
-    #             disallow_str = f"Goal disallowed in {away}-{home}. *Editor's Note, this may be broken currently*"
-    #             await self.post_goal(disallow_key, disallow_str, None, None)
-
-    # # Checks to see if OT challenge starting for a game
-    # async def check_for_ot_challenge_start(self, key, playbyplay):
-    #     status = playbyplay["gameData"]["status"]["detailedState"]
-    #     # Game not in progress
-    #     if "In Progress" not in status:
-    #         return False
-
-    #     # Game not tied
-    #     if playbyplay["liveData"]["linescore"]["teams"]["home"]["goals"] != playbyplay["liveData"]["linescore"]["teams"]["away"]["goals"]:
-    #         return False
-
-    #     # Game not in final 5 minutes of 3rd or OT intermission
-    #     ot = self.bot.get_cog("OTChallenge")
-    #     await ot.processot(None) # TODO: Why is this here?
-    #     if not ot.is_ot_challenge_window(playbyplay):
-    #         return False
-
-    #     return True
- 
-###############################################################################################################################
 
 async def setup(bot):
     await bot.add_cog(Scoreboard(bot))
