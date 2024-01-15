@@ -17,13 +17,6 @@ class KeepingKarlsson(WesCog):
         self.MANAGER_CARD_URL_BASE = "https://metabase-kkupfl.herokuapp.com/public/dashboard/43c4f00d-4056-4668-b3ed-652858167dc8?discordid="
         self.FAST_TRACK_URL = "https://metabase-kkupfl.herokuapp.com/public/dashboard/20301480-3e1e-483a-8a38-3b67a2b55816"
 
-    async def cog_load(self):
-        self.bot.loop.create_task(self.start_loops())
-
-    async def start_loops(self):
-        self.check_league_activity_loop.start()
-        self.loops.append(self.check_league_activity_loop)
-
     @app_commands.command(name="card", description="Show the link to a player's KKUPFL Manager Card.")
     @app_commands.describe(user="The user to show the card for.")
     @app_commands.guild_only()
