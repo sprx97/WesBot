@@ -9,8 +9,23 @@ import pytz
 # Local Includes
 from Shared import *
 
+class scoreboard_embed:
+    def __init__(self, key, messages, title, description, fields, link):
+        self.key = key
+        self.messages = messages
+        self.title = title
+        self.description = description
+        self.fields = fields
+        self.link = link
+
+    def __str__(self):
+        return f"{self.key}: {self.title} {self.description} {self.fields} {self.link}"
+
+#    def __dict__(self):
+#        pass
+
 class embed_field:
-    def __init__(self, name="", value="", inline=True):
+    def __init__(self, name, value, inline):
         self.name = name
         self.value = value
         self.inline = inline
@@ -28,6 +43,8 @@ class Scoreboard(WesCog):
         self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
+
+#region Cog Startup
 
     async def cog_load(self):
         self.bot.loop.create_task(self.start_loops())
@@ -55,77 +72,8 @@ class Scoreboard(WesCog):
         await self.cog_command_error(None, error)
         self.scores_loop.restart()
 
-    @app_commands.command(name="scores_start", description="Start the live scoreboard in a channel.")
-    @app_commands.describe(channel="The channel to start the scoreboard in.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def scores_start(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
-        self.scoreboard_channel_ids[channel.guild.id] = channel.id
-
-        async with self.channels_lock:
-            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
-
-        await interaction.response.send_message("Scoreboard setup complete.")
-
-    @app_commands.command(name="scores_stop", description="Stop the live scoreboard in this server.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def scores_stop(self, interaction: discord.Interaction):
-        self.scoreboard_channel_ids.pop(interaction.guild_id)
-
-        async with self.channels_lock:
-            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
-
-        await interaction.response.send_message("Scoreboard disabled.")
-
-    # Helper function to parse a game JSON object into a score string
-    # Works for games that haven't started, are in progress, or are finished
-    def get_score_string(self, game):
-        away = game["awayTeam"]["abbrev"]
-        home = game["homeTeam"]["abbrev"]
-
-        away = get_emoji(away) + " " + away
-        home = get_emoji(home) + " " + home
-
-        # First check for TBD, PPD, SUSP, or CNCL because it's behind a different key
-        game_state = game["gameScheduleState"]
-        if game_state != "OK":
-            return f"{away} at {home} {game_state}"
-
-        # Now check for "normal" states
-        game_state = game["gameState"]
-        if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
-            utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
-            local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
-            time = local_time.strftime("%-I:%M%P")
-
-            away_record = game["awayTeam"]["record"].split("-")
-            home_record = game["homeTeam"]["record"].split("-")
-            away_points = 2*int(away_record[0]) + int(away_record[2])
-            home_points = 2*int(home_record[0]) + int(home_record[2])
-
-            return f"{time}: {away} ({away_points} pts) at {home} ({home_points} pts)"
-        elif game_state == "OVER" or game_state == "FINAL" or game_state == "OFF":
-            away_score = game["awayTeam"]["score"]
-            home_score = game["homeTeam"]["score"]
-
-            return f"Final: {away} {away_score}, {home} {home_score}"
-        elif game_state == "LIVE" or game_state == "CRIT":
-            away_score = game["awayTeam"]["score"]
-            home_score = game["homeTeam"]["score"]
-
-            period = self.get_period_ordinal(game["period"])
-
-            if game["clock"]["inIntermission"]:
-                time = "INT"
-            else:
-                time = game["clock"]["timeRemaining"]
-
-            return f"Live: {away} {away_score}, {home} {home_score} ({period} {time})"
-        else:
-            raise Exception(f"Unrecognized game state {game_state}")
+#endregion
+#region Date/Today Functions
 
     # Rolls over the date in our messages_datafile to the next one.
     # This needs to be a function so we can await it and not spam all the messages from the previous day
@@ -156,6 +104,9 @@ class Scoreboard(WesCog):
 
         return []
 
+#endregion
+#region Parsing Helper Functions
+
     # Gets the game recap video link if it's available
     def get_recap_link(self, key):
         try:
@@ -165,124 +116,6 @@ class Scoreboard(WesCog):
             return f"{self.media_link_base}{recap}"
         except:
             return None
-
-    @app_commands.command(name="scoreboard", description="Check out today's full scoreboard.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def scoreboard(self, interaction: discord.Interaction):
-        try:
-            games = await self.get_games_for_today()
-
-            if len(games) == 0:
-                msg = "No games found for today."
-            else:
-                msg = ""
-                for game in games:
-                    msg += self.get_score_string(game) + "\n"
-
-            await interaction.response.send_message(msg)
-
-        except Exception as e:
-            await interaction.response.send_message(f"Error in `/scores scoreboard` function: {e}")
-
-    @app_commands.command(name="score", description="Check the score for a specific team.")
-    @app_commands.describe(team="An NHL team abbreviation, name, or nickname.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def score(self, interaction: discord.Interaction, team: str):
-        try:
-            # Get the proper abbreviation from our aliases
-            team = team.lower()
-            team = team_map.get(team)
-            if team == None:
-                await interaction.response.send_message(f"Team '{team}' not found.")
-                return
-
-            # Loop through the games searching for this team
-            games = await self.get_games_for_today()
-            found = False
-            for game in games:
-                if game["awayTeam"]["abbrev"] == team or game["homeTeam"]["abbrev"] == team:
-                    found = True
-                    break
-
-            # If the team doesn't play today, return
-            if not found:
-                await interaction.response.send_message(f"{emojis[team]} {team} does not play today.")
-                return
-
-            # Get the score and recap
-            msg = self.get_score_string(game)
-            link = self.get_recap_link(str(game["id"]))
-
-            # Create and send the embed
-            embed=discord.Embed(title=msg, url=link)
-            await interaction.response.send_message(embed=embed)
-
-        except Exception as e:
-            await interaction.response.send_message(f"Error in `/scores score` function: {e}")
-
-    @scores_start.error
-    @scores_stop.error
-    @scoreboard.error
-    @score.error
-    async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        await interaction.response.send_message(f"{error}")
-
-    async def post_embed(self, key, string, desc, link, fields=[]):
-       # Add emoji to end of string to indicate a replay exists.
-        if link != None:
-            string += " :movie_camera:"
-
-        # Bail if this message has already been sent and hasn't changed.
-        if key in self.messages and string == self.messages[key]["msg_text"] and [str(f) for f in fields] == self.messages[key]["msg_fields"] and link == self.messages[key]["msg_link"]:
-            return
-
-        embed = discord.Embed(title=string, description=desc, url=link)
-        for field in fields:
-            embed.add_field(name=field.name, value=field.value, inline=field.inline)
-
-        # Update the goal if it's already been posted, but changed.
-        if key in self.messages:
-            post_type = "EDITING"
-            msgs = self.messages[key]["msg_id"]
-            for msg in msgs:
-                msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
-                await msg.edit(embed=embed)
-        else:
-            post_type = "POSTING"
-            msgs = []
-            for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
-                msg = await channel.send(embed=embed)
-                msgs.append((msg.channel.id, msg.id))
-
-        # TODO: Store a more-sane json struct here, and reconstrcut the embed from it each time
-        #       This will allow for easier of comparisons between events
-        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {fields} {link}")
-        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_fields":[str(f) for f in fields], "msg_link":link}
-        async with self.messages_lock:
-            WriteJsonFile(messages_datafile, self.messages)
-
-    async def check_game_start(self, id, teams):
-        start_key = f"{id}:S"
-        if start_key in self.messages:
-            return
-
-        start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
-        await self.post_embed(start_key, start_string, desc=None, link=None)
-
-    # TODO: Not Implemented
-    async def check_disallowed_goals(self, id, landing, teams):
-        try:
-            for message in self.messages:
-                # Loop through all messages
-                # Compare to the goals in the corresponding game
-                # Cross out any that no longer exist
-                continue
-        except Exception as e:
-            self.log.info(f"Error checking disallowed goals {e}")
 
     def get_period_ordinal(self, period):
         period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
@@ -312,6 +145,28 @@ class Scoreboard(WesCog):
     def convert_timestamp_to_seconds(self, period, time):
         mins, secs = time.split(":")
         return 20*60*(period-1) + (60*int(mins) + int(secs))
+
+#endregion
+#region Game Parsing Sections
+
+    async def check_game_start(self, id, teams):
+        start_key = f"{id}:S"
+#        if start_key in self.messages:
+#            return
+
+        start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
+        await self.post_embed(start_key, start_string, desc=None, link=None)
+
+    # TODO: Not Implemented
+    async def check_disallowed_goals(self, id, landing, teams):
+        try:
+            for message in self.messages:
+                # Loop through all messages
+                # Compare to the goals in the corresponding game
+                # Cross out any that no longer exist
+                continue
+        except Exception as e:
+            self.log.info(f"Error checking disallowed goals {e}")
 
     async def check_goals(self, id, landing, teams):
         if "summary" not in landing or "scoring" not in landing["summary"]:
@@ -424,6 +279,43 @@ class Scoreboard(WesCog):
 
         await self.post_embed(end_key, end_string, desc=None, link=recap_link)
 
+#endregion
+#region Core Parsing/Posting Functions
+
+    async def post_embed(self, key, string, desc, link, fields=[]):
+       # Add emoji to end of string to indicate a replay exists.
+        if link != None:
+            string += " :movie_camera:"
+
+        # Bail if this message has already been sent and hasn't changed.
+        if key in self.messages and string == self.messages[key]["msg_text"] and [str(f) for f in fields] == self.messages[key]["msg_fields"] and link == self.messages[key]["msg_link"]:
+            return
+
+        embed = discord.Embed(title=string, description=desc, url=link)
+        for field in fields:
+            embed.add_field(name=field.name, value=field.value, inline=field.inline)
+
+        # Update the goal if it's already been posted, but changed.
+        if key in self.messages:
+            post_type = "EDITING"
+            msgs = self.messages[key]["msg_id"]
+            for msg in msgs:
+                msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
+                await msg.edit(embed=embed)
+        else:
+            post_type = "POSTING"
+            msgs = []
+            for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
+                msg = await channel.send(embed=embed)
+                msgs.append((msg.channel.id, msg.id))
+
+        # TODO: Store a more-sane json struct here, and reconstrcut the embed from it each time
+        #       This will allow for easier of comparisons between events
+        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {fields} {link}")
+        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_fields":[str(f) for f in fields], "msg_link":link}
+        async with self.messages_lock:
+            WriteJsonFile(messages_datafile, self.messages)
+
     async def parse_game(self, game):
         state = game["gameState"]
         id = str(game["id"])
@@ -453,6 +345,151 @@ class Scoreboard(WesCog):
         await self.check_shootout(id, landing, teams)
         if state in ["FINAL", "OFF"]:
             await self.check_final(id, landing, teams)
+
+#endregion
+#region Scoreboard Setup Commands
+
+    @app_commands.command(name="scores_start", description="Start the live scoreboard in a channel.")
+    @app_commands.describe(channel="The channel to start the scoreboard in.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def scores_start(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
+        self.scoreboard_channel_ids[channel.guild.id] = channel.id
+
+        async with self.channels_lock:
+            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
+
+        await interaction.response.send_message("Scoreboard setup complete.")
+
+    @app_commands.command(name="scores_stop", description="Stop the live scoreboard in this server.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def scores_stop(self, interaction: discord.Interaction):
+        self.scoreboard_channel_ids.pop(str(interaction.guild_id))
+
+        async with self.channels_lock:
+            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
+
+        await interaction.response.send_message("Scoreboard disabled.")
+
+#endregion
+#region Scoreboard Slash Commands
+
+    # Helper function to parse a game JSON object into a score string
+    # Works for games that haven't started, are in progress, or are finished
+    def get_score_string(self, game):
+        away = game["awayTeam"]["abbrev"]
+        home = game["homeTeam"]["abbrev"]
+
+        away = get_emoji(away) + " " + away
+        home = get_emoji(home) + " " + home
+
+        # First check for TBD, PPD, SUSP, or CNCL because it's behind a different key
+        game_state = game["gameScheduleState"]
+        if game_state != "OK":
+            return f"{away} at {home} {game_state}"
+
+        # Now check for "normal" states
+        game_state = game["gameState"]
+        if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
+            utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
+            local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
+            time = local_time.strftime("%-I:%M%P")
+
+            away_record = game["awayTeam"]["record"].split("-")
+            home_record = game["homeTeam"]["record"].split("-")
+            away_points = 2*int(away_record[0]) + int(away_record[2])
+            home_points = 2*int(home_record[0]) + int(home_record[2])
+
+            return f"{time}: {away} ({away_points} pts) at {home} ({home_points} pts)"
+        elif game_state == "OVER" or game_state == "FINAL" or game_state == "OFF":
+            away_score = game["awayTeam"]["score"]
+            home_score = game["homeTeam"]["score"]
+
+            return f"Final: {away} {away_score}, {home} {home_score}"
+        elif game_state == "LIVE" or game_state == "CRIT":
+            away_score = game["awayTeam"]["score"]
+            home_score = game["homeTeam"]["score"]
+
+            period = self.get_period_ordinal(game["period"])
+
+            if game["clock"]["inIntermission"]:
+                time = "INT"
+            else:
+                time = game["clock"]["timeRemaining"]
+
+            return f"Live: {away} {away_score}, {home} {home_score} ({period} {time})"
+        else:
+            raise Exception(f"Unrecognized game state {game_state}")
+
+    @app_commands.command(name="scoreboard", description="Check out today's full scoreboard.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def scoreboard(self, interaction: discord.Interaction):
+        try:
+            games = await self.get_games_for_today()
+
+            if len(games) == 0:
+                msg = "No games found for today."
+            else:
+                msg = ""
+                for game in games:
+                    msg += self.get_score_string(game) + "\n"
+
+            await interaction.response.send_message(msg)
+
+        except Exception as e:
+            await interaction.response.send_message(f"Error in `/scores scoreboard` function: {e}")
+
+    @app_commands.command(name="score", description="Check the score for a specific team.")
+    @app_commands.describe(team="An NHL team abbreviation, name, or nickname.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def score(self, interaction: discord.Interaction, team: str):
+        try:
+            # Get the proper abbreviation from our aliases
+            team = team.lower()
+            team = team_map.get(team)
+            if team == None:
+                await interaction.response.send_message(f"Team '{team}' not found.")
+                return
+
+            # Loop through the games searching for this team
+            games = await self.get_games_for_today()
+            found = False
+            for game in games:
+                if game["awayTeam"]["abbrev"] == team or game["homeTeam"]["abbrev"] == team:
+                    found = True
+                    break
+
+            # If the team doesn't play today, return
+            if not found:
+                await interaction.response.send_message(f"{emojis[team]} {team} does not play today.")
+                return
+
+            # Get the score and recap
+            msg = self.get_score_string(game)
+            link = self.get_recap_link(str(game["id"]))
+
+            # Create and send the embed
+            embed=discord.Embed(title=msg, url=link)
+            await interaction.response.send_message(embed=embed)
+
+        except Exception as e:
+            await interaction.response.send_message(f"Error in `/scores score` function: {e}")
+
+    @scores_start.error
+    @scores_stop.error
+    @scoreboard.error
+    @score.error
+    async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.response.send_message(f"{error}")
+
+#endregion
 
 async def setup(bot):
     await bot.add_cog(Scoreboard(bot))
