@@ -1,5 +1,5 @@
 # Welcome to the home page for Wes McCauley the Discord Bot
-This bot was first developed for use in the [OldTimeHockey](http://www.roldtimehockey.com) Discord Server. All of the code in this repository is deployed by Spartan97/SPRX97. If you are interested in contributing or re-purposing, feel free to contact me on Discord (SPRX97#9662), [Reddit](http://www.reddit.com/u/sprx97), or [Github](http://www.github.com/Spartan97).
+This bot was first developed for use in the [OldTimeHockey](http://www.roldtimehockey.com) Discord Server. All of the code in this repository is deployed by SPRX97. If you are interested in contributing or re-purposing, feel free to contact me on Discord (sprx97), [Reddit](http://www.reddit.com/u/sprx97), or [Github](http://www.github.com/Spartan97).
 
 # Notes
 - Python 3.8+ is required
