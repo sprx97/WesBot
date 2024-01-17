@@ -86,10 +86,9 @@ class Scoreboard(WesCog):
 #region Parsing Helper Functions
 
     # Gets the game recap video link if it's available
-    def get_recap_link(self, key):
+    def get_recap_link(self, id):
         try:
-            game_id = key.split(":")[0]
-            media = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/boxscore")
+            media = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore")
             recap = media["gameVideo"]["threeMinRecap"]
             return f"{self.media_link_base}{recap}"
         except:
@@ -128,11 +127,11 @@ class Scoreboard(WesCog):
 #region Game Parsing Sections
 
     async def check_game_start(self, id, teams):
-        start_key = f"{id}:S"
+        start_key = f"Start"
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
-        await self.post_embed(start_key, start_string, desc=None, link=None)
-        await self.post_embed_to_debug(start_key, start_string, desc=None, link=None) # TODO: Testing, just remove soon
+        await self.post_embed(self.messages[id], start_key, start_string, desc=None, link=None)
+        await self.post_embed_to_debug(self.messages[id], start_key, start_string, desc=None, link=None) # TODO: Testing, just remove soon
 
     # TODO: Not Implemented
     async def check_disallowed_goals(self, id, landing, teams):
@@ -160,7 +159,7 @@ class Scoreboard(WesCog):
                 period_ord = self.get_period_ordinal(period["period"])
                 time = goal["timeInPeriod"]
                 time_in_seconds = self.convert_timestamp_to_seconds(period_num, time)
-                goal_key = f"{id}:{time_in_seconds}"
+                goal_key = f"{time_in_seconds}"
 
                 # Get info about the goal
                 strength = self.get_goal_strength(goal)
@@ -187,15 +186,15 @@ class Scoreboard(WesCog):
                 # TODO: Find better way to help with fudging this and move into helper method
                 # Compare goal_key to existing keys, and replace if it's just an existing one shifted by a few seconds
                 for t in range(time_in_seconds - 4, time_in_seconds + 5):
-                    check_key = f"{id}:{t}"
+                    check_key = f"{t}"
                     if check_key == goal_key:
                         continue
 
-                    if check_key in self.messages and score_str == self.messages[check_key]["msg_desc"]:
-                        self.messages[goal_key] = self.messages[check_key]
-                        del self.messages[check_key]
+                    if check_key in self.messages[id]["Goals"] and score_str == self.messages[id]["Goals"][check_key]["content"]["description"]:
+                        self.messages[id]["Goals"][goal_key] = self.messages[id]["Goals"][check_key]
+                        del self.messages[id]["Goals"][check_key]
 
-                await self.post_embed(goal_key, goal_str, score_str, highlight)
+                await self.post_embed(self.messages[id]["Goals"], goal_key, goal_str, score_str, highlight)
 
     # TODO: Not Implemented
     async def check_ot_challenge(self, id, landing, teams):
@@ -206,7 +205,7 @@ class Scoreboard(WesCog):
         if "summary" not in landing or "shootout" not in landing["summary"] or len(landing["summary"]["shootout"]) == 0:
             return
 
-        so_key = f"{id}:SO"
+        so_key = f"Shootout"
         shootout = landing["summary"]["shootout"]
 
         title = f"Shootout: {teams['away_emoji']} {teams['away']} - {teams['home']} {teams['home_emoji']}"
@@ -227,11 +226,11 @@ class Scoreboard(WesCog):
             {"name": f"{teams['home_emoji']} {teams['home']}", "value": home_shooters, "inline": True}
         ]
 
-        await self.post_embed(so_key, title, None, None, fields)
+        await self.post_embed(self.messages[id], so_key, title, None, None, fields)
 
     async def check_final(self, id, landing, teams):
-        end_key = id + ":E"
-        if end_key in self.messages and self.messages[end_key]["content"]["url"] != None:
+        end_key = "End"
+        if end_key in self.messages[id] and self.messages[id][end_key]["content"]["url"] != None:
             return
         
         linescore = landing["summary"]["linescore"]
@@ -250,19 +249,19 @@ class Scoreboard(WesCog):
         elif last_period["periodType"] == "SO":
             modifier = " (SO)"
 
-        recap_link = self.get_recap_link(end_key)
+        recap_link = self.get_recap_link(id)
 
         end_string = f"Final{modifier}: {teams['away_emoji']} {teams['away']} {away_score} - {home_score} {teams['home']} {teams['home_emoji']}"
 
-        await self.post_embed(end_key, end_string, desc=None, link=recap_link)
+        await self.post_embed(self.messages[id], end_key, end_string, desc=None, link=recap_link)
 
 #endregion
 #region Core Parsing/Posting Functions
 
-    async def post_embed_to_debug(self, key, string, desc, link, fields=[]):
-        await self.post_embed(key, string, desc, link, fields, True)
+    async def post_embed_to_debug(self, parent, key, string, desc, link, fields=[]):
+        await self.post_embed(parent, key, string, desc, link, fields, True)
 
-    async def post_embed(self, key, string, desc, link, fields=[], debug=False):
+    async def post_embed(self, parent, key, string, desc, link, fields=[], debug=False):
         if self.POST_ALL_TO_DEBUG:
             debug = True
 
@@ -275,15 +274,15 @@ class Scoreboard(WesCog):
         embed_dict = {"message_ids": [], "content": content}
 
         # Bail if this message has already been sent and hasn't changed.
-        if key in self.messages and self.messages[key]["content"] == embed_dict["content"]:
+        if key in parent and parent[key]["content"] == embed_dict["content"]:
             return
 
         embed = discord.Embed.from_dict(embed_dict["content"])
 
         # Update the goal if it's already been posted, but changed.
-        if key in self.messages:
+        if key in parent:
             post_type = "EDITING"
-            embed_dict["message_ids"] = self.messages[key]["message_ids"]
+            embed_dict["message_ids"] = parent[key]["message_ids"]
             for msg in embed_dict["message_ids"]:
                 msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
                 await msg.edit(embed=embed)
@@ -294,7 +293,7 @@ class Scoreboard(WesCog):
             # Modify slightly for debug features
             if debug:
                 channels = self.debug_channel_ids
-                post_type += " DEBUG"
+                post_type += "_DEBUG"
             
             for channel in get_channels_from_ids(self.bot, channels):
                 msg = await channel.send(embed=embed)
@@ -302,13 +301,18 @@ class Scoreboard(WesCog):
 
         # TODO: Use a more-sane json key here
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
-        self.messages[key] = embed_dict
+        parent[key] = embed_dict
+
+        # Parent should always be some subkey of self.messages, so write it out
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
     async def parse_game(self, game):
         state = game["gameState"]
         id = str(game["id"])
+
+        if id not in self.messages:
+            self.messages[id] = {"Goals": {}, "Disallowed": {}}
 
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
