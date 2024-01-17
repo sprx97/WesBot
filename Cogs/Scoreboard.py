@@ -16,6 +16,7 @@ class Scoreboard(WesCog):
         self.media_link_base = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 
         self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
+        self.debug_channel_ids = {"207634081700249601": 489882482838077451} # OldTimeHockey's #oth-tech channel
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
 
@@ -129,6 +130,7 @@ class Scoreboard(WesCog):
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
         await self.post_embed(start_key, start_string, desc=None, link=None)
+        await self.post_embed_to_debug(start_key, start_string, desc=None, link=None) # TODO: Testing, just remove soon
 
     # TODO: Not Implemented
     async def check_disallowed_goals(self, id, landing, teams):
@@ -255,7 +257,10 @@ class Scoreboard(WesCog):
 #endregion
 #region Core Parsing/Posting Functions
 
-    async def post_embed(self, key, string, desc, link, fields=[]):
+    async def post_embed_to_debug(self, key, string, desc, link, fields=[]):
+        await self.post_embed(key, string, desc, link, fields, True)
+
+    async def post_embed(self, key, string, desc, link, fields=[], debug=False):
        # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
@@ -279,7 +284,14 @@ class Scoreboard(WesCog):
                 await msg.edit(embed=embed)
         else:
             post_type = "POSTING"
-            for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
+            channels = self.scoreboard_channel_ids
+            
+            # Modify slightly for debug features
+            if debug:
+                channels = self.debug_channel_ids
+                post_type += " DEBUG"
+            
+            for channel in get_channels_from_ids(self.bot, channels):
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append((msg.channel.id, msg.id))
 
