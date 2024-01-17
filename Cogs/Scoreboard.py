@@ -28,7 +28,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=1)
+    @tasks.loop(seconds=5)
     async def scores_loop(self):
         games = await self.get_games_for_today()
         for game in games:
@@ -227,7 +227,7 @@ class Scoreboard(WesCog):
 
     async def check_final(self, id, landing, teams):
         end_key = id + ":E"
-        if end_key in self.messages and self.messages[end_key]["msg_link"] != None:
+        if end_key in self.messages and self.messages[end_key]["content"]["url"] != None:
             return
         
         linescore = landing["summary"]["linescore"]
@@ -260,40 +260,32 @@ class Scoreboard(WesCog):
         if link != None:
             string += " :movie_camera:"
 
+        # There is a "video" embed object, ie content["video"]["url"], but it doesn't seem to work right now. IIRC bots are prevented from posting videos
+        content = {"title": string, "description": desc, "type": "video", "fields": fields, "url": link}
+        embed_dict = {"message_ids": [], "content": content}
+
         # Bail if this message has already been sent and hasn't changed.
-        if key in self.messages and string == self.messages[key]["msg_text"] and fields == self.messages[key]["msg_fields"] and link == self.messages[key]["msg_link"]:
+        if key in self.messages and self.messages[key]["content"] == embed_dict["content"]:
             return
 
-        # https://discord.com/developers/docs/resources/channel#embed-object
-        embed_dict = {}
-        embed_dict["title"] = string
-        embed_dict["description"] = desc
-        embed_dict["url"] = link # TODO: ry out embed video object?
-        embed_dict["fields"] = fields
-
-        # TODO: Try discord.Embed.from_dict(embed_dict) instead
-        embed = discord.Embed(title=string, description=desc, url=link)
-        for field in fields:
-            embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+        embed = discord.Embed.from_dict(embed_dict["content"])
 
         # Update the goal if it's already been posted, but changed.
         if key in self.messages:
             post_type = "EDITING"
-            msgs = self.messages[key]["msg_id"]
-            for msg in msgs:
+            embed_dict["message_ids"] = self.messages[key]["message_ids"]
+            for msg in embed_dict["message_ids"]:
                 msg = await self.bot.get_channel(msg[0]).fetch_message(msg[1])
                 await msg.edit(embed=embed)
         else:
             post_type = "POSTING"
-            msgs = []
             for channel in get_channels_from_ids(self.bot, self.scoreboard_channel_ids):
                 msg = await channel.send(embed=embed)
-                msgs.append((msg.channel.id, msg.id))
+                embed_dict["message_ids"].append((msg.channel.id, msg.id))
 
-        # TODO: Store a more-sane json struct here, and reconstrcut the embed from it each time
-        #       This will allow for easier of comparisons between events
-        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {fields} {link}")
-        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_fields":fields, "msg_link":link}
+        # TODO: Use a more-sane json key here
+        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
+        self.messages[key] = embed_dict
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
