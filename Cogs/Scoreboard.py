@@ -9,31 +9,6 @@ import pytz
 # Local Includes
 from Shared import *
 
-class scoreboard_embed:
-    def __init__(self, key, messages, title, description, fields, link):
-        self.key = key
-        self.messages = messages
-        self.title = title
-        self.description = description
-        self.fields = fields
-        self.link = link
-
-    def __str__(self):
-        return f"{self.key}: {self.title} {self.description} {self.fields} {self.link}"
-
-#    def __dict__(self):
-#        pass
-
-class embed_field:
-    def __init__(self, name, value, inline):
-        self.name = name
-        self.value = value
-        self.inline = inline
-
-    def __str__(self):
-        escaped_value = self.value.replace("\n", "\\n")
-        return f"{self.name} {escaped_value} {self.inline}"
-
 class Scoreboard(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
@@ -151,8 +126,6 @@ class Scoreboard(WesCog):
 
     async def check_game_start(self, id, teams):
         start_key = f"{id}:S"
-#        if start_key in self.messages:
-#            return
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
         await self.post_embed(start_key, start_string, desc=None, link=None)
@@ -246,8 +219,8 @@ class Scoreboard(WesCog):
         away_shooters += "\u200b" # Zero-width character for spacing on mobile
 
         fields = [
-            embed_field(name=f"{teams['away_emoji']} {teams['away']}", value=away_shooters, inline=True),
-            embed_field(name=f"{teams['home_emoji']} {teams['home']}", value=home_shooters, inline=True)
+            {"name": f"{teams['away_emoji']} {teams['away']}", "value": away_shooters, "inline": True},
+            {"name": f"{teams['home_emoji']} {teams['home']}", "value": home_shooters, "inline": True}
         ]
 
         await self.post_embed(so_key, title, None, None, fields)
@@ -288,12 +261,20 @@ class Scoreboard(WesCog):
             string += " :movie_camera:"
 
         # Bail if this message has already been sent and hasn't changed.
-        if key in self.messages and string == self.messages[key]["msg_text"] and [str(f) for f in fields] == self.messages[key]["msg_fields"] and link == self.messages[key]["msg_link"]:
+        if key in self.messages and string == self.messages[key]["msg_text"] and fields == self.messages[key]["msg_fields"] and link == self.messages[key]["msg_link"]:
             return
 
+        # https://discord.com/developers/docs/resources/channel#embed-object
+        embed_dict = {}
+        embed_dict["title"] = string
+        embed_dict["description"] = desc
+        embed_dict["url"] = link # TODO: ry out embed video object?
+        embed_dict["fields"] = fields
+
+        # TODO: Try discord.Embed.from_dict(embed_dict) instead
         embed = discord.Embed(title=string, description=desc, url=link)
         for field in fields:
-            embed.add_field(name=field.name, value=field.value, inline=field.inline)
+            embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
 
         # Update the goal if it's already been posted, but changed.
         if key in self.messages:
@@ -312,7 +293,7 @@ class Scoreboard(WesCog):
         # TODO: Store a more-sane json struct here, and reconstrcut the embed from it each time
         #       This will allow for easier of comparisons between events
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {string} {desc} {fields} {link}")
-        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_fields":[str(f) for f in fields], "msg_link":link}
+        self.messages[key] = {"msg_id":msgs, "msg_text":string, "msg_desc":desc, "msg_fields":fields, "msg_link":link}
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
