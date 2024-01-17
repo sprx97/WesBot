@@ -18,6 +18,7 @@ class Scoreboard(WesCog):
         self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
         self.debug_channel_ids = {"207634081700249601": 489882482838077451} # OldTimeHockey's #oth-tech channel
         self.POST_ALL_TO_DEBUG = False # Manual override
+        self.stop_logging_disallowed_goals = 0
 
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
@@ -58,6 +59,7 @@ class Scoreboard(WesCog):
     # after deleting them from the datafile.
     async def do_date_rollover(self, date):
         self.messages = {"date": date}
+        self.stop_logging_disallowed_goals = 0
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
@@ -134,12 +136,14 @@ class Scoreboard(WesCog):
 
     # TODO: Not Implemented
     async def check_disallowed_goals(self, id, landing, teams):
+        if self.stop_logging_disallowed_goals > 20:
+            return
+
         try:
-            for message in self.messages:
-                # Loop through all messages
-                # Compare to the goals in the corresponding game
-                # Cross out any that no longer exist
-                continue
+            if len(self.messages[id]["Goals"]) > len(landing["summary"]["scoring"]):
+                self.log.warning(f"Extra goal found in {teams['away']}-{teams['home']}.")
+                self.stop_logging_disallowed_goals += 1
+                # Cross out last goal and move it to disallowed?
         except Exception as e:
             self.log.info(f"Error checking disallowed goals {e}")
 
