@@ -300,7 +300,7 @@ class Scoreboard(WesCog):
                 embed_dict["message_ids"].append((msg.channel.id, msg.id))
 
         # TODO: Use a more-sane json key here
-        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
+        self.log.info(f"{self.scores_loop.current_loop} {post_type} {id}-{key}: {embed_dict['content']}")
         parent[key] = embed_dict
 
         # Parent should always be some subkey of self.messages, so write it out
