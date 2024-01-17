@@ -330,13 +330,12 @@ class Scoreboard(WesCog):
 #endregion
 #region Scoreboard Setup Commands
 
-    @app_commands.command(name="scores_start", description="Start the live scoreboard in a channel.")
-    @app_commands.describe(channel="The channel to start the scoreboard in.")
+    @app_commands.command(name="scores_start", description="Start the live scoreboard in this channel.")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
-    async def scores_start(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
-        self.scoreboard_channel_ids[channel.guild.id] = channel.id
+    async def scores_start(self, interaction: discord.Interaction):
+        self.scoreboard_channel_ids[str(interaction.guild.id)] = interaction.channel.id
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
@@ -348,6 +347,11 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def scores_stop(self, interaction: discord.Interaction):
+        id = str(interaction.guild_id)
+        if id not in self.scoreboard_channel_ids:
+            await interaction.response.send_message("Scoreboard is not active in this server.")
+            return
+        
         self.scoreboard_channel_ids.pop(str(interaction.guild_id))
 
         async with self.channels_lock:
