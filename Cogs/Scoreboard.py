@@ -131,7 +131,6 @@ class Scoreboard(WesCog):
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
         await self.post_embed(self.messages[id], start_key, start_string, desc=None, link=None)
-        await self.post_embed_to_debug(self.messages[id], start_key, start_string, desc=None, link=None) # TODO: Testing, just remove soon
 
     # TODO: Not Implemented
     async def check_disallowed_goals(self, id, landing, teams):
@@ -299,7 +298,6 @@ class Scoreboard(WesCog):
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append((msg.channel.id, msg.id))
 
-        # TODO: Use a more-sane json key here
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {id}-{key}: {embed_dict['content']}")
         parent[key] = embed_dict
 
