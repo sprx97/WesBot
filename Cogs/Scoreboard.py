@@ -17,6 +17,8 @@ class Scoreboard(WesCog):
 
         self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
         self.debug_channel_ids = {"207634081700249601": 489882482838077451} # OldTimeHockey's #oth-tech channel
+        self.POST_ALL_TO_DEBUG = False # Manual override
+
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
 
@@ -261,6 +263,9 @@ class Scoreboard(WesCog):
         await self.post_embed(key, string, desc, link, fields, True)
 
     async def post_embed(self, key, string, desc, link, fields=[], debug=False):
+        if self.POST_ALL_TO_DEBUG:
+            debug = True
+
        # Add emoji to end of string to indicate a replay exists.
         if link != None:
             string += " :movie_camera:"
@@ -332,7 +337,7 @@ class Scoreboard(WesCog):
             await self.check_final(id, landing, teams)
 
 #endregion
-#region Scoreboard Setup Commands
+#region Scoreboard Setup Slash Commands
 
     @app_commands.command(name="scores_start", description="Start the live scoreboard in this channel.")
     @app_commands.guild_only()
