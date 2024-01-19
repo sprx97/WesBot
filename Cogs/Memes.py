@@ -20,6 +20,11 @@ class Memes(WesCog):
     async def cat(self, interaction: discord.Interaction):
         await interaction.response.send_message("https://images-ext-1.discordapp.net/external/jqBbbyFVQk10FI3TZlQS1GV2LNg8COT2TLw-9ckFqWM/https/media.discordapp.net/attachments/507616755510673409/744726226786320454/3x.gif")
 
+    @memes_group.command(name="caufield")
+    @app_commands.checks.cooldown(1, 60.0)
+    async def darn(self, interaction: discord.Interaction):
+        await interaction.response.send_message("I've concluded that Caufield will be a bust in the NHL.")
+
     @memes_group.command(name="dahlin")
     @app_commands.checks.cooldown(1, 60.0)
     async def dahlin(self, interaction: discord.Interaction):
