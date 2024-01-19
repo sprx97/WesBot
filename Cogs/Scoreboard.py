@@ -215,7 +215,6 @@ class Scoreboard(WesCog):
             # If we get here, we want to cross out that goal key and change it to a *D key
             await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
 
-    # TODO: Not Implemented
     async def check_ot_challenge(self, id, landing):
         try:
             ot_key = "OT"

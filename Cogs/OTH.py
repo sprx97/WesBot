@@ -209,12 +209,12 @@ class OTH(WesCog):
         matchup = matchup[0]
 
         # Format a matchup embed to send
-        msg = f"{matchup['name']} ({matchup['wins']}-{matchup['losses']}): **{matchup['PF']}**\n"
+        msg = f"{matchup['name']} ({matchup['wins']}-{matchup['losses']}): **{matchup['PF']}** (#{matchup['rank']})\n"
         if matchup['opp_name'] == None:
             msg += "BYE"
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
         else:
-            msg += f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']}): **{matchup['opp_PF']}**"
+            msg += f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']}): **{matchup['opp_PF']}** (#{matchup['opp_rank']})"
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
         embed = discord.Embed(title=msg, url=link)
         await ctx.send(embed=embed)
