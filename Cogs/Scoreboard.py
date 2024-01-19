@@ -18,7 +18,6 @@ class Scoreboard(WesCog):
         self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
         self.debug_channel_ids = {"207634081700249601": 489882482838077451} # OldTimeHockey's #oth-tech channel
         self.POST_ALL_TO_DEBUG = False # Manual override
-        self.stop_logging_disallowed_goals = 0
 
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
@@ -59,7 +58,6 @@ class Scoreboard(WesCog):
     # after deleting them from the datafile.
     async def do_date_rollover(self, date):
         self.messages = {"date": date}
-        self.stop_logging_disallowed_goals = 0
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
@@ -125,6 +123,20 @@ class Scoreboard(WesCog):
         mins, secs = time.split(":")
         return 20*60*(period-1) + (60*int(mins) + int(secs))
 
+    def goal_found_in_summary(self, logged_key, scoring):
+        for period in scoring:
+            # Skip shootout "periods" because we handle those separately
+            if period["periodDescriptor"]["periodType"] == "SO":
+                continue
+
+            for goal in period["goals"]:
+                period_num = period["period"]
+                time = goal["timeInPeriod"]
+                if f"{self.convert_timestamp_to_seconds(period_num, time)}" == logged_key:
+                    return True
+
+        return False
+
 #endregion
 #region Game Parsing Sections
 
@@ -133,19 +145,6 @@ class Scoreboard(WesCog):
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
         await self.post_embed(self.messages[id], start_key, start_string, desc=None, link=None)
-
-    # TODO: Not Implemented
-    async def check_disallowed_goals(self, id, landing, teams):
-        if self.stop_logging_disallowed_goals > 20:
-            return
-
-        try:
-            if len(self.messages[id]["Goals"]) > len(landing["summary"]["scoring"]):
-                self.log.warning(f"Extra goal found in {teams['away']}-{teams['home']}.")
-                self.stop_logging_disallowed_goals += 1
-                # Cross out last goal and move it to disallowed?
-        except Exception as e:
-            self.log.info(f"Error checking disallowed goals {e}")
 
     async def check_goals(self, id, landing, teams):
         if "summary" not in landing or "scoring" not in landing["summary"]:
@@ -196,8 +195,20 @@ class Scoreboard(WesCog):
                     if check_key in self.messages[id]["Goals"] and score_str == self.messages[id]["Goals"][check_key]["content"]["description"]:
                         self.messages[id]["Goals"][goal_key] = self.messages[id]["Goals"][check_key]
                         del self.messages[id]["Goals"][check_key]
+                        self.log.info(f"Timestamp corrected in {teams['away']}-{teams['home']} key {goal_key}")
 
                 await self.post_embed(self.messages[id]["Goals"], goal_key, goal_str, score_str, highlight)
+
+    async def check_disallowed_goals(self, id, landing):
+        if "summary" not in landing or "scoring" not in landing["summary"]:
+            return
+
+        for logged_key, logged_value in self.messages[id]["Goals"].items():
+            if logged_value["content"]["title"][0] == "~" or self.goal_found_in_summary(logged_key, landing["summary"]["scoring"]):
+                continue # Goal still exists or is already disallowed, we're good!
+            
+            # If we get here, we want to cross out that goal key and change it to a *D key
+            await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", f"~~{logged_value['content']['description']}~~", logged_value["content"]["url"])
 
     # TODO: Not Implemented
     async def check_ot_challenge(self, id, landing, teams):
@@ -273,7 +284,7 @@ class Scoreboard(WesCog):
             string += " :movie_camera:"
 
         # There is a "video" embed object, ie content["video"]["url"], but it doesn't seem to work right now. IIRC bots are prevented from posting videos
-        content = {"title": string, "description": desc, "type": "video", "fields": fields, "url": link}
+        content = {"title": string, "description": desc, "fields": fields, "url": link}
         embed_dict = {"message_ids": [], "content": content}
 
         # Bail if this message has already been sent and hasn't changed.
@@ -302,7 +313,7 @@ class Scoreboard(WesCog):
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append((msg.channel.id, msg.id))
 
-        self.log.info(f"{self.scores_loop.current_loop} {post_type} {id}-{key}: {embed_dict['content']}")
+        self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
         parent[key] = embed_dict
 
         # Parent should always be some subkey of self.messages, so write it out
@@ -312,9 +323,6 @@ class Scoreboard(WesCog):
     async def parse_game(self, game):
         state = game["gameState"]
         id = str(game["id"])
-
-        if id not in self.messages:
-            self.messages[id] = {"Goals": {}, "Disallowed": {}}
 
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
@@ -331,12 +339,16 @@ class Scoreboard(WesCog):
         # NHL.com backslides sometimes right around the rollover time, probably due to
         # site redundancy.
         if self.messages["date"] != landing["gameDate"]:
-            self.log.info(f"WRONG START DATE {self.scores_loop.current_loop} {self.messages}")
+            self.log.info(f"WRONG START DATE {self.scores_loop.current_loop} date: {landing['gameDate']}, stored: {self.messages['date']}")
             return
 
+        # Add all games to the messages list
+        if id not in self.messages:
+            self.messages[id] = {"Goals": {}}
+
         await self.check_game_start(id, teams)
-        await self.check_disallowed_goals(id, landing, teams)
         await self.check_goals(id, landing, teams)
+        await self.check_disallowed_goals(id, landing)
         await self.check_ot_challenge(id, landing, teams)
         await self.check_shootout(id, landing, teams)
         if state in ["FINAL", "OFF"]:
