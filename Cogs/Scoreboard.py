@@ -144,7 +144,7 @@ class Scoreboard(WesCog):
         start_key = f"Start"
 
         start_string = f"{teams['away_emoji']} {teams['away']} at {teams['home_emoji']} {teams['home']} Starting."
-        await self.post_embed(self.messages[id], start_key, start_string, desc=None, link=None)
+        await self.post_embed(self.messages[id], start_key, start_string)
 
     async def check_goals(self, id, landing, teams):
         if "summary" not in landing or "scoring" not in landing["summary"]:
@@ -197,7 +197,7 @@ class Scoreboard(WesCog):
                         del self.messages[id]["Goals"][check_key]
                         self.log.info(f"Timestamp corrected in {teams['away']}-{teams['home']} key {goal_key}")
 
-                await self.post_embed(self.messages[id]["Goals"], goal_key, goal_str, score_str, highlight)
+                await self.post_embed(self.messages[id]["Goals"], goal_key, goal_str, highlight, score_str)
 
     async def check_disallowed_goals(self, id, landing):
         if "summary" not in landing or "scoring" not in landing["summary"]:
@@ -208,11 +208,31 @@ class Scoreboard(WesCog):
                 continue # Goal still exists or is already disallowed, we're good!
             
             # If we get here, we want to cross out that goal key and change it to a *D key
-            await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", f"~~{logged_value['content']['description']}~~", logged_value["content"]["url"])
+            await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
 
     # TODO: Not Implemented
     async def check_ot_challenge(self, id, landing, teams):
-        pass
+        try:
+            ot_key = "OT"
+            # TODO: Need to find a way to check if third period here -- if it's not directly in the landing, we can check shotsByPeriod[2] != 0
+            if landing["clock"]["secondsRemaining"] < 120 and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
+                ot_string = f"OT Challenge for {teams['away_emoji']} {teams['away']} - {teams['home']} {teams['home_emoji']} is now open ({landing['clock']['timeRemaining']})"
+                self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+
+                for message_ids in self.messages[id]["message_ids"]:
+                    guild = message_ids[0]
+                    message = message_ids[1]
+
+                    # Create the thread if necessary
+                    if len(message_ids) < 3:
+                        thread = await self.bot.get_channel(guild).fetch_message(message).create_thread(f"{teams['away_emoji']} {teams['away']} - {teams['home']} {teams['home_emoji']} OT Challenge", auto_archive_duration=60, slowmode_delay=30)
+                        message_ids.append(thread.id)
+
+                    # TODO: See about using discord.on_thread_update here
+            elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
+                await self.post_embed_to_debug(self.messages[id], ot_key, f"~~{self.messages[id][ot_key]['content']['title']}~~")
+        except Exception as e:
+            self.log.error(f"Error in OT challenge {e}")
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing, teams):
@@ -240,7 +260,7 @@ class Scoreboard(WesCog):
             {"name": f"{teams['home_emoji']} {teams['home']}", "value": home_shooters, "inline": True}
         ]
 
-        await self.post_embed(self.messages[id], so_key, title, None, None, fields)
+        await self.post_embed(self.messages[id], so_key, title, fields=fields)
 
     async def check_final(self, id, landing, teams):
         end_key = "End"
@@ -267,15 +287,16 @@ class Scoreboard(WesCog):
 
         end_string = f"Final{modifier}: {teams['away_emoji']} {teams['away']} {away_score} - {home_score} {teams['home']} {teams['home_emoji']}"
 
-        await self.post_embed(self.messages[id], end_key, end_string, desc=None, link=recap_link)
+        await self.post_embed(self.messages[id], end_key, end_string, recap_link)
 
 #endregion
 #region Core Parsing/Posting Functions
 
-    async def post_embed_to_debug(self, parent, key, string, desc, link, fields=[]):
+    async def post_embed_to_debug(self, parent, key, string, link=None, desc=None, fields=[]):
         await self.post_embed(parent, key, string, desc, link, fields, True)
 
-    async def post_embed(self, parent, key, string, desc, link, fields=[], debug=False):
+    # TODO: Do something to stop from passing "parent" as a param. Probably just return the object and set it by the caller
+    async def post_embed(self, parent, key, string, link=None, desc=None, fields=[], debug=False):
         if self.POST_ALL_TO_DEBUG:
             debug = True
 
@@ -346,6 +367,7 @@ class Scoreboard(WesCog):
         if id not in self.messages:
             self.messages[id] = {"Goals": {}}
 
+        # TODO: Why am I passing teams in everywhere instead of re-calculating it?
         await self.check_game_start(id, teams)
         await self.check_goals(id, landing, teams)
         await self.check_disallowed_goals(id, landing)
