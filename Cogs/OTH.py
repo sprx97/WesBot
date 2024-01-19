@@ -472,12 +472,15 @@ class OTH(WesCog):
                 round_name = f"{round_name} Week {curr_round}"
             else:
                 round_name = ""
+                week_in_matchup = 1
+                if opp_prev != 0 and me_prev != 0:
+                    week_in_matchup = 2
                 if curr_round == 7:
-                    round_name = "Championship"
+                    round_name = f"Championship (Week {week_in_matchup} of 2)"
                 elif curr_round == 6:
-                    round_name = "Semifinal"
+                    round_name = f"Semifinal (Week {week_in_matchup} of 2)"
                 elif curr_round == 5:
-                    round_name = "Quarterfinal"
+                    round_name = f"Quarterfinal (Week {week_in_matchup} of 2)"
                 else:
                     round_name = f"Round of {2**(8-curr_round)}"
             embed.set_author(name=f"Woppa Cup {round_name}")
