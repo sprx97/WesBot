@@ -461,14 +461,12 @@ class OTH(WesCog):
             opp_matchup = opp_matchup[0]
 
             # Format a matchup embed to send
-            msg = f"{me_matchup['name']}: **{round(me_matchup['PF'] + me_prev, 2)}**\n"
-            msg += f"{opp_matchup['name']}: **{round(opp_matchup['PF'] + opp_prev, 2)}**"
+            msg = "```{:<14} {:6.2f}\n".format(f"{me_name}", round(me_matchup['PF'] + me_prev, 2))
+            msg += "{:<14} {:6.2f}```".format(f"{opp_name}", round(opp_matchup['PF'] + opp_prev, 2))
 
             # Link is just to opponent's matchup, since that's what most people will be interested in
             # Discord does not support having two different URLs in an embed.
             link = f"https://www.fleaflicker.com/nhl/leagues/{opp_matchup['league_id']}/scores/{opp_matchup['matchup_id']}"
-
-            embed = discord.Embed(title=msg, url=link)
 
             round_name = "Group Stage"
             if is_group_stage:
@@ -486,7 +484,8 @@ class OTH(WesCog):
                     round_name = f"Quarterfinal (Week {week_in_matchup} of 2)"
                 else:
                     round_name = f"Round of {2**(8-curr_round)}"
-            embed.set_author(name=f"Woppa Cup {round_name}")
+
+            embed = discord.Embed(title=f"Woppa Cup {round_name}", description=msg, url=link)
             embed.set_footer(text=f"(Link is to opponent's matchup)")
 
             await ctx.send(embed=embed)
@@ -497,6 +496,7 @@ class OTH(WesCog):
                 embed = discord.Embed(title=f"User {user} is on bye.", url=None)
             else:
                 embed = discord.Embed(title=f"User {user} is no longer in tournament.", url=None)
+            # TODO: Add response for user never was in tournament
             await ctx.send(embed=embed)
 
     @woppacup.error
