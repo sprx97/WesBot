@@ -234,7 +234,7 @@ class Scoreboard(WesCog):
             if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
                 away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
                 ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({landing['clock']['timeRemaining']})"
-                self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+                await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
                     guild = message_ids[0]
