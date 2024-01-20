@@ -242,7 +242,8 @@ class Scoreboard(WesCog):
 
                     # Create the thread if necessary
                     if len(message_ids) < 3:
-                        thread = await self.bot.get_channel(guild).fetch_message(message).create_thread(f"{away_emoji} {away} - {home} {home_emoji} OT Challenge", auto_archive_duration=60, slowmode_delay=30)
+                        message = await self.bot.get_channel(guild).fetch_message(message)
+                        thread = await message.create_thread(f"{away_emoji} {away} - {home} {home_emoji} OT Challenge", auto_archive_duration=60, slowmode_delay=30)
                         self.messages[id][ot_key]["message_ids"].append(thread.id)
 
                     # TODO: See about using discord.on_thread_update here
