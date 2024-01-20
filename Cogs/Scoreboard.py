@@ -140,6 +140,18 @@ class Scoreboard(WesCog):
 
         return False
 
+    def is_ot_challenge_window(self, landing):
+        if "clock" not in landing:
+            return False
+        
+        if len(landing["summary"]["linescore"]["byPeriod"]) < 3:
+            return False
+        
+        if landing["clock"]["secondsRemaining"] > 120 and not landing["clock"]["inIntermission"]:
+            return False
+        
+        return True
+
 #endregion
 #region Game Parsing Sections
 
@@ -219,19 +231,19 @@ class Scoreboard(WesCog):
         try:
             ot_key = "OT"
             # TODO: Need to find a way to check if third period here -- if it's not directly in the landing, we can check shotsByPeriod[2] != 0
-            if landing["clock"]["secondsRemaining"] < 120 and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
+            if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
                 away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
                 ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({landing['clock']['timeRemaining']})"
                 self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
-                for message_ids in self.messages[id]["message_ids"]:
+                for message_ids in self.messages[id][ot_key]["message_ids"]:
                     guild = message_ids[0]
                     message = message_ids[1]
 
                     # Create the thread if necessary
                     if len(message_ids) < 3:
                         thread = await self.bot.get_channel(guild).fetch_message(message).create_thread(f"{away_emoji} {away} - {home} {home_emoji} OT Challenge", auto_archive_duration=60, slowmode_delay=30)
-                        self.messages[id]["message_ids"].append(thread.id)
+                        self.messages[id][ot_key]["message_ids"].append(thread.id)
 
                     # TODO: See about using discord.on_thread_update here
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
