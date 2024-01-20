@@ -209,43 +209,17 @@ class OTH(WesCog):
         matchup = matchup[0]
 
         # Format a matchup embed to send
-#        msg = "```┌──────┬────────────────────────┬────────┐\n"
-#        msg +=   "│ Rank │          Team          │ Points │\n"
-#        msg +=   "├──────┼────────────────────────┼────────┤\n"
-#        msg += "│ {:>4} │ {:<22} │ {:>6} │\n".format(f"{matchup['rank']}", f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})", matchup['PF'])
-#        if matchup['opp_name'] == None:
-#            msg += "│      │          BYE           │        │\n"
-#            link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
-#        else:
-#            msg += "│ {:>4} │ {:<22} │ {:>6} │\n".format(f"{matchup['opp_rank']}", f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})", matchup['opp_PF'])
-#            link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
-#        
-#        msg += "└──────┴────────────────────────┴────────┘```"
-
-        msg = "```┌──────────────────────┬──────┐\n"
-        msg += "│{:<22}│{:>6}│\n".format(f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})", matchup['PF'])
-#        msg +=   "├──────────────────────┼──────┤\n"
-        if matchup['opp_name'] == None:
-            msg += "│          BYE          │      │\n"
+        msg = "```{:<22} {:6.2f}\n".format(f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})", matchup["PF"])
+        if matchup["opp_name"] == None:
+            msg += "BYE```"
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
         else:
-            msg += "│{:<22}│{:>6}│\n".format(f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})", matchup['opp_PF'])
+            msg += "{:<22} {:6.2f}```".format(f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})", matchup["opp_PF"])
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
-
-        msg += "└──────────────────────┴──────┘```"
-
-        # msg = f"#{matchup['rank']} {matchup['name']} ({matchup['wins']}-{matchup['losses']}): **{matchup['PF']}**\n"
-        # if matchup['opp_name'] == None:
-        #     msg += "BYE"
-        #     link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
-        # else:
-        #     msg += f"#{matchup['opp_rank']} {matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']}): **{matchup['opp_PF']}**"
-        #     link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
       
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
         embed = discord.Embed(title=f"{matchup['league_name']} Matchup", description=f"{msg}", url=link, color=color)
-        embed.set_footer(text="Try /rank (coming soon) to see your weekly/season PF ranking.")
         await ctx.send(embed=embed)
 
     @matchup.error
