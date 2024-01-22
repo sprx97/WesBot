@@ -450,6 +450,7 @@ class OTH(WesCog):
 
         if me == None and not post_all:
             await interaction.response.send_message(discord.Embed(title=f"User {user} is no longer in tournament."))
+            return
 
         curr_round = None
         is_group_stage = True
@@ -465,8 +466,8 @@ class OTH(WesCog):
                 is_group_stage = m["group_id"] != None
 
             # Don't allow the "All" command when it could be too spammy
-            if post_all and curr_round < 5:
-                await interaction.response.send_message("'All' command only available in quarterfinals and later.")
+            if post_all and curr_round < 4:
+                await interaction.response.send_message("'All' command only available for the Round of 16 and later.")
                 return
 
             # Skip matches for other rounds
@@ -482,7 +483,6 @@ class OTH(WesCog):
             else:
                 embed_list.append(discord.Embed(title=f"User {user} has been eliminated from the tournament."))
 
-        self.log.info(len(embed_list))
         await interaction.response.send_message(embeds=embed_list)
 
     @woppacup.error
