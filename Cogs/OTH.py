@@ -412,8 +412,8 @@ class OTH(WesCog):
             p1_name += " "*(len(p2_name)-len(p1_name))
 
         # Format a matchup embed to send
-        msg = "`{}` [{:6.2f}]({})\n".format(f"{p1_name}", round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
-        msg += "`{}` [{:6.2f}]({})".format(f"{p2_name}", round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
+        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "[{:6.2f}]({})\n".format(round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
+        msg += f"`{p2_name}` "+ f"\u2002"*(24-len(p2_name)) + "[{:6.2f}]({})".format(round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
 
         if match["group_id"] != None:
             round_name = f"Group Stage Week {match['round']}"
