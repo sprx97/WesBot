@@ -404,8 +404,8 @@ class OTH(WesCog):
         p2_matchup = p2_matchup[0]
 
         # Format a matchup embed to send
-        msg = "```{:<14} {:6.2f}\n".format(f"{p1_name}", round(p1_matchup['PF'] + p1_prev, 2))
-        msg += "{:<14} {:6.2f}```".format(f"{p2_name}", round(p2_matchup['PF'] + p2_prev, 2))
+        msg = "```{:<14} {:6.2f}\n".format(f"{p1_div}.{p1_name}", round(p1_matchup['PF'] + p1_prev, 2))
+        msg += "{:<14} {:6.2f}```".format(f"{p2_div}.{p2_name}", round(p2_matchup['PF'] + p2_prev, 2))
 
         # TODO: Consider re-enabling links to matchups
 
@@ -466,7 +466,7 @@ class OTH(WesCog):
                 is_group_stage = m["group_id"] != None
 
             # Don't allow the "All" command when it could be too spammy
-            if post_all and curr_round < 4:
+            if post_all and (curr_round < 4 or is_group_stage):
                 await interaction.response.send_message("'All' command only available for the Round of 16 and later.")
                 return
 
