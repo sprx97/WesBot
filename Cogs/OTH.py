@@ -363,154 +363,138 @@ class OTH(WesCog):
 
 ######################## Woppa Cup ########################
 
-    NUM_KNOCKOUT_ROUNDS = 7
+    def get_embed_for_woppacup_match(self, match, participants):
+        p1_id = match["player1_id"]
+        p2_id = match["player2_id"]
+        p1_name = p2_name = p1_div = p2_div = None
+        p1_prev = p2_prev = 0
 
-    # Posts the current woppacup matchup score for the given user
-    @commands.command(name="woppacup", aliases=["cup", "wc"])
-    async def woppacup(self, ctx, user, division = None):
+        if match["scores_csv"] != "":
+            scores = match["scores_csv"].split("-")
+            p1_prev = int(scores[0])/100.0
+            p2_prev = int(scores[1])/100.0
+
+        # Get the opponent from the participants list
+        for p in participants:
+            if p1_id == p["id"] or p1_id in p["group_player_ids"]:
+                p1_div = p["name"].split(".")[0]
+                p1_name = p["name"].split(".")[-1]
+            elif p2_id == p["id"] or p2_id in p["group_player_ids"]:
+                p2_div = p["name"].split(".")[0]
+                p2_name = p["name"].split(".")[-1]
+
+            # Found both names!
+            if p1_name != None and p2_name != None:
+                break
+
+        # Get p1's matchup from the database
+        p1_matchup = get_user_matchup_from_database(p1_name, p1_div)
+        if len(p1_matchup) == 0:
+            raise self.UserNotFound(p1_name, p1_div)
+        if len(p1_matchup) > 1:
+            raise self.MultipleMatchupsFound(p1_name)
+        p1_matchup = p1_matchup[0]
+
+        # Get p2's matchup from the database
+        p2_matchup = get_user_matchup_from_database(p2_name, p2_div)
+        if len(p2_matchup) == 0:
+            raise self.UserNotFound(p2_name, p2_div)
+        if len(p2_matchup) > 1:
+            raise self.MultipleMatchupsFound(p2_name)
+        p2_matchup = p2_matchup[0]
+
+        # Format a matchup embed to send
+        msg = "```{:<14} {:6.2f}\n".format(f"{p1_name}", round(p1_matchup['PF'] + p1_prev, 2))
+        msg += "{:<14} {:6.2f}```".format(f"{p2_name}", round(p2_matchup['PF'] + p2_prev, 2))
+
+        # TODO: Consider re-enabling links to matchups
+
+        if match["group_id"] != None:
+            round_name = f"Group Stage Week {match['round']}"
+        else:
+            week_in_matchup = 1 if p1_prev == 0 and p2_prev == 0 else 2
+            rounds = [0, "Round of 128", 
+                         "Round of 64", 
+                         "Round of 32", 
+                         "Round of 16", 
+                         f"Quarterfinal (Week {week_in_matchup} of 2)", 
+                         f"Semifinal (Week {week_in_matchup} of 2)", 
+                         f"Championship (Week {week_in_matchup} of 2)"]
+            round_name = rounds[match["round"]]
+
+        embed = discord.Embed(title=f"Woppa Cup {round_name}", description=msg)
+        return embed
+
+    @app_commands.command(name="wc", description="Check the score for a specific manager's Woppa Cup matchup.")
+    @app_commands.describe(user="An fleaflicker username, or ALL.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def woppacup(self, interaction: discord.Interaction, user: str):
         # Temp override for weeks where it's paused. Update the text as necessary.
-        # await ctx.send(f"WoppaCup is on pause due to the short All-Star week. It will resume in fleaflicker week 18. Contact Woppa for more info.")
+        # await interaction.response.send_message(f"WoppaCup is on pause due to the short All-Star week. It will resume in fleaflicker week 18. Contact Woppa for more info.")
         # return
 
         user = sanitize_user(user)
-        if division != None:
-            division = division.lower()
+        post_all = user.lower() == "all"
 
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
         wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
 
         participants = challonge.participants.index(wc_id)
-        me = opp = None
+        me = None
         for p in participants:
-            if p["name"].lower().split(".")[-1] == user and (division == None or division == p["name"].lower().split(".")[0]):
+            if p["name"].lower().split(".")[-1] == user:
                 me = p
                 break
 
-        if me == None:
-            raise self.UserNotFound(user, division)
+        if me == None and not post_all:
+            await interaction.response.send_message(discord.Embed(title=f"User {user} is no longer in tournament."))
 
         curr_round = None
         is_group_stage = True
+        embed_list = []
         for m in challonge.matches.index(wc_id):
-            # Skip completed matches, because we only want the current one
+            # Skip completed matches, because we only want the current ones
             if m["state"] != "open":
                 continue
 
             # Assume the first open match has the correct round, and set for the entire bracket
             if curr_round == None:
                 curr_round = m["round"]
-                if m["group_id"] == None:
-                    is_group_stage = False
+                is_group_stage = m["group_id"] != None
+
+            # Don't allow the "All" command when it could be too spammy
+            if post_all and curr_round < 5:
+                await interaction.response.send_message("'All' command only available in quarterfinals and later.")
+                return
 
             # Skip matches for other rounds
             if m["round"] != curr_round:
-                continue
+                break
 
-            # See if this match has the right player
-            p1id = m["player1_id"]
-            p2id = m["player2_id"]
-            opp_id = None
-            me_prev = 0
-            opp_prev = 0
+            if post_all or m["player1_id"] == me["id"] or m["player2_id"] == me["id"] or m["player1_id"] in me["group_player_ids"] or m["player2_id"] in me["group_player_ids"]:
+                embed_list.append(self.get_embed_for_woppacup_match(m, participants))
 
-            if p1id == me["id"] or p1id in me["group_player_ids"]:
-                opp_id = p2id
-                if m["scores_csv"] != "":
-                    scores = m["scores_csv"].split("-")
-                    me_prev = int(scores[0])/100.0
-                    opp_prev = int(scores[1])/100.0
-            elif p2id == me["id"] or p2id in me["group_player_ids"]:
-                opp_id = p1id
-                if m["scores_csv"] != "":
-                    scores = m["scores_csv"].split("-")
-                    opp_prev = int(scores[0])/100.0
-                    me_prev = int(scores[1])/100.0
-            else:
-                continue
-
-            # Get the opponent from the participants list
-            for p in participants:
-                if opp_id == p["id"] or opp_id in p["group_player_ids"]:
-                    opp = p
-                    break
-
-            if opp == None:
-                raise self.WoppaCupOpponentNotFound(user)
-
-            me = me["name"].split(".")
-            me_div = me[0]
-            me_name = me[-1]
-            opp = opp["name"].split(".")
-            opp_div = opp[0]
-            opp_name = opp[-1]
-
-            # Get the user matchup from the database
-            me_matchup = get_user_matchup_from_database(me_name, me_div)
-            if len(me_matchup) == 0:
-                raise self.UserNotFound(me_name, me_div)
-            if len(me_matchup) > 1:
-                raise self.MultipleMatchupsFound(me_name)
-            me_matchup = me_matchup[0]
-
-            # Get the opponent matchup from the database
-            opp_matchup = get_user_matchup_from_database(opp_name, opp_div)
-            if len(opp_matchup) == 0:
-                raise self.UserNotFound(opp_name, opp_div)
-            if len(opp_matchup) > 1:
-                raise self.MultipleMatchupsFound(opp_name)
-            opp_matchup = opp_matchup[0]
-
-            # Format a matchup embed to send
-            msg = "```{:<14} {:6.2f}\n".format(f"{me_name}", round(me_matchup['PF'] + me_prev, 2))
-            msg += "{:<14} {:6.2f}```".format(f"{opp_name}", round(opp_matchup['PF'] + opp_prev, 2))
-
-            # Link is just to opponent's matchup, since that's what most people will be interested in
-            # Discord does not support having two different URLs in an embed.
-            link = f"https://www.fleaflicker.com/nhl/leagues/{opp_matchup['league_id']}/scores/{opp_matchup['matchup_id']}"
-
-            round_name = "Group Stage"
+        if len(embed_list) == 0:
             if is_group_stage:
-                round_name = f"{round_name} Week {curr_round}"
+                embed_list.append(discord.Embed(title=f"User {user} is on bye."))
             else:
-                round_name = ""
-                week_in_matchup = 1
-                if opp_prev != 0 and me_prev != 0:
-                    week_in_matchup = 2
-                if curr_round == 7:
-                    round_name = f"Championship (Week {week_in_matchup} of 2)"
-                elif curr_round == 6:
-                    round_name = f"Semifinal (Week {week_in_matchup} of 2)"
-                elif curr_round == 5:
-                    round_name = f"Quarterfinal (Week {week_in_matchup} of 2)"
-                else:
-                    round_name = f"Round of {2**(8-curr_round)}"
+                embed_list.append(discord.Embed(title=f"User {user} has been eliminated from the tournament."))
 
-            embed = discord.Embed(title=f"Woppa Cup {round_name}", description=msg, url=link)
-            embed.set_footer(text=f"(Link is to opponent's matchup)")
-
-            await ctx.send(embed=embed)
-            return
-
-        if opp == None:
-            if is_group_stage:
-                embed = discord.Embed(title=f"User {user} is on bye.", url=None)
-            else:
-                embed = discord.Embed(title=f"User {user} is no longer in tournament.", url=None)
-            # TODO: Add response for user never was in tournament
-            await ctx.send(embed=embed)
+        self.log.info(len(embed_list))
+        await interaction.response.send_message(embeds=embed_list)
 
     @woppacup.error
-    async def woppacup_error(self, ctx, error):
+    async def woppacup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Usage: `!wc [fleaflicker username]`")
-        elif isinstance(error, self.UserNotFound):
-            await ctx.send(error.message)
+            await interaction.response.send_message("Usage: `!wc [fleaflicker username]`")
         elif isinstance(error, self.WoppaCupOpponentNotFound):
-            await ctx.send(error.message)
+            await interaction.response.send_message(error.message)
         elif isinstance(error, self.MultipleMatchupsFound):
-            await ctx.send(error.message)
+            await interaction.response.send_message(error.message)
         else:
-            await ctx.send(error)
+            await interaction.response.send_message(error)
 
 async def setup(bot):
     await bot.add_cog(OTH(bot), guild=discord.Object(id=OTH_GUILD_ID))
