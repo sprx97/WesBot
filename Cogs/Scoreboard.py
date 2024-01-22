@@ -230,25 +230,34 @@ class Scoreboard(WesCog):
     async def check_ot_challenge(self, id, landing):
         try:
             ot_key = "OT"
-            # TODO: Need to find a way to check if third period here -- if it's not directly in the landing, we can check shotsByPeriod[2] != 0
             if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
                 away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
-                ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({landing['clock']['timeRemaining']})"
+                ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open (~{landing['clock']['timeRemaining']})"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    guild = message_ids[0]
-                    message = message_ids[1]
-
                     # Create the thread if necessary
                     if len(message_ids) < 3:
-                        message = await self.bot.get_channel(guild).fetch_message(message)
-                        thread = await message.create_thread(f"{away_emoji} {away} - {home} {home_emoji} OT Challenge", auto_archive_duration=60, slowmode_delay=30)
-                        self.messages[id][ot_key]["message_ids"].append(thread.id)
+                        message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
+                        thread = await message.create_thread(name=f"🥅 {away}-{home} {datetime.today().strftime('%Y-%m-%d')}", auto_archive_duration=60, slowmode_delay=30)
+
+                        message_ids.append(thread.id)
+                        self.messages[id][ot_key]["message_ids"] = message_ids
+
+                        # TODO: Have a way to set and store an OT Challenge role for any server
+                        if guild == OTH_GUILD_ID:
+                            await thread.send("<@&1198120931101507686>")
 
                     # TODO: See about using discord.on_thread_update here
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
-                await self.post_embed_to_debug(self.messages[id], ot_key, f"~~{self.messages[id][ot_key]['content']['title']}~~")
+                ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
+                await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+
+                for message_ids in self.messages[id][ot_key]["message_ids"]:
+                    guild = await self.bot.get_guild(message_ids[0])
+                    thread = await guild.get_thread(message_ids[2])
+
+                    await thread.send("OT has started, no more guesses will be counted.")
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
 
