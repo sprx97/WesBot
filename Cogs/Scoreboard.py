@@ -230,8 +230,8 @@ class Scoreboard(WesCog):
     async def check_ot_challenge(self, id, landing):
         try:
             ot_key = "OT"
+            away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
             if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
-                away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
                 ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open (~{landing['clock']['timeRemaining']})"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
@@ -245,7 +245,7 @@ class Scoreboard(WesCog):
                         self.messages[id][ot_key]["message_ids"] = message_ids
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
-                        if guild == OTH_GUILD_ID:
+                        if message_ids[0] == OTH_GUILD_ID:
                             await thread.send("<@&1198120931101507686>")
 
                     # TODO: See about using discord.on_thread_update here
