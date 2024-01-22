@@ -403,11 +403,17 @@ class OTH(WesCog):
             raise self.MultipleMatchupsFound(p2_name)
         p2_matchup = p2_matchup[0]
 
-        # Format a matchup embed to send
-        msg = "```{:<14} {:6.2f}\n".format(f"{p1_div}.{p1_name}", round(p1_matchup['PF'] + p1_prev, 2))
-        msg += "{:<14} {:6.2f}```".format(f"{p2_div}.{p2_name}", round(p2_matchup['PF'] + p2_prev, 2))
+        # Format names for posting
+        p1_name = f"{p1_div[:8]}.{p1_name}"
+        p2_name = f"{p2_div[:8]}.{p2_name}"
+        if len(p1_name) > len(p2_name):
+            p2_name += " "*(len(p1_name)-len(p2_name))
+        else:
+            p1_name += " "*(len(p2_name)-len(p1_name))
 
-        # TODO: Consider re-enabling links to matchups
+        # Format a matchup embed to send
+        msg = "`{}` [{:6.2f}]({})\n".format(f"{p1_name}", round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
+        msg += "`{}` [{:6.2f}]({})".format(f"{p2_name}", round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
 
         if match["group_id"] != None:
             round_name = f"Group Stage Week {match['round']}"
@@ -426,7 +432,7 @@ class OTH(WesCog):
         return embed
 
     @app_commands.command(name="wc", description="Check the score for a specific manager's Woppa Cup matchup.")
-    @app_commands.describe(user="An fleaflicker username, or ALL.")
+    @app_commands.describe(user="A fleaflicker username, 'all', or 'bracket'.")
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
@@ -436,10 +442,14 @@ class OTH(WesCog):
         # return
 
         user = sanitize_user(user)
-        post_all = user.lower() == "all"
+        post_all = user == "all"
 
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
         wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
+
+        if user == "bracket":
+            await interaction.response.send_message(challonge.tournaments.show(wc_id)["full_challonge_url"])
+            return
 
         participants = challonge.participants.index(wc_id)
         me = None
@@ -448,8 +458,10 @@ class OTH(WesCog):
                 me = p
                 break
 
+        await interaction.response.defer(thinking=True)
+
         if me == None and not post_all:
-            await interaction.response.send_message(discord.Embed(title=f"User {user} is no longer in tournament."))
+            await interaction.followup.send(embed=discord.Embed(title=f"User {user} either doesn't exist or was never in this tournament."))
             return
 
         curr_round = None
@@ -467,7 +479,7 @@ class OTH(WesCog):
 
             # Don't allow the "All" command when it could be too spammy
             if post_all and (curr_round < 4 or is_group_stage):
-                await interaction.response.send_message("'All' command only available for the Round of 16 and later.")
+                await interaction.followup.send("'All' command only available for the Round of 16 and later.")
                 return
 
             # Skip matches for other rounds
@@ -483,18 +495,18 @@ class OTH(WesCog):
             else:
                 embed_list.append(discord.Embed(title=f"User {user} has been eliminated from the tournament."))
 
-        await interaction.response.send_message(embeds=embed_list)
+        await interaction.followup.send(embeds=embed_list)
 
     @woppacup.error
     async def woppacup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, commands.MissingRequiredArgument):
             await interaction.response.send_message("Usage: `!wc [fleaflicker username]`")
         elif isinstance(error, self.WoppaCupOpponentNotFound):
-            await interaction.response.send_message(error.message)
+            await interaction.followup.send(error.message)
         elif isinstance(error, self.MultipleMatchupsFound):
-            await interaction.response.send_message(error.message)
+            await interaction.followup.send(error.message)
         else:
-            await interaction.response.send_message(error)
+            await interaction.followup.send(error)
 
 async def setup(bot):
     await bot.add_cog(OTH(bot), guild=discord.Object(id=OTH_GUILD_ID))
