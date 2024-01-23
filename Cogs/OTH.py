@@ -45,6 +45,158 @@ class OTH(WesCog):
             self.message = f"Multiple matchups found for user {user}."
 
 #endregion
+#region Member Management (Box and Roles)
+
+    @app_commands.command(name="box", description="Send another user to the penalty box.")
+    @app_commands.describe(user="A discord user to put in the box.", duration="How long, in minutes.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def box(self, interaction: discord.Interaction, user: discord.Member, duration: int = 2, reason: str = ""):
+        boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
+        await user.add_roles(boxrole)
+
+        if reason != "":
+            reason = f" for {reason}"
+        await interaction.response.send_message(f"{duration} minute penalty to {user.display_name}{reason}.")
+
+        await asyncio.sleep(60*duration)
+        await user.remove_roles(boxrole)
+
+    @app_commands.command(name="unbox", description="Release another user from the penalty box.")
+    @app_commands.describe(user="A discord user to release from the box.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def unbox(self, interaction: discord.Interaction, user: discord.Member):
+        boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
+        await user.remove_roles(boxrole)
+        await interaction.response.send_message(f"{user.display_name} unboxed.", ephemeral=True)
+
+    @box.error
+    @unbox.error
+    async def box_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, discord.ext.commands.MissingPermissions):
+            await interaction.send_response("You do not have permissions to do this. You played yourself.")
+
+            boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
+            await interaction.user.add_roles(boxrole)
+            asyncio.sleep(120)
+            await interaction.user.remove_roles(boxrole)
+
+    def roles_scope_choices_helper():
+        choices = [Choice(name="All", value="All")]
+
+        for division in ["D1", "D2", "D3", "D4"]:
+            choices.append(Choice(name=division, value=division))
+
+        for league in get_leagues_from_database(Config.config["year"]):
+            choices.append(Choice(name=league["name"], value=league["name"]))
+
+        return choices
+
+    # TODO: Move the Emailer to a shared location instead of the other project, and use direct sheet access instead of the rolesfile
+
+    def get_role_assignments(self):
+        rolesfile = Config.config["srcroot"] + "/Roles.txt"
+
+        if not os.path.isfile(rolesfile):
+            return None
+
+        assignments = {}
+        f = open(rolesfile)
+        for line in f.readlines():
+            name, division, league = line.strip().split("\t")
+            assignments[name.lower()] = (division, league)
+
+        return assignments
+
+    roles_group = app_commands.Group(name="roles", description="Help the OTH Server with setting league/division roles.")
+
+    @roles_group.command(name="clear", description="Clear all league and division roles from all users.")
+    @app_commands.describe(debug="Debug mode. Log but don't set roles.")
+    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)])
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def roles_clear(self, interaction: discord.Interaction, debug: Choice[int]):
+        debug = (debug.value == 1)
+
+        # Early return if the roles assignment file is missing
+        assignments = self.get_role_assignments()
+        if assignments == None:
+            await interaction.response.send_message("Could not find role assignments list.")
+            return
+
+        await interaction.response.send_message(f"Removing all league/division roles.")
+        if debug:
+            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
+
+        league_roles = get_roles_from_ids(self.bot)
+
+        count = 0
+        members = self.bot.get_guild(OTH_GUILD_ID).members
+        for member in members:
+            for league_role in league_roles.values():
+                if league_role in member.roles:
+                    count += 1
+                    self.log.info(f"Removing all league/division roles from {member.name}.")
+                    if not debug:
+                        await member.remove_roles(*league_roles.values())
+                    break
+
+        self.log.info(f"Found league/division roles on {count} members.")
+        if not debug:
+            await interaction.channel.send(f"Removed league/division roles from {count} members.")
+
+        await interaction.channel.send(f"Completed.")
+
+    @roles_group.command(name="assign", description="Assign league and division roles to a subset of members.")
+    @app_commands.describe(debug="Debug mode. Log but don't set roles.", scope="Which league or division to assign roles for.")
+    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)], scope=roles_scope_choices_helper())
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.checks.has_permissions(manage_roles=True)
+    async def roles_assign(self, interaction: discord.Interaction, debug: Choice[int], scope: Choice[str]):
+        debug = (debug.value == 1)
+        scope = scope.value
+
+        # Early return if the roles assignment file is missing
+        assignments = self.get_role_assignments()
+        if assignments == None:
+            await interaction.response.send_message("Could not find role assignments list.")
+            return
+
+        await interaction.response.send_message(f"Assigning roles for scope '{scope}'.")
+        if debug:
+            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
+
+        league_roles = get_roles_from_ids(self.bot)
+
+        count = 0
+        members = self.bot.get_guild(OTH_GUILD_ID).members
+        for member in members:
+            key = member.name.lower()
+            if key in assignments:
+                division = assignments[key][0]
+                league = assignments[key][1]
+
+                # Skip members that are not in our desired scope
+                if scope != division and scope != league:
+                    continue
+
+                count += 1
+                self.log.info(f"Adding roles {division} and {league} to {member.name}")
+                if not debug:
+                    await member.add_roles(league_roles[division], league_roles[league])
+
+        self.log.info(f"Added league/division roles to {count} members.")
+        if not debug:
+            await interaction.channel.send(f"Added league/division roles to {count} members.")
+
+        await interaction.channel.send(f"Completed.")
+
+#endregion
 #region League management tools (inactives and trade review)
 
     # Checks all OTH leagues for inactive managers and abandoned teams
@@ -216,171 +368,27 @@ class OTH(WesCog):
             raise self.MultipleMatchupsFound(user)
         matchup = matchup[0]
 
-        # Format a matchup embed to send
-        msg = "```{:<22} {:6.2f}\n".format(f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})", matchup["PF"])
-        if matchup["opp_name"] == None:
-            msg += "BYE```"
-            link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
-        else:
-            msg += "{:<22} {:6.2f}```".format(f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})", matchup["opp_PF"])
+        # Format names for posting
+        p1_name = f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})"
+        if matchup["opp_name"] != None:
+            p2_name = f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})"
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
-      
+        else:
+            p2_name = "`BYE`"
+            link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
+        if len(p1_name) > len(p2_name):
+            p2_name += " "*(len(p1_name)-len(p2_name))
+        else:
+            p1_name += " "*(len(p2_name)-len(p1_name))
+
+        # Format a matchup embed to send
+        msg =  f"`{p1_name}` " + f"\u00A0"*(24-len(p1_name)) + "`{:>6.2f}`\n".format(round(matchup['PF'], 2))
+        msg += f"`{p2_name}` " + f"\u00A0"*(24-len(p2_name)) + "`{:>6.2f}`".format(round(matchup['opp_PF'], 2))
+
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
         embed = discord.Embed(title=f"{matchup['league_name']} Matchup", description=f"{msg}", url=link, color=color)
         await interaction.followup.send(embed=embed)
-
-#endregion
-#region Member Management (Box and Roles)
-
-    @app_commands.command(name="box", description="Send another user to the penalty box.")
-    @app_commands.describe(user="A discord user to put in the box.", duration="How long, in minutes.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(manage_roles=True)
-    async def box(self, interaction: discord.Interaction, user: discord.Member, duration: int = 2, reason: str = ""):
-        boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
-        await user.add_roles(boxrole)
-
-        if reason != "":
-            reason = f" for {reason}"
-        await interaction.response.send_message(f"{duration} minute penalty to {user.display_name}{reason}.")
-
-        await asyncio.sleep(60*duration)
-        await user.remove_roles(boxrole)
-
-    @app_commands.command(name="unbox", description="Release another user from the penalty box.")
-    @app_commands.describe(user="A discord user to release from the box.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_roles=True)
-    @app_commands.checks.has_permissions(manage_roles=True)
-    async def unbox(self, interaction: discord.Interaction, user: discord.Member):
-        boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
-        await user.remove_roles(boxrole)
-        await interaction.response.send_message(f"{user.display_name} unboxed.", ephemeral=True)
-
-    @box.error
-    @unbox.error
-    async def box_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, discord.ext.commands.MissingPermissions):
-            await interaction.send_response("You do not have permissions to do this. You played yourself.")
-
-            boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
-            await interaction.user.add_roles(boxrole)
-            asyncio.sleep(120)
-            await interaction.user.remove_roles(boxrole)
-
-    def roles_scope_choices_helper():
-        choices = [Choice(name="All", value="All")]
-
-        for division in ["D1", "D2", "D3", "D4"]:
-            choices.append(Choice(name=division, value=division))
-
-        for league in get_leagues_from_database(Config.config["year"]):
-            choices.append(Choice(name=league["name"], value=league["name"]))
-
-        return choices
-    
-    # TODO: Move the Emailer to a shared location instead of the other project, and use direct sheet access instead of the rolesfile
-
-    def get_role_assignments(self):
-        rolesfile = Config.config["srcroot"] + "/Roles.txt"
-
-        if not os.path.isfile(rolesfile):
-            return None
-
-        assignments = {}
-        f = open(rolesfile)
-        for line in f.readlines():
-            name, division, league = line.strip().split("\t")
-            assignments[name.lower()] = (division, league)
-        
-        return assignments
-
-    roles_group = app_commands.Group(name="roles", description="Help the OTH Server with setting league/division roles.")
-
-    @roles_group.command(name="clear", description="Clear all league and division roles from all users.")
-    @app_commands.describe(debug="Debug mode. Log but don't set roles.")
-    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)])
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_roles=True)
-    @app_commands.checks.has_permissions(manage_roles=True)
-    async def roles_clear(self, interaction: discord.Interaction, debug: Choice[int]):
-        debug = (debug.value == 1)
-
-        # Early return if the roles assignment file is missing
-        assignments = self.get_role_assignments()
-        if assignments == None:
-            await interaction.response.send_message("Could not find role assignments list.")
-            return
-
-        await interaction.response.send_message(f"Removing all league/division roles.")
-        if debug:
-            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
-
-        league_roles = get_roles_from_ids(self.bot)
-
-        count = 0
-        members = self.bot.get_guild(OTH_GUILD_ID).members
-        for member in members:
-            for league_role in league_roles.values():
-                if league_role in member.roles:
-                    count += 1
-                    self.log.info(f"Removing all league/division roles from {member.name}.")
-                    if not debug:
-                        await member.remove_roles(*league_roles.values())
-                    break
-
-        self.log.info(f"Found league/division roles on {count} members.")
-        if not debug:
-            await interaction.channel.send(f"Removed league/division roles from {count} members.")
-
-        await interaction.channel.send(f"Completed.")
-
-    @roles_group.command(name="assign", description="Assign league and division roles to a subset of members.")
-    @app_commands.describe(debug="Debug mode. Log but don't set roles.", scope="Which league or division to assign roles for.")
-    @app_commands.choices(debug=[Choice(name="True", value=1), Choice(name="False", value=0)], scope=roles_scope_choices_helper())
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_roles=True)
-    @app_commands.checks.has_permissions(manage_roles=True)
-    async def roles_assign(self, interaction: discord.Interaction, debug: Choice[int], scope: Choice[str]):
-        debug = (debug.value == 1)
-        scope = scope.value
-
-        # Early return if the roles assignment file is missing
-        assignments = self.get_role_assignments()
-        if assignments == None:
-            await interaction.response.send_message("Could not find role assignments list.")
-            return
-
-        await interaction.response.send_message(f"Assigning roles for scope '{scope}'.")
-        if debug:
-            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
-
-        league_roles = get_roles_from_ids(self.bot)
-
-        count = 0
-        members = self.bot.get_guild(OTH_GUILD_ID).members
-        for member in members:
-            key = member.name.lower()
-            if key in assignments:
-                division = assignments[key][0]
-                league = assignments[key][1]
-
-                # Skip members that are not in our desired scope
-                if scope != division and scope != league:
-                    continue
-
-                count += 1
-                self.log.info(f"Adding roles {division} and {league} to {member.name}")
-                if not debug:
-                    await member.add_roles(league_roles[division], league_roles[league])
-
-        self.log.info(f"Added league/division roles to {count} members.")
-        if not debug:
-            await interaction.channel.send(f"Added league/division roles to {count} members.")
-
-        await interaction.channel.send(f"Completed.")
 
 #endregion
 #region Woppa Cup
@@ -434,8 +442,8 @@ class OTH(WesCog):
             p1_name += " "*(len(p2_name)-len(p1_name))
 
         # Format a matchup embed to send
-        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "[{:6.2f}]({})\n".format(round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
-        msg += f"`{p2_name}` "+ f"\u2002"*(24-len(p2_name)) + "[{:6.2f}]({})".format(round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
+        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "[{:>6.2f}]({})\n".format(round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
+        msg += f"`{p2_name}` "+ f"\u2002"*(24-len(p2_name)) + "[{:>6.2f}]({})".format(round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
 
         if match["group_id"] != None:
             round_name = f"Group Stage Week {match['round']}"
