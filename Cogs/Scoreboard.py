@@ -362,7 +362,7 @@ class Scoreboard(WesCog):
             
             for channel in get_channels_from_ids(self.bot, channels):
                 msg = await channel.send(embed=embed)
-                embed_dict["message_ids"].append((msg.channel.id, msg.id))
+                embed_dict["message_ids"].append([msg.channel.id, msg.id])
 
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
         parent[key] = embed_dict
