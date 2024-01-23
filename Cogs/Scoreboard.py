@@ -1,5 +1,6 @@
 # Discord Libraries
 from discord.ext import tasks
+from discord import app_commands
 
 # Python Libraries
 import asyncio
@@ -147,7 +148,7 @@ class Scoreboard(WesCog):
         if len(landing["summary"]["linescore"]["byPeriod"]) < 3:
             return False
         
-        if landing["clock"]["secondsRemaining"] > 120 and not landing["clock"]["inIntermission"]:
+        if landing["clock"]["secondsRemaining"] > 60*OT_CHALLENGE_BUFFER_MINUTES and not landing["clock"]["inIntermission"]:
             return False
         
         return True
