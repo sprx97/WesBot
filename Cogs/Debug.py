@@ -26,8 +26,9 @@ class Debug(WesCog):
         self.log.info("Rolling over date.")
 
         # Process the ot cog rollover method
-        ot = self.bot.get_cog("OTChallenge")
-        await ot.processot(None)
+        # TODO: Process new OT Challenge
+#        ot = self.bot.get_cog("OTChallenge")
+#        await ot.processot(None)
 
         # TODO: ImportPickems cog, and run their Process Standings methods
 
