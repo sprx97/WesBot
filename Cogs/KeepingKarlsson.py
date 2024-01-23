@@ -1,11 +1,6 @@
 # Discord Libraries
 import discord
-from discord.ext import commands, tasks
-
-# Python Libraries
-import asyncio
-from datetime import datetime, timedelta, timezone
-import pygsheets
+from discord import app_commands
 
 # Local Includes
 from Shared import *
@@ -29,7 +24,7 @@ class KeepingKarlsson(WesCog):
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
-    async def card(self, interaction: discord.Interaction):
+    async def fasttrack(self, interaction: discord.Interaction):
         await interaction.response.send_message(self.FAST_TRACK_URL)
 
 async def setup(bot):
