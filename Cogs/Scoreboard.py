@@ -247,7 +247,7 @@ class Scoreboard(WesCog):
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_GUILD_ID:
-                            await thread.send("<@&1198120931101507686>")
+                            await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}>")
 
                     # TODO: See about using discord.on_thread_update here
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
