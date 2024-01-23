@@ -98,10 +98,16 @@ class OTH(WesCog):
     async def inactives_loop_error(self, error):
         await self.cog_command_error(None, error)
 
-    # Checks for any inactive OTH teams on FF
-    @commands.command(name="inactives")
-    @is_mods_channel()
-    async def inactives(self, ctx):
+    def is_mods_channel(interaction: discord.Interaction) -> bool:
+        return interaction.channel.id == MODS_CHANNEL_ID or interaction.channel.id == OTH_TECH_CHANNEL_ID
+
+    @app_commands.command(name="inactives", description="Checks for any inactive OTH teams on FF.")
+    @app_commands.describe()
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.check(is_mods_channel)
+    async def inactives(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Checking inactives.", ephemeral=True)
         await self.check_inactives()
 
     # Formats a json trade into a discord embed
@@ -186,10 +192,12 @@ class OTH(WesCog):
     async def trades_loop_error(self, error):
         await self.cog_command_error(None, error)
 
-    # Checks for any new OTH trades
-    @commands.command(name="trades")
-    @is_tradereview_channel()
-    async def trades(self, ctx):
+    @app_commands.command(name="trades", description="Checks for any new OTH trades.")
+    @app_commands.describe()
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    async def trades(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Checking trades.", ephemeral=True)
         await self.check_trades(True)
 
 #endregion

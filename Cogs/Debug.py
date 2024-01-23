@@ -19,9 +19,6 @@ class Debug(WesCog):
         self.rollover_loop.start()
         self.loops.append(self.rollover_loop)
 
-    #
-    # Loops
-    #
     @tasks.loop(hours=24.0)
     async def rollover_loop(self):
         self.log.info("Rolling over date.")
@@ -48,9 +45,8 @@ class Debug(WesCog):
 
         await asyncio.sleep((target_time-current_time).total_seconds())
 
-    #
-    # Basic debug commands
-    #
+#region Basic debug commands
+
     @app_commands.command(name="ping", description="Checks the bot for a response.")
     @app_commands.default_permissions(manage_guild=True)
     async def ping(self, interaction: discord.Interaction):
@@ -77,16 +73,16 @@ class Debug(WesCog):
 
         await interaction.response.send_message(msg, ephemeral=True)
 
-    #
-    # Bot Admin Commands
-    #
+#endregion
+#region Bot admin commands
+
     cog_choices = []
     cog_choices.append(discord.app_commands.Choice(name="All", value="All"))
     for cog in all_cogs:
         cog_choices.append(discord.app_commands.Choice(name=cog, value=cog))
 
     def is_bot_owner(interaction: discord.Interaction) -> bool:
-        return interaction.user.id == 228258453599027200
+        return interaction.user.id == 228258453599027200 # My user ID
 
     @app_commands.command(name="kill", description="Shuts down a cog.")
     @app_commands.describe(cog="Which cog to shut down.")
@@ -167,6 +163,8 @@ class Debug(WesCog):
             await interaction.edit_original_response(content=f"Request complete.")
         except:
             await interaction.edit_original_response(content=f"Could not find file {cog}.log.")
+
+#endregion
 
 async def setup(bot):
     await bot.add_cog(Debug(bot), guild=discord.Object(id=OTH_GUILD_ID))
