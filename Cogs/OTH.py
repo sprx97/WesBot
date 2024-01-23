@@ -236,7 +236,7 @@ class OTH(WesCog):
     @app_commands.command(name="box", description="Send another user to the penalty box.")
     @app_commands.describe(user="A discord user to put in the box.", duration="How long, in minutes.")
     @app_commands.guild_only()
-    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(manage_roles=True)
     async def box(self, interaction: discord.Interaction, user: discord.Member, duration: int = 2, reason: str = ""):
         boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
