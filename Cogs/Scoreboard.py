@@ -236,14 +236,12 @@ class Scoreboard(WesCog):
                 ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open (~{landing['clock']['timeRemaining']})"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
+                # Create the thread if necessary
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    # Create the thread if necessary
-                    if len(message_ids) < 3:
+                    thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
+                    if not thread:
                         message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
-                        thread = await message.create_thread(name=f"🥅 {away}-{home} {datetime.today().strftime('%Y-%m-%d')}", auto_archive_duration=60, slowmode_delay=30)
-
-                        message_ids.append(thread.id)
-                        self.messages[id][ot_key]["message_ids"] = message_ids
+                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=60, slowmode_delay=30)
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_GUILD_ID:
@@ -255,9 +253,7 @@ class Scoreboard(WesCog):
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    guild = await self.bot.get_guild(message_ids[0])
-                    thread = await guild.get_thread(message_ids[2])
-
+                    thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
                     await thread.send("OT has started, no more guesses will be counted.")
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
