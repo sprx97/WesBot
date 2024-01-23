@@ -2,8 +2,6 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from distutils.log import debug
-from xmlrpc.client import Boolean
 
 # Discord Libraries
 import challonge
@@ -205,7 +203,6 @@ class OTH(WesCog):
 
     # Posts the current matchup score for the given user
     @commands.command(name="matchup")
-    @is_OTH_guild()
     async def matchup(self, ctx, user, division=None):
         user = user.replace("[", "").replace("]", "")
 
