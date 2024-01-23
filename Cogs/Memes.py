@@ -1,4 +1,5 @@
 # Python includes
+from discord import app_commands
 from discord.app_commands import Choice
 import random
 
