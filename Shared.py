@@ -1,12 +1,9 @@
 # Discord Libraries
 import discord
-from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 # Python Libraries
-from datetime import datetime
 import json
-import pickle
 import pymysql
 import requests
 
@@ -14,7 +11,7 @@ import requests
 import Config
 config = Config.config
 
-######################## Team and Emoji Mappings ########################
+#region Emoji mappings
 
 team_map = {}
 team_map["ari"] = team_map["arizona"] = team_map["phx"] = team_map["phoenix"] = team_map["coyotes"]                         = "ARI"
@@ -102,53 +99,35 @@ def get_emoji(team):
         return emojis[team]
     return ""
 
-######################## Global Variables ########################
+#endregion
+#region Global Variables
 
 # Server IDs
 KK_GUILD_ID = 742845693785276576
 OTH_GUILD_ID = 207634081700249601
-TEST_GUILD_ID = 403805619175292929
 
 # Channel IDs
 HOCKEY_GENERAL_CHANNEL_ID = 507616755510673409
 MODS_CHANNEL_ID = 220663309786021888
 OTH_TECH_CHANNEL_ID = 489882482838077451
 TRADEREVIEW_CHANNEL_ID = 235926223757377537
-# OTH_OT_CHALLENGE_CHANNEL_ID = 207638168269225984
-ZEBRAS_CHANNEL_ID = 779783490984083518
-COCOMMISHES_CHANNEL_ID = 881011290141757480
-
-MAKE_A_THREAD_CATEGORY_ID = 744981120311099422
-GUAVAS_AND_APPLES_CHANNEL_ID = 747906611959562280
-LIVE_GAME_CHAT_CHANNEL_ID = 745031984601890906
-ZEBRA_BOTSPAM_CHANNEL_ID = 788079428629692417
-BOTSPAM_CHANNEL_ID = 898663635147186217
-# KK_OT_CHALLENGE_CHANNEL_ID = 805021649799741480
-
-TEST_GENERAL_CHANNEL_ID = 403805619175292931
 
 # Role IDs
 TRADEREVIEW_ROLE_ID = 235926008266620929
 OTH_BOX_ROLE_ID = 816888894066917407
-
-PATRONS_ROLE_ID = 747514745891979324
-PARTONS_ROLE_ID = 784239280591601694
-
-TEST_ROLE_ROLE_ID = 801477256744403025
 
 # Config settings
 MIN_INACTIVE_DAYS = 7 # Number of days where we deem a team to be "inactive" on fleaflicker
 OT_CHALLENGE_BUFFER_MINUTES = 2 # Mintues left in the 3rd at which OT challenge submissions are accepted
 ROLLOVER_HOUR_UTC = 11 # 11am UTC = 6am EST = 3am PST
 
-######################## Base Cog Class ########################
-
 all_cogs = ["Cogs.Debug",
             "Cogs.KeepingKarlsson",
             "Cogs.Memes",
-            "Cogs.OTChallenge",
             "Cogs.OTH",
             "Cogs.Scoreboard"]
+
+#endregion
 
 # Base cog class
 class WesCog(commands.Cog):
@@ -171,34 +150,16 @@ class WesCog(commands.Cog):
         except:
             self.log.error(error, stacklevel=2)
 
-######################## Custom Exceptions ########################
-
 # Custom exception for a failure to fetch a link
 class LinkError(discord.ext.commands.CommandError):
     def __init__(self, url):
         self.message = f"Could not open url {url}."
 
-# Custom exception for an invalid NHL team
-class NHLTeamNotFound(discord.ext.commands.CommandError):
-    def __init__(self, team):
-        self.message = f"Team {team} not recognized."
-
-# Custom exception for an invalid NHL team
 class DataFileNotFound(discord.ext.commands.CommandError):
-    def __init__(self, file):
-        self.message = f"File {file} not found."
+    def __init(self, file):
+        self.message = f"Could not find file {file}."
 
-# Custom exception for a failure to fetch a link
-class NoGamesTodayError(discord.ext.commands.CommandError):
-    def __init__(self, date):
-        self.message = f"No games found today ({date})."
-
-# Custom exception for when a team doesn't play today
-class TeamDoesNotPlayToday(discord.ext.commands.CommandError):
-    def __init__(self, team):
-        self.message = f"I do not think {team} plays today."
-
-######################## Helper functions ########################
+#region Database helper functions
 
 DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)
 DB.autocommit(True)
@@ -277,6 +238,9 @@ def make_api_call(link):
 
     return data
 
+#endregion
+#region Server helper functions
+
 # Gets discord channel objects from a list of ids
 def get_channels_from_ids(bot, ids):
     channels = []
@@ -321,7 +285,8 @@ def sanitize(name):
     name = name.replace("’", "") # O’Reilly
     return name
 
-######################## Pickle File commands ########################
+#endregion
+#region Datafile helper functions
 
 channels_datafile = "data/channels.json"
 messages_datafile = "data/messages.json"
@@ -347,48 +312,4 @@ def LoadJsonFile(file):
     except:
         raise DataFileNotFound(file)
 
-######################## Decorator command checks ########################
-
-# TODO: Move to a Checks.py file (separate shared into other files)
-# TODO: Create a check_all/check_any -- https://www.reddit.com/r/Discord_Bots/comments/xfqee1/discordpy_20_creating_a_check_any_decorator_for/
-
-def is_tech_channel_2():
-    def predicate(interaction: discord.Interaction) -> bool:
-        return interaction.channel.id == OTH_TECH_CHANNEL_ID or interaction.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID or interaction.guild.id == TEST_GUILD_ID
-
-    return app_commands.check(predicate)
-
-def is_OTH_guild():
-    def check(ctx):
-        return ctx.message.guild.id == OTH_GUILD_ID or ctx.message.guild.id == TEST_GUILD_ID
-    return commands.check(check)
-
-def is_KK_guild():
-    def check(ctx):
-        return ctx.message.guild.id == KK_GUILD_ID or ctx.message.guild.id == TEST_GUILD_ID
-    return commands.check(check)
-
-def is_tech_channel():
-    def check(ctx):
-        return ctx.message.channel.id == OTH_TECH_CHANNEL_ID or ctx.message.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID or ctx.message.guild.id == TEST_GUILD_ID
-    return commands.check(check)
-
-def is_botspam_channel():
-    def check(ctx):
-        return ctx.message.channel.id == BOTSPAM_CHANNEL_ID or ctx.message.channel.id == ZEBRA_BOTSPAM_CHANNEL_ID
-    return commands.check(check)
-
-def is_tradereview_channel():
-    def check(ctx):
-        return ctx.message.channel.id == TRADEREVIEW_CHANNEL_ID or commands.check(is_tech_channel())
-    return commands.check(check)
-
-def is_otchallenge_channel():
-    def check(ctx):
-        return ctx.message.channel.name == "ot-challenge"
-    return commands.check(check)
-
-def is_mods_channel():
-    def check(ctx):
-        return ctx.message.channel.id == MODS_CHANNEL_ID or commands.check(is_tech_channel())
-    return commands.check(check)
+#endregion
