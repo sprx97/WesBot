@@ -30,7 +30,7 @@ class OTH(WesCog):
         self.inactives_loop.start()
         self.loops.append(self.inactives_loop)
 
-######################## Cog-specific Exceptions ########################
+#region Custom cog-specific exceptions
 
     # Custom exception for an invalid fleaflicker username
     class UserNotFound(discord.ext.commands.CommandError):
@@ -46,7 +46,8 @@ class OTH(WesCog):
         def __init__(self, user):
             self.message = f"Multiple matchups found for user {user}."
 
-######################## Inactives ########################
+#endregion
+#region League management tools (inactives and trade review)
 
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
@@ -102,8 +103,6 @@ class OTH(WesCog):
     @is_mods_channel()
     async def inactives(self, ctx):
         await self.check_inactives()
-
-######################## Trade Review ########################
 
     # Formats a json trade into a discord embed
     def format_trade(self, league, trade):
@@ -193,7 +192,8 @@ class OTH(WesCog):
     async def trades(self, ctx):
         await self.check_trades(True)
 
-######################## Matchup ########################
+#endregion
+#region Fleaflicker Matchups and Rankings
 
     # Posts the current matchup score for the given user
     @commands.command(name="matchup")
@@ -233,7 +233,8 @@ class OTH(WesCog):
         else:
             await ctx.send(error)
 
-####################### Member Management (Box and Roles) ##########################
+#endregion
+#region Member Management (Box and Roles)
 
     @app_commands.command(name="box", description="Send another user to the penalty box.")
     @app_commands.describe(user="A discord user to put in the box.", duration="How long, in minutes.")
@@ -256,7 +257,7 @@ class OTH(WesCog):
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_roles=True)
     @app_commands.checks.has_permissions(manage_roles=True)
-    async def unbox(self, interaction: discord.Interaction):
+    async def unbox(self, interaction: discord.Interaction, user: discord.Member):
         boxrole = self.bot.get_guild(OTH_GUILD_ID).get_role(OTH_BOX_ROLE_ID)
         await user.remove_roles(boxrole)
         await interaction.response.send_message(f"{user.display_name} unboxed.", ephemeral=True)
@@ -384,7 +385,8 @@ class OTH(WesCog):
 
         await interaction.channel.send(f"Completed.")
 
-######################## Woppa Cup ########################
+#endregion
+#region Woppa Cup
 
     def get_embed_for_woppacup_match(self, match, participants):
         p1_id = match["player1_id"]
@@ -530,6 +532,8 @@ class OTH(WesCog):
             await interaction.followup.send(error.message)
         else:
             await interaction.followup.send(error)
+
+#endregion
 
 async def setup(bot):
     await bot.add_cog(OTH(bot), guild=discord.Object(id=OTH_GUILD_ID))
