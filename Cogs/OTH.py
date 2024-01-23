@@ -201,10 +201,13 @@ class OTH(WesCog):
 #endregion
 #region Fleaflicker Matchups and Rankings
 
-    # Posts the current matchup score for the given user
-    @commands.command(name="matchup")
-    async def matchup(self, ctx, user, division=None):
-        user = user.replace("[", "").replace("]", "")
+    @app_commands.command(name="matchup", description="Check the current matchup score for a user.")
+    @app_commands.describe(user="A fleaflicker username", division="(Optional) User's division")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def matchup(self, interaction: discord.Interaction, user: str, division: str = None):
+        await interaction.response.defer(thinking=True)
 
         matchup = get_user_matchup_from_database(user, division)
         if len(matchup) == 0:
@@ -225,18 +228,7 @@ class OTH(WesCog):
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
         embed = discord.Embed(title=f"{matchup['league_name']} Matchup", description=f"{msg}", url=link, color=color)
-        await ctx.send(embed=embed)
-
-    @matchup.error
-    async def matchup_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Usage: `!matchup [fleaflicker username]`")
-        elif isinstance(error, self.UserNotFound):
-            await ctx.send(error.message)
-        elif isinstance(error, self.MultipleMatchupsFound):
-            await ctx.send(error.message)
-        else:
-            await ctx.send(error)
+        await interaction.followup.send(embed=embed)
 
 #endregion
 #region Member Management (Box and Roles)
@@ -462,7 +454,7 @@ class OTH(WesCog):
         return embed
 
     @app_commands.command(name="wc", description="Check the score for a specific manager's Woppa Cup matchup.")
-    @app_commands.describe(user="A fleaflicker username, 'all', or 'bracket'.")
+    @app_commands.describe(user="A fleaflicker username, 'all', or 'bracket'")
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
@@ -527,18 +519,19 @@ class OTH(WesCog):
 
         await interaction.followup.send(embeds=embed_list)
 
+#endregion
+
     @woppacup.error
-    async def woppacup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await interaction.response.send_message("Usage: `!wc [fleaflicker username]`")
-        elif isinstance(error, self.WoppaCupOpponentNotFound):
+    @matchup.error
+    async def matchup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, self.WoppaCupOpponentNotFound):
+            await interaction.followup.send(error.message)
+        elif isinstance(error, self.UserNotFound):
             await interaction.followup.send(error.message)
         elif isinstance(error, self.MultipleMatchupsFound):
             await interaction.followup.send(error.message)
         else:
             await interaction.followup.send(error)
-
-#endregion
 
 async def setup(bot):
     await bot.add_cog(OTH(bot), guild=discord.Object(id=OTH_GUILD_ID))
