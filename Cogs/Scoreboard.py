@@ -233,7 +233,8 @@ class Scoreboard(WesCog):
             ot_key = "OT"
             away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
             if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
-                ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open (~{landing['clock']['timeRemaining']})"
+                time_remaining = "INT" if landing['clock']['inIntermission'] else f"~{landing['clock']['timeRemaining']}"
+                ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
                 # Create the thread if necessary
@@ -242,6 +243,7 @@ class Scoreboard(WesCog):
                     if not thread:
                         message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
                         thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=60, slowmode_delay=30)
+                        await thread.edit(locked=False)
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
@@ -251,7 +253,10 @@ class Scoreboard(WesCog):
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
                 ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
-                # TODO: See if there's a way to lock the thread
+
+                for message_ids in self.messages[id][ot_key]["message_ids"]:
+                    thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
+                    await thread.edit(name=f"🔒 {away}-{home} {self.messages['date']}", locked=True)
 
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
