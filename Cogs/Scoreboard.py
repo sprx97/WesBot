@@ -244,17 +244,15 @@ class Scoreboard(WesCog):
                         thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=60, slowmode_delay=30)
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
-                        if message_ids[0] == OTH_GUILD_ID:
+                        if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
                             await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}>")
 
                     # TODO: See about using discord.on_thread_update here
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
                 ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+                # TODO: See if there's a way to lock the thread
 
-                for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
-                    await thread.send("OT has started, no more guesses will be counted.")
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
 
