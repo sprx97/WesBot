@@ -471,6 +471,8 @@ class OTH(WesCog):
         # await interaction.response.send_message(f"WoppaCup is on pause due to the short All-Star week. It will resume in fleaflicker week 18. Contact Woppa for more info.")
         # return
 
+        await interaction.response.defer(thinking=True)
+
         user = sanitize_user(user)
         post_all = user == "all"
 
@@ -478,7 +480,7 @@ class OTH(WesCog):
         wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
 
         if user == "bracket":
-            await interaction.response.send_message(challonge.tournaments.show(wc_id)["full_challonge_url"])
+            await interaction.followup.send(challonge.tournaments.show(wc_id)["full_challonge_url"])
             return
 
         participants = challonge.participants.index(wc_id)
@@ -487,8 +489,6 @@ class OTH(WesCog):
             if p["name"].lower().split(".")[-1] == user:
                 me = p
                 break
-
-        await interaction.response.defer(thinking=True)
 
         if me == None and not post_all:
             await interaction.followup.send(embed=discord.Embed(title=f"User {user} either doesn't exist or was never in this tournament."))
