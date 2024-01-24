@@ -382,8 +382,8 @@ class OTH(WesCog):
             p1_name += " "*(len(p2_name)-len(p1_name))
 
         # Format a matchup embed to send
-        msg =  f"`{p1_name}` " + f"\u00A0"*(24-len(p1_name)) + "`{:>6.2f}`\n".format(round(matchup['PF'], 2))
-        msg += f"`{p2_name}` " + f"\u00A0"*(24-len(p2_name)) + "`{:>6.2f}`".format(round(matchup['opp_PF'], 2))
+        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "{:>6.2f}\n".format(round(matchup['PF'], 2))
+        msg += f"`{p2_name}` " + f"\u2002"*(24-len(p2_name)) + "{:>6.2f}".format(round(matchup['opp_PF'], 2))
 
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
