@@ -148,7 +148,7 @@ class Scoreboard(WesCog):
         # If the linescore has less than three periods, or there aren't any shots in the third period, we aren't in the window
         # "Shots have been taken in the third period" is used as a proxy because landing["clock"] doesn't actually contain period info,
         # and the third period gets added to the liescore before the second intermission is up
-        if len(landing["summary"]["linescore"]["shotsByPeriod"]) < 3 or (landing["summary"]["linescore"]["shotsByPeriod"][2]["away"] == 0 and landing["summary"]["linescore"]["shotsByPeriod"][2]["home"] == 0):
+        if len(landing["summary"]["shotsByPeriod"]) < 3 or (landing["summary"]["shotsByPeriod"][2]["away"] == 0 and landing["summary"]["shotsByPeriod"][2]["home"] == 0):
             return False
         
         if landing["clock"]["secondsRemaining"] > 60*OT_CHALLENGE_BUFFER_MINUTES and not landing["clock"]["inIntermission"]:
