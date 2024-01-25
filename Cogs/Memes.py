@@ -27,6 +27,7 @@ class Memes(WesCog):
                  "and the third would be for a trillion dollars so I could pay to watch ol Fifi Score top cheddar magic for all eternity."],
         "fowler": ["https://imgur.com/6H5sOqN"],
         "fuck": ["Bruce Boudreau would not approve of such language. Please try `/memes darn` instead."],
+        "hawks": ["My brother in Christ, you've fallen so low that you're searching for even a crumb of hope so badly that you're clinging to some jabroni's make believe future projections 4 years from now? I don't even feel sad for your fan base at this point, only pity."],
         "jonas": ["I can say without hesitation that the Avs are getting the worst goalie I've seen during my 19 seasons covering the Sabres. He doesn't stop pucks in practice or games."],
         "laine": ["Yeah, fuck off buddy we absolutely need more Laine clips. Fuckin every time this kid steps on the ice someone scores. " + \
                   "kids fuckin dirt nasty man. Does fuckin ovi have 14 goals this season I dont fuckin think so bud. I'm fuckin tellin ya Patrik 'golden flow' " + \
