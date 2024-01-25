@@ -145,7 +145,10 @@ class Scoreboard(WesCog):
         if "clock" not in landing:
             return False
         
-        if len(landing["summary"]["linescore"]["byPeriod"]) < 3:
+        # If the linescore has less than three periods, or there aren't any shots in the third period, we aren't in the window
+        # "Shots have been taken in the third period" is used as a proxy because landing["clock"] doesn't actually contain period info,
+        # and the third period gets added to the liescore before the second intermission is up
+        if len(landing["summary"]["linescore"]["shotsByPeriod"]) < 3 or (landing["summary"]["linescore"]["shotsByPeriod"][2]["away"] == 0 and landing["summary"]["linescore"]["shotsByPeriod"][2]["home"] == 0):
             return False
         
         if landing["clock"]["secondsRemaining"] > 60*OT_CHALLENGE_BUFFER_MINUTES and not landing["clock"]["inIntermission"]:
@@ -240,16 +243,19 @@ class Scoreboard(WesCog):
                 # Create the thread if necessary
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
                     thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
+
+                    # Create a thread if it doesn't exist already
                     if not thread:
                         message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
-                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=60, slowmode_delay=30)
-                        await thread.edit(locked=False)
+                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=60*6, slowmode_delay=30)
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
                             await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}>")
 
-                    # TODO: See about using discord.on_thread_update here
+                    await thread.edit(name=f"🥅 {away}-{home} {self.messages['date']}", locked=False)
+
+
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
                 ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
@@ -257,6 +263,8 @@ class Scoreboard(WesCog):
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
                     thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
                     await thread.edit(name=f"🔒 {away}-{home} {self.messages['date']}", locked=True)
+
+            # TODO: See about using discord.on_thread_update here
 
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
