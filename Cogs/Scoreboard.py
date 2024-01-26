@@ -6,7 +6,6 @@ from discord import app_commands
 import asyncio
 from datetime import datetime
 import pytz
-import typing
 
 # Local Includes
 from Shared import *
@@ -567,7 +566,7 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
-        await interaction.response.send_message(f"This is a work in progress. Check back later for updates. {interaction.channel}", ephemeral=True)
+        await interaction.response.send_message(f"This is a work in progress. Check back later for updates. {interaction.channel.id} {interaction.channel.name} {isinstance(interaction.channel, discord.Thread)}", ephemeral=True)
 
 #endregion
 
