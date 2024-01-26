@@ -243,7 +243,7 @@ class Scoreboard(WesCog):
             ot_key = "OT"
             away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
             if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
-                time_remaining = "INT" if landing['clock']['inIntermission'] else f"~{landing['clock']['timeRemaining']}"
+                time_remaining = "INT" if landing['clock']['inIntermission'] else f"~{landing['clock']['timeRemaining']} left"
                 ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
                 await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
