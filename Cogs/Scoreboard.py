@@ -75,6 +75,13 @@ class Scoreboard(WesCog):
             await self.do_date_rollover(date)
             self.log.info(f"Date after date rollover: {self.messages['date']}")
             return []
+        
+        # This hack should prevent the goal from posting if the date has gone backwards
+        # NHL.com backslides sometimes right around the rollover time, probably due to
+        # site redundancy.
+        if self.messages["date"] > date:
+            self.log.info(f"WRONG DATE {self.scores_loop.current_loop} date: {date}, stored: {self.messages['date']}")
+            return []
 
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
@@ -247,7 +254,7 @@ class Scoreboard(WesCog):
                     # Create a thread if it doesn't exist already
                     if not thread:
                         message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
-                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=60*6, slowmode_delay=30)
+                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=1440, slowmode_delay=30)
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
