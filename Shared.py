@@ -14,8 +14,8 @@ config = Config.config
 #region Emoji mappings
 
 team_map = {}
-team_map["ari"] = team_map["arizona"] = team_map["phx"] = team_map["phoenix"] = team_map["coyotes"]                         = "ARI"
 team_map["ana"] = team_map["anaheim"] = team_map["ducks"]                                                                   = "ANA"
+team_map["ari"] = team_map["arizona"] = team_map["phx"] = team_map["phoenix"] = team_map["coyotes"]                         = "ARI"
 team_map["bos"] = team_map["boston"] = team_map["bruins"]                                                                   = "BOS"
 team_map["buf"] = team_map["buffalo"] = team_map["sabres"]                                                                  = "BUF"
 team_map["cgy"] = team_map["cal"] = team_map["calgary"] = team_map["flames"]                                                = "CGY"
@@ -52,8 +52,8 @@ team_map["met"] = team_map["metropolitan"] = team_map["team metropolitan"]      
 team_map["pac"] = team_map["pacific"] = team_map["team pacific"]                                                            = "PAC"
 
 emojis = {}
-emojis["ARI"] = "<:ARI:269315353153110016>"
 emojis["ANA"] = "<:ANA:271881573375279104>"
+emojis["ARI"] = "<:ARI:269315353153110016>"
 emojis["BOS"] = "<:BOS:269315305707143168>"
 emojis["BUF"] = "<:BUF:269315526717603840>"
 emojis["CGY"] = "<:CGY:269315410375999509>"

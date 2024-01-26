@@ -6,6 +6,7 @@ from discord import app_commands
 import asyncio
 from datetime import datetime
 import pytz
+import typing
 
 # Local Includes
 from Shared import *
@@ -254,14 +255,13 @@ class Scoreboard(WesCog):
                     # Create a thread if it doesn't exist already
                     if not thread:
                         message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
-                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']}", auto_archive_duration=1440, slowmode_delay=30)
+                        thread = await message.create_thread(name=f"🥅 {away}-{home} {self.messages['date']} || {id}", auto_archive_duration=1440, slowmode_delay=30)
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
                             await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}> use /ot followed by a player full name, last name, or number to guess.")
 
-                    await thread.edit(name=f"🥅 {away}-{home} {self.messages['date']}", locked=False)
-
+                    await thread.edit(name=f"🥅 {away}-{home} {self.messages['date']} || {id}", locked=False)
 
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
                 ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
@@ -269,9 +269,7 @@ class Scoreboard(WesCog):
 
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
                     thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
-                    await thread.edit(name=f"🔒 {away}-{home} {self.messages['date']}", locked=True)
-
-            # TODO: See about using discord.on_thread_update here
+                    await thread.edit(name=f"🔒 {away}-{home} {self.messages['date']} || {id}", locked=True)
 
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
@@ -559,6 +557,17 @@ class Scoreboard(WesCog):
     @score.error
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}")
+
+#endregion
+#region OT Challenge Slash Commands
+
+    @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
+    @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def ot(self, interaction: discord.Interaction, team: str, player: str):
+        interaction.response.send_message(f"This is a work in progress. Check back later for updates. {interaction.channel}", ephemeral=True)
 
 #endregion
 
