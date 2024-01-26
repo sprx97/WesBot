@@ -258,7 +258,7 @@ class Scoreboard(WesCog):
 
                         # TODO: Have a way to set and store an OT Challenge role for any server
                         if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
-                            await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}>")
+                            await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}> use /ot followed by a player full name, last name, or number to guess.")
 
                     await thread.edit(name=f"🥅 {away}-{home} {self.messages['date']}", locked=False)
 
