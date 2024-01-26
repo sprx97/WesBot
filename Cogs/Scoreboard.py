@@ -567,7 +567,7 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
-        interaction.response.send_message(f"This is a work in progress. Check back later for updates. {interaction.channel}", ephemeral=True)
+        await interaction.response.send_message(f"This is a work in progress. Check back later for updates. {interaction.channel}", ephemeral=True)
 
 #endregion
 
