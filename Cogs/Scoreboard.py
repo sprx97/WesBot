@@ -22,6 +22,7 @@ class Scoreboard(WesCog):
 
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
+        self.ot_lock = asyncio.Lock()
 
 #region Cog Startup
 
@@ -45,6 +46,9 @@ class Scoreboard(WesCog):
         # Load any messages we've sent previously today
         async with self.messages_lock:
             self.messages = LoadJsonFile(messages_datafile)
+
+        async with self.ot_lock:
+            self.ot_guesses = LoadJsonFile(ot_datafile)
 
     @scores_loop.error
     async def scores_loop_error(self, error):
@@ -152,6 +156,12 @@ class Scoreboard(WesCog):
         if "clock" not in landing:
             return False
         
+        if landing["gameState"] in ["OVER", "OFF", "FINAL"]:
+            return False
+        
+        if landing["homeTeam"]["score"] != landing["awayTeam"]["score"]:
+            return False
+
         # If the linescore has less than three periods, or there aren't any shots in the third period, we aren't in the window
         # "Shots have been taken in the third period" is used as a proxy because landing["clock"] doesn't actually contain period info,
         # and the third period gets added to the liescore before the second intermission is up
@@ -172,7 +182,7 @@ class Scoreboard(WesCog):
 
         # Create a thread if it doesn't exist already
         message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
-        thread = await message.create_thread(name=name, auto_archive_duration=1440, slowmode_delay=30)
+        thread = await message.create_thread(name=name, auto_archive_duration=1440)
 
         # TODO: Have a way to set and store an OT Challenge role for any server
         if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
@@ -254,28 +264,26 @@ class Scoreboard(WesCog):
             await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
 
     async def check_ot_challenge(self, id, landing):
-        try:
-            ot_key = "OT"
-            away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
-            if self.is_ot_challenge_window(landing) and landing["homeTeam"]["score"] == landing["awayTeam"]["score"]:
-                time_remaining = "INT" if landing['clock']['inIntermission'] else f"~{landing['clock']['timeRemaining']} left"
-                ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
-                await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+        ot_key = "OT"
+        away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
+        if self.is_ot_challenge_window(landing):
+            self.log.info(f"OT Challenge window is open for {away}-{home}")
+            time_remaining = "INT" if landing['clock']['inIntermission'] else f"~{landing['clock']['timeRemaining']} left"
+            ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
+            await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
-                # Create the thread if necessary
-                for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    await self.ensure_ot_challenge_thread(message_ids, f"🥅 {away}-{home} {self.messages['date'][2:]}")
+            # Create the thread if necessary
+            for message_ids in self.messages[id][ot_key]["message_ids"]:
+                await self.ensure_ot_challenge_thread(message_ids, f"🥅 {away}-{home} {self.messages['date'][2:]}")
 
-            elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
-                ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
-                await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+        elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
+            self.log.info(f"OT Challenge window is closed for {away}-{home}")
+            ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
+            await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
-                for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
-                    await thread.edit(name=f"🔒 {away}-{home} {self.messages['date'][2:]}", locked=True)
-
-        except Exception as e:
-            self.log.error(f"Error in OT challenge {e}")
+            for message_ids in self.messages[id][ot_key]["message_ids"]:
+                thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
+                await thread.edit(name=f"🔒 {away}-{home} {self.messages['date'][2:]}", locked=True)
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -565,6 +573,13 @@ class Scoreboard(WesCog):
 #endregion
 #region OT Challenge Slash Commands
 
+    @app_commands.command(name="ratelimittest")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def ratelimittest(self, interaction: discord.Interaction):
+        await interaction.channel.edit(name=f"{interaction.channel.name}.", locked=not interaction.channel.locked)
+
     @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
     @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
     @app_commands.guild_only()
@@ -573,8 +588,18 @@ class Scoreboard(WesCog):
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
         team = team.upper().strip()
         player = player.strip()
-        if team not in interaction.channel.name[:7]:
-            await interaction.response.send_message(f"Team {team} is not in this game.")
+
+        # TODO: Update with a permanent OT Challenge Channel list
+        if not isinstance(interaction.channel, discord.Thread) or interaction.channel.parent_id != OTH_TECH_CHANNEL_ID:
+            await interaction.response.send_message(f"This is not a valid OT Challenge thread.", ephemeral=True)
+            return
+
+        if interaction.channel.locked:
+            await interaction.response.send_message(f"OT has started. No more guesses allowed.")
+            return
+
+        if team not in interaction.channel.name[:10]:
+            await interaction.response.send_message(f"Team {team} is not in this game.",  ephemeral=True)
             return
 
         await interaction.response.defer(thinking=True)
@@ -616,7 +641,16 @@ class Scoreboard(WesCog):
                 break
 
         if found:
-            # TODO: Acquire the ot_challenge lock and write to the json file
+            async with self.ot_lock:
+                if game_id not in self.ot_guesses:
+                    self.ot_guesses[game_id] = {}
+                if interaction.guild_id not in self.ot_guesses[game_id]:
+                    self.ot_guesses[game_id][interaction.guild.id] = {}
+
+                self.ot_guesses[game_id][interaction.guild.id][interaction.user.id] = roster_player["playerId"]
+
+                WriteJsonFile(ot_datafile, self.ot_guesses)
+
             self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
             await interaction.followup.send(f"{interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
         else:
