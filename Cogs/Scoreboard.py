@@ -264,7 +264,7 @@ class Scoreboard(WesCog):
 
                 # Create the thread if necessary
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
-                    await self.ensure_ot_challenge_thread(message_ids, f"🥅 {away}-{home} {self.messages['date']} || {id}")
+                    await self.ensure_ot_challenge_thread(message_ids, f"🥅 {away}-{home} {self.messages['date'][2:]}")
 
             elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
                 ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
@@ -272,7 +272,7 @@ class Scoreboard(WesCog):
 
                 for message_ids in self.messages[id][ot_key]["message_ids"]:
                     thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
-                    await thread.edit(name=f"🔒 {away}-{home} {self.messages['date']} || {id}", locked=True)
+                    await thread.edit(name=f"🔒 {away}-{home} {self.messages['date'][2:]}", locked=True)
 
         except Exception as e:
             self.log.error(f"Error in OT challenge {e}")
