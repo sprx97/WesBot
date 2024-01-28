@@ -405,7 +405,7 @@ class Scoreboard(WesCog):
 
         # Add all games to the messages list
         if id not in self.messages:
-            self.messages[id] = {"Goals": {}}
+            self.messages[id] = {"awayTeam": landing["awayTeam"]["abbrev"], "homeTeam": landing["homeTeam"]["abbrev"], "Goals": {}}
 
         await self.check_game_start(id, landing)
         await self.check_goals(id, landing)
@@ -571,7 +571,57 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
-        await interaction.response.send_message(f"This is a work in progress. Check back later for updates. {interaction.channel.id} {interaction.channel.name} {isinstance(interaction.channel, discord.Thread)}", ephemeral=True)
+        team = team.upper().strip()
+        player = player.strip()
+        if team not in interaction.channel.name[:7]:
+            await interaction.response.send_message(f"Team {team} is not in this game.")
+            return
+
+        await interaction.response.defer(thinking=True)
+
+        # Get correct game_id from messages
+        game_id = None
+        for id in self.messages:
+            if "awayTeam" not in self.messages[id]:
+                continue
+            if team == self.messages[id]["awayTeam"] or team == self.messages[id]["homeTeam"]:
+                game_id = id
+                break
+
+        if game_id == None:
+            await interaction.followup.send(f"Trouble finding game id for {team}. This should not happen.")
+            return
+
+        # Find the team ID from the play-by-play
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/play-by-play")
+        if play_by_play["awayTeam"]["abbrev"] == team:
+            team_id = play_by_play["awayTeam"]["id"]
+        elif play_by_play["homeTeam"]["abbrev"] == team:
+            team_id = play_by_play["homeTeam"]["id"]
+        else:
+            await interaction.followup.send(f"Trouble finding team {team} in play-by-play. This should not happen.")
+            return
+        
+        # Loop through the rosters in the play-by-play
+        player_name = player_num = None
+        try:
+            player_num = int(player)
+        except:
+            player_name = player.lower()
+
+        found = False
+        for roster_player in play_by_play["rosterSpots"]:
+            if roster_player["teamId"] == team_id and (roster_player["lastName"]["default"].lower() == player_name or f"{roster_player['firstName']['default']} {roster_player['lastName']['default']}".lower() == player_name or roster_player["sweaterNumber"] == player_num):
+                found = True
+                break
+
+        if found:
+            # TODO: Acquire the ot_challenge lock and write to the json file
+            self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
+            await interaction.followup.send(f"{interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
+        else:
+            self.log.info(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
+            await interaction.followup.send(f"Could not find player {player} on team {team}.")
 
 #endregion
 
