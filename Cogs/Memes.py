@@ -25,7 +25,7 @@ class Memes(WesCog):
                  "living at the back of the goddamn net. The world record for a recorded sniper kill is 3,540m, but that's only because nobody has asked ya boi Fifi to " + \
                  "rip any wristers at ISIS yet. If i had three wishes, the first would be to live forever, the second would be for Kevin Fiala to live forever, " + \
                  "and the third would be for a trillion dollars so I could pay to watch ol Fifi Score top cheddar magic for all eternity."],
-        "fowler": ["https://imgur.com/6H5sOqN"],
+        "fowler": ["https://imgur.com/6H5sOqN", "https://media.discordapp.net/attachments/507616755510673409/1201644222592323727/h52itsi6cgw11.jpg"],
         "fuck": ["Bruce Boudreau would not approve of such language. Please try `/memes darn` instead."],
         "hawks": ["My brother in Christ, you've fallen so low that you're searching for even a crumb of hope so badly that you're clinging to some jabroni's make believe future projections 4 years from now? I don't even feel sad for your fan base at this point, only pity."],
         "jonas": ["I can say without hesitation that the Avs are getting the worst goalie I've seen during my 19 seasons covering the Sabres. He doesn't stop pucks in practice or games."],
