@@ -66,6 +66,12 @@ class Scoreboard(WesCog):
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
+        async with self.ot_lock:
+            self.ot_guesses = {}
+            WriteJsonFile(ot_datafile, self.ot_guesses)
+
+        # TODO: Set all existing OTChallenge threads to locked=True and auto_archive_duration=60 
+
     # Helper function to get all of the game JSON objects for the current day
     # from the NHL.com api.
     async def get_games_for_today(self):
@@ -152,41 +158,47 @@ class Scoreboard(WesCog):
 
         return False
 
-    def is_ot_challenge_window(self, landing):
-        if "clock" not in landing:
+    def is_ot_challenge_window(self, play_by_play):
+        if play_by_play["gameState"] not in ["LIVE", "CRIT"]:
             return False
         
-        if landing["gameState"] in ["OVER", "OFF", "FINAL"]:
+        if play_by_play["homeTeam"]["score"] != play_by_play["awayTeam"]["score"]:
+            return False
+
+        if "periodDescriptor" not in play_by_play or "clock" not in play_by_play:
             return False
         
-        if landing["homeTeam"]["score"] != landing["awayTeam"]["score"]:
-            return False
-
-        # If the linescore has less than three periods, or there aren't any shots in the third period, we aren't in the window
-        # "Shots have been taken in the third period" is used as a proxy because landing["clock"] doesn't actually contain period info,
-        # and the third period gets added to the liescore before the second intermission is up
-        if len(landing["summary"]["shotsByPeriod"]) < 3 or (landing["summary"]["shotsByPeriod"][-1]["away"] == 0 and landing["summary"]["shotsByPeriod"][-1]["home"] == 0):
-            return False
+        is_ot_period = play_by_play["periodDescriptor"]["periodType"] != "OT"
+        is_intermission = play_by_play["clock"]["inIntermission"]
+        is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3
         
-        if landing["clock"]["secondsRemaining"] > 60*OT_CHALLENGE_BUFFER_MINUTES and not landing["clock"]["inIntermission"]:
-            return False
+        if (is_intermission and is_ot_period) or is_near_end_of_third:
+            return True
         
-        return True
+        return False
+    
+    async def update_ot_thread_state(self, id, name, locked, auto_archive):
+        # Create the thread if necessary
+        for message_id in self.messages[id]["OT"]["message_ids"]:
+            channel = message_id[0]
+            message = message_id[1]
 
-    async def ensure_ot_challenge_thread(self, message_ids, name):
-        thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
-        if thread:
-            if thread.name != name:
-                await thread.edit(name=name, locked=False)
-            return
+            thread = self.bot.get_channel(channel).get_thread(message)
 
-        # Create a thread if it doesn't exist already
-        message = await self.bot.get_channel(message_ids[0]).fetch_message(message_ids[1])
-        thread = await message.create_thread(name=name, auto_archive_duration=1440)
+            # Create a thread if it doesn't exist already
+            if not thread:
+                message = await self.bot.get_channel(channel).fetch_message(message)
+                thread = await message.create_thread(name=name, locked=locked, auto_archive_duration=auto_archive)
 
-        # TODO: Have a way to set and store an OT Challenge role for any server
-        if message_ids[0] == OTH_TECH_CHANNEL_ID or message_ids[0] == HOCKEY_GENERAL_CHANNEL_ID:
-            await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}> use /ot followed by a player full name, last name, or number to guess.")
+                # TODO: Have a way to set and store an OT Challenge role for any server
+                if channel == OTH_TECH_CHANNEL_ID or channel == HOCKEY_GENERAL_CHANNEL_ID:
+                    await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}> use /ot followed by a player full name, last name, or number to guess.")
+
+            # Nothing to update if the thread name is identical to what we already have!
+            if thread.name == name:
+                return
+            
+            await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
 
 #endregion
 #region Game Parsing Sections
@@ -263,27 +275,35 @@ class Scoreboard(WesCog):
             # If we get here, we want to cross out that goal key and change it to a *D key
             await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
 
-    async def check_ot_challenge(self, id, landing):
+    async def check_ot_challenge(self, id):
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/play-by-play")
+
         ot_key = "OT"
-        away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
-        if self.is_ot_challenge_window(landing):
-            self.log.info(f"OT Challenge window is open for {away}-{home}")
-            time_remaining = "INT" if landing['clock']['inIntermission'] else f"~{landing['clock']['timeRemaining']} left"
+        away, away_emoji, home, home_emoji = self.get_teams_from_landing(play_by_play)
+
+        is_ot_challenge_window = self.is_ot_challenge_window(play_by_play)
+        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"] == "OT"
+
+        # Open the OT Challenge or update the message if needed
+        if is_ot_challenge_window:
+            self.log.info(f"OT Challenge is open for {away}-{home}")
+
+            time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
             await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
-            # Create the thread if necessary
-            for message_ids in self.messages[id][ot_key]["message_ids"]:
-                await self.ensure_ot_challenge_thread(message_ids, f"🥅 {away}-{home} {self.messages['date'][2:]}")
+            await self.update_ot_thread_state(id, f"⏳ {away}-{home} {self.messages['date'][2:]}", False, 1440)
+        
+        elif not is_ot_challenge_window and ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
+            self.log.info(f"OT Challenge Finished for {away}-{home}")
+            await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
-        elif ot_key in self.messages[id] and self.messages[id][ot_key]["content"]["title"][0] != "~":
-            self.log.info(f"OT Challenge window is closed for {away}-{home}")
-            ot_string = f"~~OT Challenge for {away_emoji} {away} - {home} {home_emoji}~~"
-            await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
+        elif not is_ot_challenge_window and is_in_ot and ot_key in self.messages[id]:
+            self.log.info(f"OT Challenge Closed for {away}-{home}")
+            await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
-            for message_ids in self.messages[id][ot_key]["message_ids"]:
-                thread = self.bot.get_channel(message_ids[0]).get_thread(message_ids[1])
-                await thread.edit(name=f"🔒 {away}-{home} {self.messages['date'][2:]}", locked=True)
+        else:
+            self.log.info(f"Hit unexpected state in OT Challenge for {self.messages[id]}. is_ot_challenge_window={is_ot_challenge_window}, is_in_ot={is_in_ot}, gameState={play_by_play['gameState']}")
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -418,7 +438,7 @@ class Scoreboard(WesCog):
         await self.check_game_start(id, landing)
         await self.check_goals(id, landing)
         await self.check_disallowed_goals(id, landing)
-        await self.check_ot_challenge(id, landing)
+        await self.check_ot_challenge(id)
         await self.check_shootout(id, landing)
         if state in ["FINAL", "OFF"]:
             await self.check_final(id, landing)
@@ -572,13 +592,6 @@ class Scoreboard(WesCog):
 
 #endregion
 #region OT Challenge Slash Commands
-
-    @app_commands.command(name="ratelimittest")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def ratelimittest(self, interaction: discord.Interaction):
-        await interaction.channel.edit(name=f"{interaction.channel.name}.", locked=not interaction.channel.locked)
 
     @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
     @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
