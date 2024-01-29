@@ -249,7 +249,6 @@ class Scoreboard(WesCog):
 
                 highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
 
-                # TODO: Find better way to help with fudging this and move into helper method
                 # Compare goal_key to existing keys, and replace if it's just an existing one shifted by a few seconds
                 for t in range(time_in_seconds - 4, time_in_seconds + 5):
                     check_key = f"{t}"
@@ -360,7 +359,6 @@ class Scoreboard(WesCog):
     async def post_embed_to_debug(self, parent, key, title, link=None, desc=None, fields=[]):
         await self.post_embed(parent, key, title, desc, link, fields, True)
 
-    # TODO: Do something to stop from passing "parent" as a param. Probably just return the object and set it by the caller
     async def post_embed(self, parent, key, title, link=None, desc=None, fields=[], debug=False):
         if self.POST_ALL_TO_DEBUG:
             debug = True
@@ -414,14 +412,6 @@ class Scoreboard(WesCog):
             return
 
         landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
-
-        # This hack should prevent the goal from posting if the date has gone backwards
-        # NHL.com backslides sometimes right around the rollover time, probably due to
-        # site redundancy.
-        # TODO: This should be able to be removed because I now check this in get_games_for_today
-        if self.messages["date"] != landing["gameDate"]:
-            self.log.info(f"WRONG START DATE {self.scores_loop.current_loop} date: {landing['gameDate']}, stored: {self.messages['date']}")
-            return
 
         # Add all games to the messages list
         if id not in self.messages:
