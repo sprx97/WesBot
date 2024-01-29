@@ -67,10 +67,9 @@ class Scoreboard(WesCog):
             WriteJsonFile(messages_datafile, self.messages)
 
         async with self.ot_lock:
+            # TODO: check guesses vs game results and update otstandings
             self.ot_guesses = {}
             WriteJsonFile(ot_datafile, self.ot_guesses)
-
-        # TODO: Set all existing OTChallenge threads to locked=True and auto_archive_duration=60 
 
     # Helper function to get all of the game JSON objects for the current day
     # from the NHL.com api.
@@ -286,8 +285,6 @@ class Scoreboard(WesCog):
 
         # Open the OT Challenge or update the message if needed
         if is_ot_challenge_window:
-            self.log.info(f"OT Challenge is open for {away}-{home}")
-
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
             await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
@@ -295,15 +292,10 @@ class Scoreboard(WesCog):
             await self.update_ot_thread_state(id, f"⏳ {away}-{home} {self.messages['date'][2:]}", False, 1440)
         
         elif not is_ot_challenge_window and ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
-            self.log.info(f"OT Challenge Finished for {away}-{home}")
             await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
         elif not is_ot_challenge_window and is_in_ot and ot_key in self.messages[id]:
-            self.log.info(f"OT Challenge Closed for {away}-{home}")
             await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
-
-        else:
-            self.log.info(f"Hit unexpected state in OT Challenge for {self.messages[id]}. is_ot_challenge_window={is_ot_challenge_window}, is_in_ot={is_in_ot}, gameState={play_by_play['gameState']}")
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
