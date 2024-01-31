@@ -167,10 +167,10 @@ class Scoreboard(WesCog):
         if "periodDescriptor" not in play_by_play or "clock" not in play_by_play:
             return False
         
-        is_ot_period = play_by_play["periodDescriptor"]["periodType"] != "OT"
+        is_ot_period = play_by_play["periodDescriptor"]["periodType"] == "OT"
         is_intermission = play_by_play["clock"]["inIntermission"]
         is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3
-        
+
         if (is_intermission and is_ot_period) or is_near_end_of_third:
             return True
         
@@ -187,7 +187,7 @@ class Scoreboard(WesCog):
             # Create a thread if it doesn't exist already
             if not thread:
                 message = await self.bot.get_channel(channel).fetch_message(message)
-                thread = await message.create_thread(name=name, locked=locked, auto_archive_duration=auto_archive)
+                thread = await message.create_thread(name=name)
 
                 # TODO: Have a way to set and store an OT Challenge role for any server
                 if channel == OTH_TECH_CHANNEL_ID or channel == HOCKEY_GENERAL_CHANNEL_ID:

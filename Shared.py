@@ -232,7 +232,7 @@ def get_user_matchup_from_database(user, division=None):
 # Gets the JSON data from the given fleaflicker.com/api call
 def make_api_call(link):
     try:
-        with requests.get(link) as response:
+        with requests.get(link, headers={"Cache-Control": "no-cache, max-age=0", "Pragma": "no-cache"}) as response:
             data = response.json()
     except Exception:
         raise LinkError(link)
