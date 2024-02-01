@@ -33,7 +33,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(seconds=15)
     async def scores_loop(self):
         games = await self.get_games_for_today()
         for game in games:
@@ -58,6 +58,12 @@ class Scoreboard(WesCog):
 #endregion
 #region Date/Today Functions
 
+    async def do_ot_rollover(self):
+        async with self.ot_lock:
+            # TODO: check guesses vs game results and update otstandings
+            self.ot_guesses = {}
+            WriteJsonFile(ot_datafile, self.ot_guesses)
+
     # Rolls over the date in our messages_datafile to the next one.
     # This needs to be a function so we can await it and not spam all the messages from the previous day
     # after deleting them from the datafile.
@@ -66,10 +72,7 @@ class Scoreboard(WesCog):
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
-        async with self.ot_lock:
-            # TODO: check guesses vs game results and update otstandings
-            self.ot_guesses = {}
-            WriteJsonFile(ot_datafile, self.ot_guesses)
+        await self.do_ot_rollover()
 
     # Helper function to get all of the game JSON objects for the current day
     # from the NHL.com api.
@@ -159,9 +162,6 @@ class Scoreboard(WesCog):
 
     def is_ot_challenge_window(self, play_by_play):
         if play_by_play["gameState"] not in ["LIVE", "CRIT"]:
-            return False
-        
-        if play_by_play["homeTeam"]["score"] != play_by_play["awayTeam"]["score"]:
             return False
 
         if "periodDescriptor" not in play_by_play or "clock" not in play_by_play:
@@ -280,21 +280,28 @@ class Scoreboard(WesCog):
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(play_by_play)
 
         is_ot_challenge_window = self.is_ot_challenge_window(play_by_play)
-        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"] == "OT"
+        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"]
 
         # Open the OT Challenge or update the message if needed
-        if is_ot_challenge_window:
+        if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
             await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
 
+            self.messages[id][ot_key]["State"] = "Open"
             await self.update_ot_thread_state(id, f"⏳ {away}-{home} {self.messages['date'][2:]}", False, 1440)
         
         elif not is_ot_challenge_window and ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
+            # TODO: Post winners message to OT Challenge thread
+            self.messages[id][ot_key]["State"] = "Over"
             await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
         elif not is_ot_challenge_window and is_in_ot and ot_key in self.messages[id]:
+            self.messages[id][ot_key]["State"] = "Closed"
             await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
+
+        async with self.messages_lock:
+            WriteJsonFile(messages_datafile, self.messages)
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -456,6 +463,14 @@ class Scoreboard(WesCog):
             WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
 
         await interaction.response.send_message("Scoreboard disabled.")
+
+    @app_commands.command(name="ot_rollover_test", description="Temp function to test the OT rollover rapidly")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def ot_rollover_test(self, interaction: discord.Interaction):
+        await self.do_ot_rollover()
+        await interaction.response.send_message("Complete", ephemeral=True)
 
 #endregion
 #region Scoreboard Slash Commands
