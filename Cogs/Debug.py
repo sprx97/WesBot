@@ -84,9 +84,6 @@ class Debug(WesCog):
     for cog in all_cogs:
         cog_choices.append(discord.app_commands.Choice(name=cog, value=cog))
 
-    def is_bot_owner(interaction: discord.Interaction) -> bool:
-        return interaction.user.id == 228258453599027200 # My user ID
-
     @app_commands.command(name="kill", description="Shuts down a cog.")
     @app_commands.describe(cog="Which cog to shut down.")
     @app_commands.choices(cog=cog_choices)

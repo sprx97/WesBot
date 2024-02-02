@@ -309,3 +309,9 @@ def LoadJsonFile(file):
         raise DataFileNotFound(file)
 
 #endregion
+#region AppCommand Checks
+
+def is_bot_owner(interaction: discord.Interaction) -> bool:
+    return interaction.user.id == 228258453599027200 # My user ID
+
+#endregion

@@ -16,9 +16,8 @@ class Scoreboard(WesCog):
 
         self.media_link_base = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 
-        self.scoreboard_channel_ids = LoadJsonFile(channels_datafile)
+        self.channel_ids = LoadJsonFile(channels_datafile)
         self.debug_channel_ids = {"207634081700249601": 489882482838077451} # OldTimeHockey's #oth-tech channel
-        self.POST_ALL_TO_DEBUG = False # Manual override
 
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
@@ -367,9 +366,6 @@ class Scoreboard(WesCog):
         await self.post_embed(parent, key, title, desc, link, fields, True)
 
     async def post_embed(self, parent, key, title, link=None, desc=None, fields=[], debug=False):
-        if self.POST_ALL_TO_DEBUG:
-            debug = True
-
        # Add emoji to end of string to indicate a replay exists.
         if link != None:
             title += " :movie_camera:"
@@ -393,7 +389,7 @@ class Scoreboard(WesCog):
                 await msg.edit(embed=embed)
         else:
             post_type = "POSTING"
-            channels = self.scoreboard_channel_ids
+            channels = self.channel_ids["Scoreboard"]
             
             # Modify slightly for debug features
             if debug:
@@ -433,19 +429,19 @@ class Scoreboard(WesCog):
             await self.check_final(id, landing)
 
 #endregion
-#region Scoreboard Setup Slash Commands
+#region Scoreboard Slash Commands
 
     @app_commands.command(name="scores_start", description="Start the live scoreboard in this channel.")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def scores_start(self, interaction: discord.Interaction):
-        self.scoreboard_channel_ids[str(interaction.guild.id)] = interaction.channel.id
+        self.channel_ids["Scoreboard"][str(interaction.guild.id)] = interaction.channel.id
 
         async with self.channels_lock:
-            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
+            WriteJsonFile(channels_datafile, self.channel_ids)
 
-        await interaction.response.send_message("Scoreboard setup complete.")
+        await interaction.response.send_message("Scoreboard setup complete.", ephemeral=True)
 
     @app_commands.command(name="scores_stop", description="Stop the live scoreboard in this server.")
     @app_commands.guild_only()
@@ -453,27 +449,16 @@ class Scoreboard(WesCog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def scores_stop(self, interaction: discord.Interaction):
         id = str(interaction.guild_id)
-        if id not in self.scoreboard_channel_ids:
-            await interaction.response.send_message("Scoreboard is not active in this server.")
+        if id not in self.channel_ids["Scoreboard"]:
+            await interaction.response.send_message("Scoreboard is not active in this server.", ephemeral=True)
             return
         
-        self.scoreboard_channel_ids.pop(str(interaction.guild_id))
+        self.channel_ids["Scoreboard"].pop(str(interaction.guild_id))
 
         async with self.channels_lock:
-            WriteJsonFile(channels_datafile, self.scoreboard_channel_ids)
+            WriteJsonFile(channels_datafile, self.channel_ids)
 
-        await interaction.response.send_message("Scoreboard disabled.")
-
-    @app_commands.command(name="ot_rollover_test", description="Temp function to test the OT rollover rapidly")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def ot_rollover_test(self, interaction: discord.Interaction):
-        await self.do_ot_rollover()
-        await interaction.response.send_message("Complete", ephemeral=True)
-
-#endregion
-#region Scoreboard Slash Commands
+        await interaction.response.send_message("Scoreboard disabled.", ephemeral=True)
 
     # Helper function to parse a game JSON object into a score string
     # Works for games that haven't started, are in progress, or are finished
@@ -585,7 +570,7 @@ class Scoreboard(WesCog):
     @scoreboard.error
     @score.error
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        await interaction.response.send_message(f"{error}")
+        await interaction.response.send_message(f"{error}", ephemeral=True)
 
 #endregion
 #region OT Challenge Slash Commands
@@ -604,6 +589,7 @@ class Scoreboard(WesCog):
             await interaction.response.send_message(f"This is not a valid OT Challenge thread.", ephemeral=True)
             return
 
+        # TODO: More robust check with messages[id]["OT"]["State"]
         if interaction.channel.locked:
             await interaction.response.send_message(f"OT has started. No more guesses allowed.")
             return
@@ -666,6 +652,51 @@ class Scoreboard(WesCog):
         else:
             self.log.info(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
             await interaction.followup.send(f"Could not find player {player} on team {team}.")
+
+    @app_commands.command(name="ot_start", description="Start the ot challenge in this channel.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def ot_start(self, interaction: discord.Interaction):
+        self.channel_ids["OTChallenge"][str(interaction.guild.id)] = interaction.channel.id
+
+        async with self.channels_lock:
+            WriteJsonFile(channels_datafile, self.channel_ids)
+
+        await interaction.response.send_message("OT Challenge setup complete.", ephemeral=True)
+
+    @app_commands.command(name="ot_stop", description="Start the ot challenge in this channel.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def ot_stop(self, interaction: discord.Interaction):
+        id = str(interaction.guild_id)
+        if id not in self.channel_ids["OTChallenge"]:
+            await interaction.response.send_message("OT Challenge is not active in this server.", ephemeral=True)
+            return
+        
+        self.channel_ids["OTChallenge"].pop(str(interaction.guild_id))
+
+        async with self.channels_lock:
+            WriteJsonFile(channels_datafile, self.channel_ids)
+
+        await interaction.response.send_message("OT Challenge disabled.", ephemeral=True)
+
+    @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    @app_commands.checks.check(is_bot_owner)
+    async def ot_rollover(self, interaction: discord.Interaction):
+        await self.do_ot_rollover()
+        await interaction.response.send_message("Complete", ephemeral=True)
+
+    @ot.error
+    @ot_start.error
+    @ot_stop.error
+    @ot_rollover.error
+    async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        await interaction.response.send_message(f"{error}", ephemeral=True)
 
 #endregion
 
