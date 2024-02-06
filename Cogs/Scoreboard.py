@@ -436,7 +436,10 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def scores_start(self, interaction: discord.Interaction):
-        self.channel_ids["Scoreboard"][str(interaction.guild.id)] = interaction.channel.id
+        if "Scoreboard" not in self.channel_ids:
+            self.channel_ids["Scoreboard"] = {}
+
+        self.channel_ids["Scoreboard"][str(interaction.guild_id)] = interaction.channel.id
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
@@ -458,7 +461,7 @@ class Scoreboard(WesCog):
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
 
-        await interaction.response.send_message("Scoreboard disabled.", ephemeral=True)
+        await interaction.response.send_message("Scoreboard disabled. This will also disable OT Challenge until the scoreboard is re-enabled.", ephemeral=True)
 
     # Helper function to parse a game JSON object into a score string
     # Works for games that haven't started, are in progress, or are finished
@@ -584,14 +587,13 @@ class Scoreboard(WesCog):
         team = team.upper().strip()
         player = player.strip()
 
-        # TODO: Update with a permanent OT Challenge Channel list
-        if not isinstance(interaction.channel, discord.Thread) or interaction.channel.parent_id != OTH_TECH_CHANNEL_ID:
-            await interaction.response.send_message(f"This is not a valid OT Challenge thread.", ephemeral=True)
+        if interaction.guild_id not in self.channel_ids["OTChallenge"]:
+            await interaction.response.send_message(f"OT Challenge is not enabled for this server.", ephemeral=True)
             return
 
-        # TODO: More robust check with messages[id]["OT"]["State"]
-        if interaction.channel.locked:
-            await interaction.response.send_message(f"OT has started. No more guesses allowed.")
+        # The last condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
+        if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
+            await interaction.response.send_message(f"This is not a valid OT Challenge thread.", ephemeral=True)
             return
 
         if team not in interaction.channel.name[:10]:
@@ -599,6 +601,11 @@ class Scoreboard(WesCog):
             return
 
         await interaction.response.defer(thinking=True)
+
+        # TODO: More robust check with messages[id]["OT"]["State"]
+        if interaction.channel.locked:
+            await interaction.followup.send(f"OT has started. No more guesses allowed.")
+            return
 
         # Get correct game_id from messages
         game_id = None
@@ -653,29 +660,32 @@ class Scoreboard(WesCog):
             self.log.info(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
             await interaction.followup.send(f"Could not find player {player} on team {team}.")
 
-    @app_commands.command(name="ot_start", description="Start the ot challenge in this channel.")
+    @app_commands.command(name="ot_start", description="Start the ot challenge in the Scoreboard channel.")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def ot_start(self, interaction: discord.Interaction):
-        self.channel_ids["OTChallenge"][str(interaction.guild.id)] = interaction.channel.id
+        if "OTChallenge" not in self.channel_ids:
+            self.channel_ids["OTChallenge"] = []
+
+        self.channel_ids["OTChallenge"].append(interaction.guild.id)
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
 
-        await interaction.response.send_message("OT Challenge setup complete.", ephemeral=True)
+        await interaction.response.send_message("OT Challenge setup complete. It will use whichever channel the scoreboard does.", ephemeral=True)
 
     @app_commands.command(name="ot_stop", description="Start the ot challenge in this channel.")
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def ot_stop(self, interaction: discord.Interaction):
-        id = str(interaction.guild_id)
+        id = interaction.guild_id
         if id not in self.channel_ids["OTChallenge"]:
             await interaction.response.send_message("OT Challenge is not active in this server.", ephemeral=True)
             return
         
-        self.channel_ids["OTChallenge"].pop(str(interaction.guild_id))
+        self.channel_ids["OTChallenge"].remove(id)
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
