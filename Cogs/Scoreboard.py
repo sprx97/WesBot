@@ -279,7 +279,7 @@ class Scoreboard(WesCog):
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(play_by_play)
 
         is_ot_challenge_window = self.is_ot_challenge_window(play_by_play)
-        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"]
+        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"] == "OT"
 
         # Open the OT Challenge or update the message if needed
         if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
