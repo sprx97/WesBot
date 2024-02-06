@@ -427,6 +427,7 @@ class Scoreboard(WesCog):
             
             for channel in get_channels_from_ids(self.bot, channels):
                 # Skip the OT Challenge if it isn't enabled for this server
+                # TODO: This is super hacky. Maybe don't have OTChallenge as an opt-in feature once it's fully tested?
                 if key == "OT" and channel.guild.id not in self.channel_ids["OTChallenge"]:
                     continue
 
