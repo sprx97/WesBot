@@ -322,22 +322,14 @@ class Scoreboard(WesCog):
         if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji}{away} - {home} {home_emoji}is now open ({time_remaining})"
-            await self.post_embed_to_debug(self.messages[id], ot_key, ot_string)
-
-            self.messages[id][ot_key]["State"] = "Open"
+            await self.post_embed(self.messages[id], ot_key, ot_string)
             await self.update_ot_thread_state(id, f"⏳ {away}-{home} {self.messages['date'][2:]}", False, 1440)
-        
+
         elif ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
-            # TODO: Post winners message to OT Challenge thread
-            self.messages[id][ot_key]["State"] = "Over"
             await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
         elif ot_key in self.messages[id] and not is_ot_challenge_window and is_in_ot:
-            self.messages[id][ot_key]["State"] = "Closed"
             await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
-
-        async with self.messages_lock:
-            WriteJsonFile(messages_datafile, self.messages)
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -434,6 +426,10 @@ class Scoreboard(WesCog):
                 post_type += "_DEBUG"
             
             for channel in get_channels_from_ids(self.bot, channels):
+                # Skip the OT Challenge if it isn't enabled for this server
+                if key == "OT" and channel.guild.id not in self.channel_ids["OTChallenge"]:
+                    continue
+
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append([msg.channel.id, msg.id])
 
@@ -639,7 +635,6 @@ class Scoreboard(WesCog):
 
         await interaction.response.defer(thinking=True)
 
-        # TODO: More robust check with messages[id]["OT"]["State"]
         if interaction.channel.locked:
             await interaction.followup.send(f"OT has started. No more guesses allowed.")
             return
@@ -746,12 +741,12 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def ot_stop(self, interaction: discord.Interaction):
-        id = interaction.guild_id
-        if id not in self.channel_ids["OTChallenge"]:
+        guild_id = interaction.guild_id
+        if guild_id not in self.channel_ids["OTChallenge"]:
             await interaction.response.send_message("OT Challenge is not active in this server.", ephemeral=True)
             return
         
-        self.channel_ids["OTChallenge"].remove(id)
+        self.channel_ids["OTChallenge"].remove(guild_id)
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
