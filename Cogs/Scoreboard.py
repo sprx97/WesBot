@@ -87,15 +87,12 @@ class Scoreboard(WesCog):
                         
                         # Add the user to the guild's standings if they don't exist
                         if user_id not in ot_standings[guild_id]:
-                            ot_standings[guild_id][user_id] = {"guesses": 0, "correct": 0, "streak": 0}
+                            ot_standings[guild_id][user_id] = {"guesses": 0, "correct": 0}
 
                         # Update the user's stats
                         ot_standings[guild_id][user_id]["guesses"] += 1
                         if self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer:
                             ot_standings[guild_id][user_id]["correct"] += 1
-                            ot_standings[guild_id][user_id]["streak"] += 1
-                        else:
-                            ot_standings[guild_id][user_id]["streak"] = 0
 
                         self.log.info(f"{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
                 WriteJsonFile(otstandings_datafile, ot_standings)
@@ -699,6 +696,35 @@ class Scoreboard(WesCog):
         else:
             self.log.info(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
             await interaction.followup.send(f"Could not find player {player} on team {team}.")
+
+    @app_commands.command(name="ot_standings", description="Check the OT Challenge standings for this server.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def ot_standings(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+
+        if interaction.guild_id not in self.channel_ids["OTChallenge"]:
+            await interaction.followup.send(f"OT Challenge is not enabled for this server.", ephemeral=True)
+            return
+
+        async with self.ot_lock:
+            ot_standings = LoadJsonFile(otstandings_datafile)
+
+        if str(interaction.guild_id) not in ot_standings:
+            await interaction.followup.send("No standings found for this server.", ephemeral=True)
+            return
+
+        message = "User " + "\u2002"*18 + ":white_check_mark:" + "\u2002"*3 + "Tot\n```"
+
+        standings = sorted(ot_standings[str(interaction.guild_id)].items(), key=lambda x:x[1]["correct"], reverse=True)
+        for user in standings:
+            user_name = self.bot.get_user(int(user[0])).display_name
+            message += "{:<15} {:>4} {:>4}\n".format(user_name, user[1]["correct"], user[1]["guesses"])
+
+        message += "```"
+        embed = discord.Embed(title="OT Challenge Standings", description=message)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="ot_start", description="Start the ot challenge in the Scoreboard channel.")
     @app_commands.guild_only()
