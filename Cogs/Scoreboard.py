@@ -59,7 +59,31 @@ class Scoreboard(WesCog):
 
     async def do_ot_rollover(self):
         async with self.ot_lock:
-            # TODO: check guesses vs game results and update otstandings
+            for game_id in self.ot_guesses:
+                landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
+
+                if landing["gameState"] != "OFF":
+                    self.log.error(f"Game state not final for {game_id}. Something is wrong.")
+                    continue
+
+                final_period = landing["summary"]["scoring"][-1]
+
+                if final_period["periodDescriptor"]["periodType"] != "OT":
+                    self.log.info(f"Game {game_id} did not end via Overtime.")
+                    continue
+
+                if len(final_period["goals"]) != 1:
+                    self.log.error(f"Game {game_id} apparently ended in OT but has more than one goal. Something is wrong.")
+                    continue
+
+                gwg_scorer = final_period["goals"][0]["playerId"] # Could get firstName and lastName too for reporting
+
+                # TODO: Read otstandings.json
+                for guild_id in self.ot_guesses[game_id]:
+                    for user_id in self.ot_guesses[game_id][guild_id]:
+                        self.log.info(f"{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
+                # TODO: Write otstandings.json
+
             self.ot_guesses = {}
             WriteJsonFile(ot_datafile, self.ot_guesses)
 
