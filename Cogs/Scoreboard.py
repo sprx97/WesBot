@@ -314,7 +314,7 @@ class Scoreboard(WesCog):
             self.messages[id][ot_key]["State"] = "Open"
             await self.update_ot_thread_state(id, f"⏳ {away}-{home} {self.messages['date'][2:]}", False, 1440)
         
-        elif not is_ot_challenge_window and ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
+        elif ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
             # TODO: Post winners message to OT Challenge thread
             self.messages[id][ot_key]["State"] = "Over"
             await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
