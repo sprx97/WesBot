@@ -78,11 +78,27 @@ class Scoreboard(WesCog):
 
                 gwg_scorer = final_period["goals"][0]["playerId"] # Could get firstName and lastName too for reporting
 
-                # TODO: Read otstandings.json
+                ot_standings = LoadJsonFile(otstandings_datafile)
                 for guild_id in self.ot_guesses[game_id]:
                     for user_id in self.ot_guesses[game_id][guild_id]:
+                        # Add the guild to standings if it doesn't exist
+                        if guild_id not in ot_standings:
+                            ot_standings[guild_id] = {}
+                        
+                        # Add the user to the guild's standings if they don't exist
+                        if user_id not in ot_standings[guild_id]:
+                            ot_standings[guild_id][user_id] = {"guesses": 0, "correct": 0, "streak": 0}
+
+                        # Update the user's stats
+                        ot_standings[guild_id][user_id]["guesses"] += 1
+                        if self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer:
+                            ot_standings[guild_id][user_id]["correct"] += 1
+                            ot_standings[guild_id][user_id]["streak"] += 1
+                        else:
+                            ot_standings[guild_id][user_id]["streak"] = 0
+
                         self.log.info(f"{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
-                # TODO: Write otstandings.json
+                WriteJsonFile(otstandings_datafile, ot_standings)
 
             self.ot_guesses = {}
             WriteJsonFile(ot_datafile, self.ot_guesses)
