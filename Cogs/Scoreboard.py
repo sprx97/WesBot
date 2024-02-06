@@ -319,7 +319,7 @@ class Scoreboard(WesCog):
             self.messages[id][ot_key]["State"] = "Over"
             await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
-        elif not is_ot_challenge_window and is_in_ot and ot_key in self.messages[id]:
+        elif ot_key in self.messages[id] and not is_ot_challenge_window and is_in_ot:
             self.messages[id][ot_key]["State"] = "Closed"
             await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
