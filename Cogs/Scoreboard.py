@@ -84,7 +84,7 @@ class Scoreboard(WesCog):
                         # Add the guild to standings if it doesn't exist
                         if guild_id not in ot_standings:
                             ot_standings[guild_id] = {}
-                        
+
                         # Add the user to the guild's standings if they don't exist
                         if user_id not in ot_standings[guild_id]:
                             ot_standings[guild_id][user_id] = {"guesses": 0, "correct": 0}
@@ -123,7 +123,7 @@ class Scoreboard(WesCog):
             await self.do_date_rollover(date)
             self.log.info(f"Date after date rollover: {self.messages['date']}")
             return []
-        
+
         # This hack should prevent the goal from posting if the date has gone backwards
         # NHL.com backslides sometimes right around the rollover time, probably due to
         # site redundancy.
@@ -202,16 +202,16 @@ class Scoreboard(WesCog):
 
         if "periodDescriptor" not in play_by_play or "clock" not in play_by_play:
             return False
-        
+
         is_ot_period = play_by_play["periodDescriptor"]["periodType"] == "OT"
         is_intermission = play_by_play["clock"]["inIntermission"]
         is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3 and not is_intermission
 
         if (is_intermission and is_ot_period) or is_near_end_of_third:
             return True
-        
+
         return False
-    
+
     async def update_ot_thread_state(self, id, name, locked, auto_archive):
         # Create the thread if necessary
         for message_id in self.messages[id]["OT"]["message_ids"]:
@@ -232,7 +232,7 @@ class Scoreboard(WesCog):
             # Nothing to update if the thread name is identical to what we already have!
             if thread.name == name:
                 return
-            
+
             await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
 
 #endregion
@@ -305,7 +305,7 @@ class Scoreboard(WesCog):
         for logged_key, logged_value in self.messages[id]["Goals"].items():
             if logged_value["content"]["title"][0] == "~" or self.goal_found_in_summary(logged_key, landing["summary"]["scoring"]):
                 continue # Goal still exists or is already disallowed, we're good!
-            
+
             # If we get here, we want to cross out that goal key and change it to a *D key
             await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
 
@@ -364,7 +364,7 @@ class Scoreboard(WesCog):
         end_key = "End"
         if end_key in self.messages[id] and self.messages[id][end_key]["content"]["url"] != None:
             return
-        
+
         linescore = landing["summary"]["linescore"]
 
         away_score = linescore["totals"]["away"]
@@ -419,12 +419,12 @@ class Scoreboard(WesCog):
         else:
             post_type = "POSTING"
             channels = self.channel_ids["Scoreboard"]
-            
+
             # Modify slightly for debug features
             if debug:
                 channels = self.debug_channel_ids
                 post_type += "_DEBUG"
-            
+
             for channel in get_channels_from_ids(self.bot, channels):
                 # Skip the OT Challenge if it isn't enabled for this server
                 # TODO: This is super hacky. Maybe don't have OTChallenge as an opt-in feature once it's fully tested?
@@ -489,7 +489,7 @@ class Scoreboard(WesCog):
         if id not in self.channel_ids["Scoreboard"]:
             await interaction.response.send_message("Scoreboard is not active in this server.", ephemeral=True)
             return
-        
+
         self.channel_ids["Scoreboard"].pop(str(interaction.guild_id))
 
         async with self.channels_lock:
@@ -662,7 +662,7 @@ class Scoreboard(WesCog):
         else:
             await interaction.followup.send(f"Trouble finding team {team} in play-by-play. This should not happen.")
             return
-        
+
         # Loop through the rosters in the play-by-play
         player_name = player_num = None
         try:
@@ -711,7 +711,7 @@ class Scoreboard(WesCog):
             await interaction.followup.send("No standings found for this server.", ephemeral=True)
             return
 
-        message = "User " + "\u2002"*18 + ":white_check_mark:" + "\u2002"*3 + "Tot\n```"
+        message = "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
 
         standings = sorted(ot_standings[str(interaction.guild_id)].items(), key=lambda x:x[1]["correct"], reverse=True)
         for user in standings:
@@ -746,7 +746,7 @@ class Scoreboard(WesCog):
         if guild_id not in self.channel_ids["OTChallenge"]:
             await interaction.response.send_message("OT Challenge is not active in this server.", ephemeral=True)
             return
-        
+
         self.channel_ids["OTChallenge"].remove(guild_id)
 
         async with self.channels_lock:
