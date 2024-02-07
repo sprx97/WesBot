@@ -205,7 +205,7 @@ class Scoreboard(WesCog):
         
         is_ot_period = play_by_play["periodDescriptor"]["periodType"] == "OT"
         is_intermission = play_by_play["clock"]["inIntermission"]
-        is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3
+        is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3 and not is_intermission
 
         if (is_intermission and is_ot_period) or is_near_end_of_third:
             return True
