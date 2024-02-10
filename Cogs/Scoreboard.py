@@ -58,22 +58,27 @@ class Scoreboard(WesCog):
 #region Date/Today Functions
 
     async def do_ot_rollover(self):
+        has_errors = False
         async with self.ot_lock:
-            for game_id in self.ot_guesses:
+            ot_games = list(self.ot_guesses.keys())
+            for game_id in ot_games:
                 landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
 
                 if landing["gameState"] != "OFF":
                     self.log.error(f"Game state not final for {game_id}. Something is wrong.")
+                    has_errors = True
                     continue
 
                 final_period = landing["summary"]["scoring"][-1]
 
                 if final_period["periodDescriptor"]["periodType"] != "OT":
                     self.log.info(f"Game {game_id} did not end via Overtime.")
+                    del self.ot_guesses[game_id]
                     continue
 
                 if len(final_period["goals"]) != 1:
                     self.log.error(f"Game {game_id} apparently ended in OT but has more than one goal. Something is wrong.")
+                    has_errors = True
                     continue
 
                 gwg_scorer = final_period["goals"][0]["playerId"] # Could get firstName and lastName too for reporting
@@ -96,9 +101,13 @@ class Scoreboard(WesCog):
 
                         self.log.info(f"{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
                 WriteJsonFile(otstandings_datafile, ot_standings)
+                del self.ot_guesses[game_id]
 
-            self.ot_guesses = {}
             WriteJsonFile(ot_datafile, self.ot_guesses)
+
+        if has_errors:
+            channel = self.bot.get_channel(OTH_TECH_CHANNEL_ID)
+            await channel.send(f"<@{SPRX_USER_ID}> Error in OT Rollover. Check logs.")
 
     # Rolls over the date in our messages_datafile to the next one.
     # This needs to be a function so we can await it and not spam all the messages from the previous day
@@ -713,7 +722,7 @@ class Scoreboard(WesCog):
 
         message = "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
 
-        standings = sorted(ot_standings[str(interaction.guild_id)].items(), key=lambda x:x[1]["correct"], reverse=True)
+        standings = sorted(ot_standings[str(interaction.guild_id)].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
         for user in standings:
             user_name = self.bot.get_user(int(user[0])).display_name
             message += "{:<15} {:>4} {:>4}\n".format(user_name, user[1]["correct"], user[1]["guesses"])
