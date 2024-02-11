@@ -427,7 +427,7 @@ class Scoreboard(WesCog):
                 await msg.edit(embed=embed)
         else:
             post_type = "POSTING"
-            channels = self.channel_ids["Scoreboard"]
+            channels = self.channel_ids
 
             # Modify slightly for debug features
             if debug:
@@ -435,11 +435,6 @@ class Scoreboard(WesCog):
                 post_type += "_DEBUG"
 
             for channel in get_channels_from_ids(self.bot, channels):
-                # Skip the OT Challenge if it isn't enabled for this server
-                # TODO: This is super hacky. Maybe don't have OTChallenge as an opt-in feature once it's fully tested?
-                if key == "OT" and channel.guild.id not in self.channel_ids["OTChallenge"]:
-                    continue
-
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append([msg.channel.id, msg.id])
 
@@ -479,10 +474,7 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.has_permissions(manage_guild=True)
     async def scores_start(self, interaction: discord.Interaction):
-        if "Scoreboard" not in self.channel_ids:
-            self.channel_ids["Scoreboard"] = {}
-
-        self.channel_ids["Scoreboard"][str(interaction.guild_id)] = interaction.channel.id
+        self.channel_ids[str(interaction.guild_id)] = interaction.channel.id
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
@@ -495,11 +487,11 @@ class Scoreboard(WesCog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def scores_stop(self, interaction: discord.Interaction):
         id = str(interaction.guild_id)
-        if id not in self.channel_ids["Scoreboard"]:
+        if id not in self.channel_ids:
             await interaction.response.send_message("Scoreboard is not active in this server.", ephemeral=True)
             return
 
-        self.channel_ids["Scoreboard"].pop(str(interaction.guild_id))
+        self.channel_ids.pop(str(interaction.guild_id))
 
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
@@ -629,10 +621,6 @@ class Scoreboard(WesCog):
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
         await interaction.response.defer(thinking=True)
 
-        if interaction.guild_id not in self.channel_ids["OTChallenge"]:
-            await interaction.followup.send(f"OT Challenge is not enabled for this server.")
-            return
-
         # Ensure this message was sent in an OT Challenge Thread
         # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
         if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
@@ -714,10 +702,6 @@ class Scoreboard(WesCog):
     async def ot_standings(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
 
-        if interaction.guild_id not in self.channel_ids["OTChallenge"]:
-            await interaction.followup.send(f"OT Challenge is not enabled for this server.", ephemeral=True)
-            return
-
         async with self.ot_lock:
             ot_standings = LoadJsonFile(otstandings_datafile)
 
@@ -736,37 +720,17 @@ class Scoreboard(WesCog):
         embed = discord.Embed(title="OT Challenge Standings", description=message)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="ot_start", description="Start the ot challenge in the Scoreboard channel.")
+    @app_commands.command(name="ot_subscribe", description="Request a special role to be notified when each OT Challenge starts.")
     @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def ot_start(self, interaction: discord.Interaction):
-        if "OTChallenge" not in self.channel_ids:
-            self.channel_ids["OTChallenge"] = []
-
-        self.channel_ids["OTChallenge"].append(interaction.guild.id)
-
-        async with self.channels_lock:
-            WriteJsonFile(channels_datafile, self.channel_ids)
-
-        await interaction.response.send_message("OT Challenge setup complete. It will use whichever channel the scoreboard does.", ephemeral=True)
-
-    @app_commands.command(name="ot_stop", description="Start the ot challenge in this channel.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def ot_stop(self, interaction: discord.Interaction):
-        guild_id = interaction.guild_id
-        if guild_id not in self.channel_ids["OTChallenge"]:
-            await interaction.response.send_message("OT Challenge is not active in this server.", ephemeral=True)
-            return
-
-        self.channel_ids["OTChallenge"].remove(guild_id)
-
-        async with self.channels_lock:
-            WriteJsonFile(channels_datafile, self.channel_ids)
-
-        await interaction.response.send_message("OT Challenge disabled.", ephemeral=True)
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def ot_subscribe(self, interaction: discord.Interaction):
+        # Get the guild id
+        # Check if ot_standings[guild_id]["role"] exists
+        # If it doesn't, create a new role
+        # Add the role to the user
+        
+        pass
 
     @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
     @app_commands.guild_only()
@@ -778,9 +742,9 @@ class Scoreboard(WesCog):
         await interaction.response.send_message("Complete", ephemeral=True)
 
     @ot.error
-    @ot_start.error
-    @ot_stop.error
+    @ot_standings.error
     @ot_rollover.error
+    @ot_subscribe.error
     async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}", ephemeral=True)
 
