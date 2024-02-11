@@ -234,9 +234,14 @@ class Scoreboard(WesCog):
                 message = await self.bot.get_channel(channel).fetch_message(message)
                 thread = await message.create_thread(name=name)
 
-                # TODO: Have a way to set and store an OT Challenge role for any server
-                if channel == OTH_TECH_CHANNEL_ID or channel == HOCKEY_GENERAL_CHANNEL_ID:
-                    await thread.send(f"<@&{OTH_OT_CHALLENGE_ROLE_ID}> use /ot followed by a player full name, last name, or number to guess.")
+                intro = f"""Welcome to OT Challenge v2!\n
+                            Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n
+                            /ot_standings in any channel will display the scoreboard for this server.
+                            Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n"""
+                # Get this server's OT Challenge role ID from ot_standings and tag it
+                # if channel == OTH_TECH_CHANNEL_ID or channel == HOCKEY_GENERAL_CHANNEL_ID:
+                #     intro += f"<@&{OTH_OT_CHALLENGE_ROLE_ID}>"
+                await thread.send(intro)
 
             # Nothing to update if the thread name is identical to what we already have!
             if thread.name == name:
@@ -435,6 +440,10 @@ class Scoreboard(WesCog):
                 post_type += "_DEBUG"
 
             for channel in get_channels_from_ids(self.bot, channels):
+                # TODO: Remove this when enabling for other servers
+                if key == "OT" and channel.guild.id != OTH_GUILD_ID:
+                    continue
+
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append([msg.channel.id, msg.id])
 
@@ -621,6 +630,11 @@ class Scoreboard(WesCog):
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
         await interaction.response.defer(thinking=True)
 
+        # TODO: Remove when enabling for other servers
+        if interaction.guild.id != OTH_GUILD_ID:
+            await interaction.followup.send(f"OT Challenge is not yet available in this server. Check back soon.")
+            return
+
         # Ensure this message was sent in an OT Challenge Thread
         # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
         if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
@@ -725,12 +739,39 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def ot_subscribe(self, interaction: discord.Interaction):
-        # Get the guild id
-        # Check if ot_standings[guild_id]["role"] exists
-        # If it doesn't, create a new role
-        # Add the role to the user
-        
-        pass
+        await interaction.response.defer(thinking=True)
+
+        # TODO: Remove when enabling for other servers
+        if interaction.guild.id != OTH_GUILD_ID:
+            await interaction.followup.send(f"OT Challenge is not yet available in this server. Check back soon.")
+            return
+
+        async with self.ot_lock:
+            ot_standings = LoadJsonFile(otstandings_datafile)
+
+            guild_id = str(interaction.guild_id)
+            if guild_id not in ot_standings:
+                ot_standings[guild_id] = {}
+
+            # Check if ot_standings[guild_id]["role"] exists, and create a role if necessary
+            otc_role = None
+            if "role" in ot_standings[guild_id]:
+                otc_role = interaction.guild.get_role(ot_standings[guild_id]["role"])
+
+            # Create a new role if necessary
+            if otc_role == None:
+                otc_role = await interaction.guild.create_role(name="OT Challenge", mentionable=True)
+                ot_standings[guild_id]["role"] = otc_role.id
+                WriteJsonFile(otstandings_datafile, ot_standings)
+
+            # If we still don't have a role, abort
+            if otc_role == None:
+                await interaction.followup.send("Error creating/finding OT Challenge role. Please contact the bot owner or try again later.")
+                return
+
+            # Assign the role to the user that sent this message
+            await interaction.user.add_roles(otc_role)
+            await interaction.followup.send(f"Successfully added role {otc_role.name} to {interaction.user.display_name}.")
 
     @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
     @app_commands.guild_only()
@@ -743,8 +784,8 @@ class Scoreboard(WesCog):
 
     @ot.error
     @ot_standings.error
-    @ot_rollover.error
     @ot_subscribe.error
+    @ot_rollover.error
     async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}", ephemeral=True)
 
