@@ -234,13 +234,21 @@ class Scoreboard(WesCog):
                 message = await self.bot.get_channel(channel).fetch_message(message)
                 thread = await message.create_thread(name=name)
 
-                intro = f"""Welcome to OT Challenge v2!\n
+                intro = f"""Welcome to OT Challenge v2 (beta)!\n\n
                             Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n
-                            /ot_standings in any channel will display the scoreboard for this server.
-                            Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n"""
-                # Get this server's OT Challenge role ID from ot_standings and tag it
-                # if channel == OTH_TECH_CHANNEL_ID or channel == HOCKEY_GENERAL_CHANNEL_ID:
-                #     intro += f"<@&{OTH_OT_CHALLENGE_ROLE_ID}>"
+                            Use /ot_standings in any channel to display the scoreboard for this server.\n
+                            Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n
+                            Contact SPRX with any bugs or suggestions.\n"""
+                try:
+                    async with self.ot_lock:
+                        ot_standings = LoadJsonFile(otstandings_datafile)
+                        guild_id = str(thread.guild.id)
+                        if guild_id in ot_standings and "role" in ot_standings[guild_id]:
+                            intro += f"<@&{ot_standings[guild_id]['role']}>"
+                except:
+                    self.log.error("Error getting role for OT Challenge intro message.")
+                    pass
+
                 await thread.send(intro)
 
             # Nothing to update if the thread name is identical to what we already have!
