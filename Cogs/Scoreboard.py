@@ -627,23 +627,28 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
-        team = team.upper().strip()
-        player = player.strip()
+        await interaction.response.defer(thinking=True)
 
         if interaction.guild_id not in self.channel_ids["OTChallenge"]:
-            await interaction.response.send_message(f"OT Challenge is not enabled for this server.", ephemeral=True)
+            await interaction.followup.send(f"OT Challenge is not enabled for this server.")
             return
 
-        # The last condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
+        # Ensure this message was sent in an OT Challenge Thread
+        # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
         if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
-            await interaction.response.send_message(f"This is not a valid OT Challenge thread.", ephemeral=True)
+            await interaction.followup.send(f"This is not a valid OT Challenge thread.")
             return
+
+        # Check that the team is valid
+        team = team.lower().strip()
+        if team not in team_map.keys():
+            await interaction.followup.send(f"{team} is not a valid team.")
+            return
+        team = team_map[team]
 
         if team not in interaction.channel.name[:10]:
-            await interaction.response.send_message(f"Team {team} is not in this game.",  ephemeral=True)
+            await interaction.followup.send(f"Team {team} is not in this game.")
             return
-
-        await interaction.response.defer(thinking=True)
 
         if interaction.channel.locked:
             await interaction.followup.send(f"OT has started. No more guesses allowed.")
@@ -677,7 +682,7 @@ class Scoreboard(WesCog):
         try:
             player_num = int(player)
         except:
-            player_name = player.lower()
+            player_name = player.lower().strip()
 
         found = False
         for roster_player in play_by_play["rosterSpots"]:
@@ -724,7 +729,7 @@ class Scoreboard(WesCog):
 
         standings = sorted(ot_standings[str(interaction.guild_id)].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
         for user in standings:
-            user_name = self.bot.get_user(int(user[0])).display_name
+            user_name = self.bot.get_user(int(user[0])).display_name[:14]
             message += "{:<15} {:>4} {:>4}\n".format(user_name, user[1]["correct"], user[1]["guesses"])
 
         message += "```"
