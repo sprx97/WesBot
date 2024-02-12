@@ -445,10 +445,6 @@ class Scoreboard(WesCog):
                 post_type += "_DEBUG"
 
             for channel in get_channels_from_ids(self.bot, channels):
-                # TODO: Remove this when enabling for other servers
-                if key == "OT" and channel.guild.id != OTH_GUILD_ID:
-                    continue
-
                 msg = await channel.send(embed=embed)
                 embed_dict["message_ids"].append([msg.channel.id, msg.id])
 
@@ -635,11 +631,6 @@ class Scoreboard(WesCog):
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
         await interaction.response.defer(thinking=True)
 
-        # TODO: Remove when enabling for other servers
-        if interaction.guild.id != OTH_GUILD_ID:
-            await interaction.followup.send(f"OT Challenge is not yet available in this server. Check back soon.")
-            return
-
         # Ensure this message was sent in an OT Challenge Thread
         # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
         if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
@@ -742,16 +733,16 @@ class Scoreboard(WesCog):
         embed = discord.Embed(title="OT Challenge Standings", description=message)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="ot_subscribe", description="Request a special role to be notified when each OT Challenge starts.")
+    @app_commands.command(name="ot_subscribe", description="Add or remove the role to be notified when each OT Challenge starts.")
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def ot_subscribe(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
 
         # TODO: Remove when enabling for other servers
         if interaction.guild.id != OTH_GUILD_ID:
-            await interaction.followup.send(f"OT Challenge is not yet available in this server. Check back soon.")
+            await interaction.followup.send(f"OT Subscribe is not yet available in this server. Check back soon.")
             return
 
         async with self.ot_lock:
@@ -777,9 +768,13 @@ class Scoreboard(WesCog):
                 await interaction.followup.send("Error creating/finding OT Challenge role. Please contact the bot owner or try again later.")
                 return
 
-            # Assign the role to the user that sent this message
-            await interaction.user.add_roles(otc_role)
-            await interaction.followup.send(f"Successfully added role {otc_role.name} to {interaction.user.display_name}.")
+            # Toggle the role on the user that sent this message
+            if interaction.user.get_role(otc_role.id):
+                await interaction.user.remove_roles(otc_role)
+                await interaction.followup.send(f"{interaction.user.display_name} unsubscribed from OT Challenge.")
+            else:
+                await interaction.user.add_roles(otc_role)
+                await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
 
     @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
     @app_commands.guild_only()
@@ -787,15 +782,16 @@ class Scoreboard(WesCog):
     @app_commands.checks.has_permissions(manage_guild=True)
     @app_commands.checks.check(is_bot_owner)
     async def ot_rollover(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True, ephemeral=True)
         await self.do_ot_rollover()
-        await interaction.response.send_message("Complete", ephemeral=True)
+        await interaction.followup.send("Complete")
 
     @ot.error
     @ot_standings.error
     @ot_subscribe.error
     @ot_rollover.error
     async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        await interaction.response.send_message(f"{error}", ephemeral=True)
+        await interaction.followup.send(f"{error}")
 
 #endregion
 
