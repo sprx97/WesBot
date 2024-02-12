@@ -727,13 +727,16 @@ class Scoreboard(WesCog):
         async with self.ot_lock:
             ot_standings = LoadJsonFile(otstandings_datafile)
 
-        if str(interaction.guild_id) not in ot_standings:
+        guild_id = str(interaction.guild_id)
+        if guild_id not in ot_standings:
             await interaction.followup.send("No standings found for this server.", ephemeral=True)
             return
 
         message = "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
 
-        standings = sorted(ot_standings[str(interaction.guild_id)].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
+        if "role" in ot_standings[guild_id]:
+            del ot_standings[guild_id]["role"]
+        standings = sorted(ot_standings[guild_id].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
         for user in standings:
             user_name = self.bot.get_user(int(user[0])).display_name[:14]
             message += "{:<15} {:>4} {:>4}\n".format(user_name, user[1]["correct"], user[1]["guesses"])
