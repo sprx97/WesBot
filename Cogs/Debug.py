@@ -118,10 +118,10 @@ class Debug(WesCog):
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.check(is_bot_owner)
     async def reload(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
+        await interaction.response.defer(thinking=True, ephemeral=True)
+
         if not await self.bot.is_owner(interaction.user):
             raise Exception("This command can only be run by the bot owner.")
-
-        await interaction.response.defer(ephemeral=False, thinking=True)
 
         importlib.reload(Shared)
 
@@ -136,7 +136,7 @@ class Debug(WesCog):
 
     @reload.error
     async def reload_error(self, interaction, error):
-        await interaction.response.send_message(f"Failure in reload: {error}", ephemeral=True)
+        await interaction.followup.send(f"Failure in reload: {error}")
 
     @app_commands.command(name="log", description="Displays recent lines in the log file for a cog.")
     @app_commands.describe(cog="Which log to view.", num_lines="How many lines to display.")
