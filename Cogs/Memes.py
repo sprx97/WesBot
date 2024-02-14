@@ -55,6 +55,8 @@ class Memes(WesCog):
                      "mean I'm going to do it. Being a keyboard tough guy making smart ass remarks doesn't " + \
                      "make you funny or clever, just a coward hiding behind a computer"],
         "tuukka": ["https://media.discordapp.net/attachments/507616755510673409/933173217781219338/unknown.gif"],
+        "woppa": ["🎺 🛡️ All hail His Grace, Woppa of House Relegation, Last in his Division, King of the Subpar Draft and the Worst D-Men, " + \
+                  "Scrublord of the Sixteen Leagues, and Protector of the Past Accomplishments."]
         "xfactor": ["I have studied tapes of him and I must disagree. While he is highly skilled, he does not have 'it' if you know what I mean. " + \
                     "That 'x-factor'. The 'above and beyond' trait."],
     }
