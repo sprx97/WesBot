@@ -233,6 +233,7 @@ class Scoreboard(WesCog):
             if not thread:
                 message = await self.bot.get_channel(channel).fetch_message(message)
                 thread = await message.create_thread(name=name)
+                self.log.info(f"Created thread {name} off message {message}")
 
                 intro = "# Welcome to OT Challenge v2 (beta)!\n\n" + \
                         "- Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n" + \
@@ -250,7 +251,7 @@ class Scoreboard(WesCog):
 
             # Nothing to update if the thread name is identical to what we already have!
             if thread.name == name:
-                return
+                continue
 
             await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
 
