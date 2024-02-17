@@ -627,8 +627,8 @@ class Scoreboard(WesCog):
     @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
     @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
     @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
+    @app_commands.default_permissions(send_messages_in_threads=True)
+    @app_commands.checks.has_permissions(send_messages_in_threads=True)
     async def ot(self, interaction: discord.Interaction, team: str, player: str):
         await interaction.response.defer(thinking=True)
 
