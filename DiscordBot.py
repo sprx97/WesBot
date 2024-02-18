@@ -71,14 +71,13 @@ intents.members = True
 intents.reactions = True
 intents.message_content = True
 
-bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout=120)
+bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout=120, max_ratelimit_timeout=30)
 
 @bot.event
 async def on_connect():
     Shared.start_timestamp = datetime.utcnow()
     await bot.change_presence(activity=discord.Game(name="NHL '94"))
     await bot.user.edit(username="Wes McCauley")
-    # avatar=fp.read()
     bot.log.info("Bot started.")
 
 @bot.event

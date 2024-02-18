@@ -6,6 +6,7 @@ from discord import app_commands
 import asyncio
 from datetime import datetime
 import pytz
+import time
 
 # Local Includes
 from Shared import *
@@ -22,6 +23,8 @@ class Scoreboard(WesCog):
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
         self.ot_lock = asyncio.Lock()
+
+        self.last_rate_limit_timestamp = 0
 
 #region Cog Startup
 
@@ -253,7 +256,19 @@ class Scoreboard(WesCog):
             if thread.name == name:
                 continue
 
-            await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
+            # If we are rate limited from editing threads, skip this
+            if time.time() - self.last_rate_limit_timestamp < 600:
+                self.log.info(f"{600 - (time.time() - self.last_rate_limit_timestamp)} seconds remain in OT Challenge ratelimit.")
+                continue
+
+            try:
+                await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
+            except Exception as e:
+                if isinstance(e, discord.errors.RateLimited):
+                    self.log.info("Rate Limited in OT Challenge thread.")
+                    self.last_rate_limit_timestamp = time.time()
+                else:
+                    self.log.info(f"Error in update_ot_challenge_thread: {e}.")
 
 #endregion
 #region Game Parsing Sections
@@ -701,7 +716,7 @@ class Scoreboard(WesCog):
                 WriteJsonFile(ot_datafile, self.ot_guesses)
 
             self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
-            await interaction.followup.send(f"{interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
+            await interaction.followup.send(f"<@{interaction.user.id}> has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
         else:
             self.log.info(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
             await interaction.followup.send(f"Could not find player {player} on team {team}.")
@@ -721,7 +736,8 @@ class Scoreboard(WesCog):
             await interaction.followup.send("No standings found for this server.", ephemeral=True)
             return
 
-        message = "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
+        message = "Updates every night at 3am PST.\n"
+        message += "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
 
         if "role" in ot_standings[guild_id]:
             del ot_standings[guild_id]["role"]
