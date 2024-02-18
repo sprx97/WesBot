@@ -230,8 +230,11 @@ class Scoreboard(WesCog):
             channel = message_id[0]
             message = message_id[1]
 
-            thread = await self.bot.fetch_channel(message)
             # TODO: Update/remove
+            try:
+                thread = await self.bot.fetch_channel(message)
+            except:
+                thread = None
             # if thread:
             #     return
 
