@@ -66,12 +66,13 @@ class Wes(commands.Bot):
         for cog in Shared.all_cogs:
             await bot.load_extension(cog)
 
+# TODO: Remove?
 intents = discord.Intents.default()
 intents.members = True
 intents.reactions = True
 intents.message_content = True
 
-bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout=120, max_ratelimit_timeout=30)
+bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout=120)
 
 @bot.event
 async def on_connect():

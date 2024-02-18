@@ -224,18 +224,21 @@ class Scoreboard(WesCog):
 
         return False
 
-    async def update_ot_thread_state(self, id, name, locked, auto_archive):
+    async def update_ot_thread_state(self, id, name, auto_archive):
         # Create the thread if necessary
         for message_id in self.messages[id]["OT"]["message_ids"]:
             channel = message_id[0]
             message = message_id[1]
 
-            thread = self.bot.get_channel(channel).get_thread(message)
+            thread = await self.bot.fetch_channel(message)
+            # TODO: Update/remove
+            # if thread:
+            #     return
 
             # Create a thread if it doesn't exist already
             if not thread:
                 message = await self.bot.get_channel(channel).fetch_message(message)
-                thread = await message.create_thread(name=name)
+                thread = await message.create_thread(name=name, auto_archive_duration=auto_archive)
                 self.log.info(f"Created thread {name} off message {message}")
 
                 intro = "# Welcome to OT Challenge v2 (beta)!\n\n" + \
@@ -253,22 +256,22 @@ class Scoreboard(WesCog):
                 await thread.send(intro)
 
             # Nothing to update if the thread name is identical to what we already have!
-            if thread.name == name:
-                continue
+            # if thread.name == name:
+            #     continue
 
             # If we are rate limited from editing threads, skip this
-            if time.time() - self.last_rate_limit_timestamp < 600:
-                self.log.info(f"{600 - (time.time() - self.last_rate_limit_timestamp)} seconds remain in OT Challenge ratelimit.")
-                continue
+            # if time.time() - self.last_rate_limit_timestamp < 600:
+            #     self.log.info(f"{600 - (time.time() - self.last_rate_limit_timestamp)} seconds remain in OT Challenge ratelimit.")
+            #     continue
 
-            try:
-                await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
-            except Exception as e:
-                if isinstance(e, discord.errors.RateLimited):
-                    self.log.info("Rate Limited in OT Challenge thread.")
-                    self.last_rate_limit_timestamp = time.time()
-                else:
-                    self.log.info(f"Error in update_ot_challenge_thread: {e}.")
+            # try:
+            #     await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
+            # except Exception as e:
+            #     if isinstance(e, discord.errors.RateLimited):
+            #         self.log.info("Rate Limited in OT Challenge thread.")
+            #         self.last_rate_limit_timestamp = time.time()
+            #     else:
+            #         self.log.info(f"Error in update_ot_challenge_thread: {e}.")
 
 #endregion
 #region Game Parsing Sections
@@ -358,13 +361,14 @@ class Scoreboard(WesCog):
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji}{away} - {home} {home_emoji}is now open ({time_remaining})"
             await self.post_embed(self.messages[id], ot_key, ot_string)
-            await self.update_ot_thread_state(id, f"⏳ {away}-{home} {self.messages['date'][2:]}", False, 1440)
+            await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", 1440)
 
-        elif ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
-            await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
+        # TODO: Update/remove
+        # elif ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
+        #     await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
-        elif ot_key in self.messages[id] and not is_ot_challenge_window and is_in_ot:
-            await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
+        # elif ot_key in self.messages[id] and not is_ot_challenge_window and is_in_ot:
+        #     await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -664,8 +668,10 @@ class Scoreboard(WesCog):
             await interaction.followup.send(f"Team {team} is not in this game.")
             return
 
-        if interaction.channel.locked:
-            await interaction.followup.send(f"OT has started. No more guesses allowed.")
+# TODO: Remove
+#        if interaction.channel.locked:
+        if not self.is_ot_challenge_window():
+            await interaction.followup.send(f"OT Challenge window is not open. No guesses allowed.")
             return
 
         # Get correct game_id from messages
