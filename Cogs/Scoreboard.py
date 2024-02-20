@@ -65,8 +65,18 @@ class Scoreboard(WesCog):
         async with self.ot_lock:
             ot_games = list(self.ot_guesses.keys())
             for game_id in ot_games:
+                # Archive the threads made for this OT challenge
+                for _, message in self.messages[game_id]["OT"]["message_ids"]:
+                    try:
+                        thread = await self.bot.fetch_channel(message)
+                        await thread.edit(archived=True)
+                        self.log.info(f"Archived thread {thread.name}")
+                    except:
+                        self.log.info(f"Could not find thread id {message}")
+
                 landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
 
+                # Ensure the game is actually "Official"
                 if landing["gameState"] != "OFF":
                     self.log.error(f"Game state not final for {game_id}. Something is wrong.")
                     has_errors = True
@@ -74,18 +84,21 @@ class Scoreboard(WesCog):
 
                 final_period = landing["summary"]["scoring"][-1]
 
+                # Some games won't reach overtime or will end in a shootout, so ignore them.
                 if final_period["periodDescriptor"]["periodType"] != "OT":
                     self.log.info(f"Game {game_id} did not end via Overtime.")
                     del self.ot_guesses[game_id]
                     continue
 
+                # Sanity check
                 if len(final_period["goals"]) != 1:
                     self.log.error(f"Game {game_id} apparently ended in OT but has more than one goal. Something is wrong.")
                     has_errors = True
                     continue
 
-                gwg_scorer = final_period["goals"][0]["playerId"] # Could get firstName and lastName too for reporting
+                gwg_scorer = final_period["goals"][0]["playerId"]
 
+                # Update the Standings
                 ot_standings = LoadJsonFile(otstandings_datafile)
                 for guild_id in self.ot_guesses[game_id]:
                     for user_id in self.ot_guesses[game_id][guild_id]:
@@ -103,6 +116,7 @@ class Scoreboard(WesCog):
                             ot_standings[guild_id][user_id]["correct"] += 1
 
                         self.log.info(f"{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
+
                 WriteJsonFile(otstandings_datafile, ot_standings)
                 del self.ot_guesses[game_id]
 
@@ -116,11 +130,11 @@ class Scoreboard(WesCog):
     # This needs to be a function so we can await it and not spam all the messages from the previous day
     # after deleting them from the datafile.
     async def do_date_rollover(self, date):
+        await self.do_ot_rollover()
+
         self.messages = {"date": date}
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
-
-        await self.do_ot_rollover()
 
     # Helper function to get all of the game JSON objects for the current day
     # from the NHL.com api.
@@ -798,20 +812,9 @@ class Scoreboard(WesCog):
                 await interaction.user.add_roles(otc_role)
                 await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
 
-    @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    @app_commands.checks.check(is_bot_owner)
-    async def ot_rollover(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        await self.do_ot_rollover()
-        await interaction.followup.send("Complete")
-
     @ot.error
     @ot_standings.error
     @ot_subscribe.error
-    @ot_rollover.error
     async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.followup.send(f"{error}")
 

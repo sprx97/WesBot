@@ -14,54 +14,23 @@ Shared = importlib.import_module("Shared")
 from Shared import *
 
 class Debug(WesCog):
-    async def cog_load(self):
-        self.bot.loop.create_task(self.start_loops())
-
-    async def start_loops(self):
-        self.rollover_loop.start()
-        self.loops.append(self.rollover_loop)
-
-    @tasks.loop(hours=24.0)
-    async def rollover_loop(self):
-        self.log.info("Rolling over date.")
-
-        # Process the ot cog rollover method
-        # TODO: Process new OT Challenge
-#        ot = self.bot.get_cog("OTChallenge")
-#        await ot.processot(None)
-
-        # TODO: ImportPickems cog, and run their Process Standings methods
-
-        return
-
-    # Wait to start the first iteration of this loop at the appropriate time
-    @rollover_loop.before_loop
-    async def before_rollover_loop(self):
-        current_time = datetime.utcnow()
-        target_time = current_time
-
-        if target_time.hour > ROLLOVER_HOUR_UTC:
-            target_time += timedelta(days=1)
-        target_time = target_time.replace(hour=ROLLOVER_HOUR_UTC, minute=0, second=0)
-
-        self.log.info(f"Sleeping rollover loop for for {target_time-current_time}")
-
-        await asyncio.sleep((target_time-current_time).total_seconds())
-
 #region Basic debug commands
 
     @app_commands.command(name="ping", description="Checks the bot for a response.")
     @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message("pong", ephemeral=True)
 
     @app_commands.command(name="pong", description="Checks the bot for a response.")
     @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
     async def pong(self, interaction: discord.Interaction):
         await interaction.response.send_message("ping", ephemeral=True)
 
     @app_commands.command(name="uptime", description="Displays how long since the bot last crashed/restarted.")
     @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
     async def uptime(self, interaction: discord.Interaction):
         days, hours, minutes, seconds = self.bot.calculate_uptime() 
 
@@ -88,6 +57,7 @@ class Debug(WesCog):
     @app_commands.describe(cog="Which cog to shut down.")
     @app_commands.choices(cog=cog_choices)
     @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
     @app_commands.checks.check(is_bot_owner)
     async def kill(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
         if not await self.bot.is_owner(interaction.user):
@@ -116,6 +86,7 @@ class Debug(WesCog):
     @app_commands.describe(cog="Which cog to reload.")
     @app_commands.choices(cog=cog_choices)
     @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
     @app_commands.checks.check(is_bot_owner)
     async def reload(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str]):
         await interaction.response.defer(thinking=True, ephemeral=True)
@@ -142,6 +113,7 @@ class Debug(WesCog):
     @app_commands.describe(cog="Which log to view.", num_lines="How many lines to display.")
     @app_commands.choices(cog=cog_choices)
     @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
     @app_commands.checks.check(is_bot_owner)
     async def log(self, interaction: discord.Interaction, cog: discord.app_commands.Choice[str], num_lines: int=5):
         if not await self.bot.is_owner(interaction.user):
@@ -163,6 +135,17 @@ class Debug(WesCog):
             await interaction.edit_original_response(content=f"Request complete.")
         except:
             await interaction.edit_original_response(content=f"Could not find file {cog}.log.")
+
+    @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    @app_commands.checks.check(is_bot_owner)
+    async def ot_rollover(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        scoreboard_cog = self.bot.get_cog("Scoreboard")
+        await scoreboard_cog.do_ot_rollover()
+        await interaction.followup.send("Complete")
 
 #endregion
 
