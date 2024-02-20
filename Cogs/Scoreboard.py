@@ -264,7 +264,7 @@ class Scoreboard(WesCog):
         start_key = f"Start"
 
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
-        start_string = f"{away_emoji}{away} at {home_emoji}{home} Starting."
+        start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
         await self.post_embed(self.messages[id], start_key, start_string)
 
     async def check_goals(self, id, landing):
@@ -287,7 +287,7 @@ class Scoreboard(WesCog):
                 # Get info about the goal
                 strength = self.get_goal_strength(goal)
                 team = goal["teamAbbrev"]["default"]
-                team = f"{get_emoji(team)}{team}"
+                team = f"{get_emoji(team)} {team}"
                 shot_type = f" {goal['shotType']}," if "shotType" in goal else ""
 
                 # Get the scorer and assists
@@ -297,13 +297,13 @@ class Scoreboard(WesCog):
                     assists.append(f"{assist['firstName']['default']} {assist['lastName']['default']} ({assist['assistsToDate']})")
 
                 # Concatonate all the above info into the string to post
-                goal_str = f"{get_emoji('goal')}GOAL{strength}{team} {time} {period_ord}: {scorer}"
+                goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
                 if len(assists) > 0:
                     goal_str += f" assists: {', '.join(assists)}"
                 else:
                     goal_str += " unassisted"
                 away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
-                score_str = f"{away_emoji}{away} **{goal['awayScore']} - {goal['homeScore']}** {home} {home_emoji}"
+                score_str = f"{away_emoji} {away} **{goal['awayScore']} - {goal['homeScore']}** {home} {home_emoji}"
 
                 highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
 
@@ -343,7 +343,7 @@ class Scoreboard(WesCog):
         # Open the OT Challenge or update the message if needed
         if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
-            ot_string = f"OT Challenge for {away_emoji}{away} - {home} {home_emoji}is now open ({time_remaining})"
+            ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
             await self.post_embed(self.messages[id], ot_key, ot_string)
 
             if "State" not in self.messages[id][ot_key]:
@@ -353,17 +353,22 @@ class Scoreboard(WesCog):
             elif self.messages[id][ot_key]["State"] == "closed":
                 self.messages[id][ot_key]["State"] = "open"
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-        else if ot_key in self.messages[id]:
-            ot_string = f"OT Challenge Closed for {away_emoji}{away} - {home} {home_emoji}"
+        elif ot_key in self.messages[id]:
+            ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
+            await self.post_embed(self.messages[id], ot_key, ot_string)
 
         # Log when the ot state changes
         if ot_key in self.messages[id]:
             if not is_ot_challenge_window and self.messages[id][ot_key]["State"] == "open":
-                self.messages[id][ot_key]["State"] == "closed"
                 self.log.info(f"Closed OT Challenge for {away}-{home}")
+                self.messages[id][ot_key]["State"] = "closed"
+                async with self.messages_lock:
+                    WriteJsonFile(messages_datafile, self.messages)
             if is_ot_challenge_window and self.messages[id][ot_key]["State"] == "closed":
-                self.messages[id][ot_key]["State"] == "open"
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
+                self.messages[id][ot_key]["State"] = "open"
+                async with self.messages_lock:
+                    WriteJsonFile(messages_datafile, self.messages)
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -374,7 +379,7 @@ class Scoreboard(WesCog):
         shootout = landing["summary"]["shootout"]
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
 
-        title = f"Shootout: {away_emoji}{away} - {home} {home_emoji}"
+        title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
         away_shooters = ""
         home_shooters = ""
         for shooter in shootout:
@@ -388,8 +393,8 @@ class Scoreboard(WesCog):
         away_shooters += "\u200b" # Zero-width character for spacing on mobile
 
         fields = [
-            {"name": f"{away_emoji}{away}", "value": away_shooters, "inline": True},
-            {"name": f"{home_emoji}{home}", "value": home_shooters, "inline": True}
+            {"name": f"{away_emoji} {away}", "value": away_shooters, "inline": True},
+            {"name": f"{home_emoji} {home}", "value": home_shooters, "inline": True}
         ]
 
         await self.post_embed(self.messages[id], so_key, title, fields=fields)
@@ -418,7 +423,7 @@ class Scoreboard(WesCog):
         recap_link = self.get_recap_link(id)
 
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
-        end_string = f"Final{modifier}: {away_emoji}{away} {away_score} - {home_score} {home} {home_emoji}"
+        end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
 
         await self.post_embed(self.messages[id], end_key, end_string, recap_link)
 
@@ -529,8 +534,8 @@ class Scoreboard(WesCog):
         away = game["awayTeam"]["abbrev"]
         home = game["homeTeam"]["abbrev"]
 
-        away = f"{get_emoji(away)}{away}"
-        home = f"{get_emoji(home)}{home}"
+        away = f"{get_emoji(away)} {away}"
+        home = f"{get_emoji(home)} {home}"
 
         # First check for TBD, PPD, SUSP, or CNCL because it's behind a different key
         game_state = game["gameScheduleState"]

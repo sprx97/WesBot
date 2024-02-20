@@ -88,11 +88,11 @@ emojis["WPG"] = "<:WPJ:269315448833703946>"
 emojis["WPJ"] = "<:WPJ:269315448833703946>"
 emojis["goal"] = "<a:goalsiren:750190349963624510>"
 
-# Returns the emoji if it's in the map, but blank if not
+# Returns the emoji if it's in the map, and a dummy if not
 def get_emoji(team):
     if team in emojis:
-        return f"{emojis[team]} "
-    return ""
+        return f"{emojis[team]}"
+    return ":hockey:"
 
 #endregion
 #region Global Variables
