@@ -72,7 +72,7 @@ class Scoreboard(WesCog):
                         await thread.edit(archived=True)
                         self.log.info(f"Archived thread {thread.name}")
                     except:
-                        self.log.info(f"Could not find thread id {message}")
+                        self.log.error(f"Could not find thread id {message}")
 
                 landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
 
@@ -154,7 +154,7 @@ class Scoreboard(WesCog):
         # NHL.com backslides sometimes right around the rollover time, probably due to
         # site redundancy.
         if self.messages["date"] > date:
-            self.log.info(f"WRONG DATE {self.scores_loop.current_loop} date: {date}, stored: {self.messages['date']}")
+            self.log.error(f"WRONG DATE {self.scores_loop.current_loop} date: {date}, stored: {self.messages['date']}")
             return []
 
         # Get the list of games for the correct date
@@ -253,23 +253,20 @@ class Scoreboard(WesCog):
 
             try:
                 thread = await self.bot.fetch_channel(message)
+
+                # Create a thread if it doesn't exist already
+                message = await self.bot.get_channel(channel).fetch_message(message)
+                thread = await message.create_thread(name=name, auto_archive_duration=1440)
+                self.log.info(f"Created thread {name} off message {message}")
+
+                my_intro = intro
+                guild_id = str(thread.guild.id)
+                if guild_id in ot_standings and "role" in ot_standings[guild_id]:
+                    my_intro += f"<@&{ot_standings[guild_id]['role']}>"
+
+                await thread.send(my_intro)
             except:
-                thread = None
-
-            if thread:
-                continue
-
-            # Create a thread if it doesn't exist already
-            message = await self.bot.get_channel(channel).fetch_message(message)
-            thread = await message.create_thread(name=name, auto_archive_duration=1440)
-            self.log.info(f"Created thread {name} off message {message}")
-
-            my_intro = intro
-            guild_id = str(thread.guild.id)
-            if guild_id in ot_standings and "role" in ot_standings[guild_id]:
-                my_intro += f"<@&{ot_standings[guild_id]['role']}>"
-
-            await thread.send(my_intro)
+                self.log.error(f"Failed to create OT Challenge thread {name} off of {message}")
 
 #endregion
 #region Game Parsing Sections
@@ -736,7 +733,7 @@ class Scoreboard(WesCog):
             self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
             await interaction.followup.send(f"<@{interaction.user.id}> has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
         else:
-            self.log.info(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
+            self.log.error(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
             await interaction.followup.send(f"Could not find player {player} on team {team}.")
 
     @app_commands.command(name="ot_standings", description="Check the OT Challenge standings for this server.")
@@ -776,11 +773,6 @@ class Scoreboard(WesCog):
     async def ot_subscribe(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True, ephemeral=True)
 
-        # TODO: Remove when enabling for other servers
-        if interaction.guild.id != OTH_GUILD_ID:
-            await interaction.followup.send(f"OT Subscribe is not yet available in this server. Check back soon.")
-            return
-
         async with self.ot_lock:
             ot_standings = LoadJsonFile(otstandings_datafile)
 
@@ -799,18 +791,18 @@ class Scoreboard(WesCog):
                 ot_standings[guild_id]["role"] = otc_role.id
                 WriteJsonFile(otstandings_datafile, ot_standings)
 
-            # If we still don't have a role, abort
-            if otc_role == None:
-                await interaction.followup.send("Error creating/finding OT Challenge role. Please contact the bot owner or try again later.")
-                return
+        # If we still don't have a role, abort
+        if otc_role == None:
+            await interaction.followup.send("Error creating/finding OT Challenge role. Please contact the bot owner or try again later.")
+            return
 
-            # Toggle the role on the user that sent this message
-            if interaction.user.get_role(otc_role.id):
-                await interaction.user.remove_roles(otc_role)
-                await interaction.followup.send(f"{interaction.user.display_name} unsubscribed from OT Challenge.")
-            else:
-                await interaction.user.add_roles(otc_role)
-                await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
+        # Toggle the role on the user that sent this message
+        if interaction.user.get_role(otc_role.id):
+            await interaction.user.remove_roles(otc_role)
+            await interaction.followup.send(f"{interaction.user.display_name} unsubscribed from OT Challenge.")
+        else:
+            await interaction.user.add_roles(otc_role)
+            await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
 
     @ot.error
     @ot_standings.error

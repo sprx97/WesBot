@@ -142,9 +142,9 @@ class WesCog(commands.Cog):
     # but can override this method or specific commands' error handlers in cogs
     async def cog_command_error(self, ctx, error):
         try:
-            self.log.error(error.message, stacklevel=2)
+            self.log.error(error.message, stacklevel=3)
         except:
-            self.log.error(error, stacklevel=2)
+            self.log.error(error, stacklevel=3)
 
 # Custom exception for a failure to fetch a link
 class LinkError(discord.ext.commands.CommandError):
@@ -227,7 +227,7 @@ def get_user_matchup_from_database(user, division=None):
 # Gets the JSON data from the given fleaflicker.com/api call
 def make_api_call(link):
     try:
-        with requests.get(link, headers={"Cache-Control": "no-cache, max-age=0", "Pragma": "no-cache"}) as response:
+        with requests.get(link, headers={"Cache-Control": "must-revalidate, max-age=0", "Pragma": "no-cache"}) as response:
             data = response.json()
     except Exception:
         raise LinkError(link)
