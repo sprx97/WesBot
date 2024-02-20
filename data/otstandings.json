@@ -5,8 +5,8 @@
             "correct": 0
         },
         "447077568403865620": {
-            "guesses": 3,
-            "correct": 0
+            "guesses": 4,
+            "correct": 1
         },
         "486366622785994753": {
             "guesses": 4,
@@ -17,16 +17,16 @@
             "correct": 1
         },
         "417851289284902925": {
-            "guesses": 5,
+            "guesses": 7,
             "correct": 0
         },
         "228258453599027200": {
-            "guesses": 4,
+            "guesses": 6,
             "correct": 1
         },
         "243201978191052800": {
-            "guesses": 1,
-            "correct": 0
+            "guesses": 2,
+            "correct": 1
         },
         "235205076849786882": {
             "guesses": 1,
@@ -37,11 +37,11 @@
             "correct": 0
         },
         "360940651153588234": {
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "220731816099840000": {
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "343882445105397760": {
@@ -49,16 +49,16 @@
             "correct": 0
         },
         "513530130145214484": {
-            "guesses": 2,
+            "guesses": 5,
             "correct": 1
         },
         "752033651977617418": {
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "492421946550648832": {
-            "guesses": 2,
-            "correct": 1
+            "guesses": 3,
+            "correct": 2
         },
         "385450726236618752": {
             "guesses": 1,
@@ -73,29 +73,53 @@
             "correct": 0
         },
         "232566177140965376": {
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "role": 1206140465641168986,
         "887442950311772251": {
-            "guesses": 1,
+            "guesses": 2,
             "correct": 1
         },
         "785166734318764042": {
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "229287970186723339": {
-            "guesses": 1,
+            "guesses": 3,
             "correct": 0
         },
         "472229719429873666": {
+            "guesses": 1,
+            "correct": 0
+        },
+        "888212096662274089": {
+            "guesses": 1,
+            "correct": 0
+        },
+        "1075039002673033327": {
+            "guesses": 1,
+            "correct": 0
+        },
+        "221472911880355842": {
             "guesses": 1,
             "correct": 0
         }
     },
     "742845693785276576": {
         "228258453599027200": {
+            "guesses": 3,
+            "correct": 0
+        },
+        "222016219866333184": {
+            "guesses": 1,
+            "correct": 0
+        },
+        "349602231755997185": {
+            "guesses": 1,
+            "correct": 0
+        },
+        "622213364118061069": {
             "guesses": 1,
             "correct": 0
         }

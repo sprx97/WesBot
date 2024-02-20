@@ -66,12 +66,9 @@ class Wes(commands.Bot):
         for cog in Shared.all_cogs:
             await bot.load_extension(cog)
 
-# TODO: Remove?
+# https://discordpy.readthedocs.io/en/stable/intents.html
 intents = discord.Intents.default()
-intents.members = True
-intents.reactions = True
-intents.message_content = True
-
+intents.members = True # Needed for high accuracy cache on Guild.members and Member.roles (used for OTH roles)
 bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=intents, heartbeat_timeout=120)
 
 @bot.event
