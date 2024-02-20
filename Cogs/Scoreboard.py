@@ -224,57 +224,38 @@ class Scoreboard(WesCog):
 
         return False
 
-    async def update_ot_thread_state(self, id, name, auto_archive):
-        # Create the thread if necessary
+    async def create_ot_thread(self, id, name):
+        intro = "# Welcome to OT Challenge v2 (beta)!\n\n" + \
+                "- Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n" + \
+                "- Use /ot_standings in any channel to display the scoreboard for this server.\n" + \
+                "- Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n" + \
+                f"- Contact <@{SPRX_USER_ID}> with any bugs or suggestions.\n"
+
+        ot_standings = LoadJsonFile(otstandings_datafile)
+
         for message_id in self.messages[id]["OT"]["message_ids"]:
             channel = message_id[0]
             message = message_id[1]
 
-            # TODO: Update/remove
             try:
                 thread = await self.bot.fetch_channel(message)
             except:
                 thread = None
-            # if thread:
-            #     return
+
+            if thread:
+                continue
 
             # Create a thread if it doesn't exist already
-            if not thread:
-                message = await self.bot.get_channel(channel).fetch_message(message)
-                thread = await message.create_thread(name=name, auto_archive_duration=auto_archive)
-                self.log.info(f"Created thread {name} off message {message}")
+            message = await self.bot.get_channel(channel).fetch_message(message)
+            thread = await message.create_thread(name=name, auto_archive_duration=1440)
+            self.log.info(f"Created thread {name} off message {message}")
 
-                intro = "# Welcome to OT Challenge v2 (beta)!\n\n" + \
-                        "- Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n" + \
-                        "- Use /ot_standings in any channel to display the scoreboard for this server.\n" + \
-                        "- Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n" + \
-                        "- Contact SPRX with any bugs or suggestions.\n"
+            my_intro = intro
+            guild_id = str(thread.guild.id)
+            if guild_id in ot_standings and "role" in ot_standings[guild_id]:
+                my_intro += f"<@&{ot_standings[guild_id]['role']}>"
 
-                async with self.ot_lock:
-                    ot_standings = LoadJsonFile(otstandings_datafile)
-                    guild_id = str(thread.guild.id)
-                    if guild_id in ot_standings and "role" in ot_standings[guild_id]:
-                        intro += f"<@&{ot_standings[guild_id]['role']}>"
-
-                await thread.send(intro)
-
-            # Nothing to update if the thread name is identical to what we already have!
-            # if thread.name == name:
-            #     continue
-
-            # If we are rate limited from editing threads, skip this
-            # if time.time() - self.last_rate_limit_timestamp < 600:
-            #     self.log.info(f"{600 - (time.time() - self.last_rate_limit_timestamp)} seconds remain in OT Challenge ratelimit.")
-            #     continue
-
-            # try:
-            #     await thread.edit(name=name, locked=locked, auto_archive_duration=auto_archive)
-            # except Exception as e:
-            #     if isinstance(e, discord.errors.RateLimited):
-            #         self.log.info("Rate Limited in OT Challenge thread.")
-            #         self.last_rate_limit_timestamp = time.time()
-            #     else:
-            #         self.log.info(f"Error in update_ot_challenge_thread: {e}.")
+            await thread.send(my_intro)
 
 #endregion
 #region Game Parsing Sections
@@ -357,21 +338,32 @@ class Scoreboard(WesCog):
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(play_by_play)
 
         is_ot_challenge_window = self.is_ot_challenge_window(play_by_play)
-        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"] == "OT"
+#        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"] == "OT"
 
         # Open the OT Challenge or update the message if needed
         if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji}{away} - {home} {home_emoji}is now open ({time_remaining})"
             await self.post_embed(self.messages[id], ot_key, ot_string)
-            await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", 1440)
 
-        # TODO: Update/remove
-        # elif ot_key in self.messages[id] and play_by_play["gameState"] in ["OVER", "FINAL", "OFF"]:
-        #     await self.update_ot_thread_state(id, f"🥅 {away}-{home} {self.messages['date'][2:]}", True, 1440)
+            if "State" not in self.messages[id][ot_key]:
+                await self.create_ot_thread(id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
+                self.log.info(f"Opened OT Challenge for {away}-{home}")
+                self.messages[id][ot_key]["State"] = "open"
+            elif self.messages[id][ot_key]["State"] == "closed":
+                self.messages[id][ot_key]["State"] = "open"
+                self.log.info(f"Re-opened OT Challenge for {away}-{home}")
+        else if ot_key in self.messages[id]:
+            ot_string = f"OT Challenge Closed for {away_emoji}{away} - {home} {home_emoji}"
 
-        # elif ot_key in self.messages[id] and not is_ot_challenge_window and is_in_ot:
-        #     await self.update_ot_thread_state(id, f"🔒 {away}-{home} {self.messages['date'][2:]}", True, 1440)
+        # Log when the ot state changes
+        if ot_key in self.messages[id]:
+            if not is_ot_challenge_window and self.messages[id][ot_key]["State"] == "open":
+                self.messages[id][ot_key]["State"] == "closed"
+                self.log.info(f"Closed OT Challenge for {away}-{home}")
+            if is_ot_challenge_window and self.messages[id][ot_key]["State"] == "closed":
+                self.messages[id][ot_key]["State"] == "open"
+                self.log.info(f"Re-opened OT Challenge for {away}-{home}")
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
@@ -671,12 +663,6 @@ class Scoreboard(WesCog):
             await interaction.followup.send(f"Team {team} is not in this game.")
             return
 
-# TODO: Remove
-#        if interaction.channel.locked:
-        if not self.is_ot_challenge_window():
-            await interaction.followup.send(f"OT Challenge window is not open. No guesses allowed.")
-            return
-
         # Get correct game_id from messages
         game_id = None
         for id in self.messages:
@@ -690,8 +676,12 @@ class Scoreboard(WesCog):
             await interaction.followup.send(f"Trouble finding game id for {team}. This should not happen.")
             return
 
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
+        if not self.is_ot_challenge_window(play_by_play):
+            await interaction.followup.send(f"OT Challenge window is closed. No guesses allowed.")
+            return
+
         # Find the team ID from the play-by-play
-        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/play-by-play")
         if play_by_play["awayTeam"]["abbrev"] == team:
             team_id = play_by_play["awayTeam"]["id"]
         elif play_by_play["homeTeam"]["abbrev"] == team:
@@ -752,7 +742,8 @@ class Scoreboard(WesCog):
             del ot_standings[guild_id]["role"]
         standings = sorted(ot_standings[guild_id].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
         for user in standings:
-            user_name = self.bot.get_user(int(user[0])).display_name[:14]
+            user_obj = await self.bot.fetch_user(user[0])
+            user_name = user_obj.display_name[:14] if user_obj else f"<unknown_user>"
             message += "{:<15} {:>4} {:>4}\n".format(user_name, user[1]["correct"], user[1]["guesses"])
 
         message += "```"
