@@ -252,8 +252,6 @@ class Scoreboard(WesCog):
             message = message_id[1]
 
             try:
-                thread = await self.bot.fetch_channel(message)
-
                 # Create a thread if it doesn't exist already
                 message = await self.bot.get_channel(channel).fetch_message(message)
                 thread = await message.create_thread(name=name, auto_archive_duration=1440)
@@ -265,8 +263,8 @@ class Scoreboard(WesCog):
                     my_intro += f"<@&{ot_standings[guild_id]['role']}>"
 
                 await thread.send(my_intro)
-            except:
-                self.log.error(f"Failed to create OT Challenge thread {name} off of {message}")
+            except Exception as e:
+                self.log.error(f"Failed to create OT Challenge thread {name} off of {message.id}. Error {e}")
 
 #endregion
 #region Game Parsing Sections
@@ -364,22 +362,22 @@ class Scoreboard(WesCog):
             elif self.messages[id][ot_key]["State"] == "closed":
                 self.messages[id][ot_key]["State"] = "open"
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-        elif ot_key in self.messages[id]:
-            ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
-            await self.post_embed(self.messages[id], ot_key, ot_string)
+        # elif ot_key in self.messages[id]:
+        #     ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
+        #     await self.post_embed(self.messages[id], ot_key, ot_string)
 
         # Log when the ot state changes
-        if ot_key in self.messages[id]:
-            if not is_ot_challenge_window and self.messages[id][ot_key]["State"] == "open":
-                self.log.info(f"Closed OT Challenge for {away}-{home}")
-                self.messages[id][ot_key]["State"] = "closed"
-                async with self.messages_lock:
-                    WriteJsonFile(messages_datafile, self.messages)
-            if is_ot_challenge_window and self.messages[id][ot_key]["State"] == "closed":
-                self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-                self.messages[id][ot_key]["State"] = "open"
-                async with self.messages_lock:
-                    WriteJsonFile(messages_datafile, self.messages)
+        # if ot_key in self.messages[id] and "State" in self.messages[id][ot_key]:
+        #     if not is_ot_challenge_window and self.messages[id][ot_key]["State"] == "open":
+        #         self.log.info(f"Closed OT Challenge for {away}-{home}")
+        #         self.messages[id][ot_key]["State"] = "closed"
+        #         async with self.messages_lock:
+        #             WriteJsonFile(messages_datafile, self.messages)
+        #     if is_ot_challenge_window and self.messages[id][ot_key]["State"] == "closed":
+        #         self.log.info(f"Re-opened OT Challenge for {away}-{home}")
+        #         self.messages[id][ot_key]["State"] = "open"
+        #         async with self.messages_lock:
+        #             WriteJsonFile(messages_datafile, self.messages)
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
