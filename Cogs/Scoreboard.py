@@ -60,34 +60,38 @@ class Scoreboard(WesCog):
 #endregion
 #region Date/Today Functions
 
+    async def archive_ot_threads(self, game_id):
+        if game_id not in self.messages:
+            self.log.error("Game_id not found in messages. May have to archive threads manually.")
+            return
+
+        for _, message in self.messages[game_id]["OT"]["message_ids"]:
+            try:
+                thread = await self.bot.fetch_channel(message)
+                await thread.edit(archived=True)
+                self.log.info(f"Archived thread {thread.name}")
+            except:
+                self.log.error(f"Could not find thread id {message}")
+
     async def do_ot_rollover(self):
         has_errors = False
         async with self.ot_lock:
+            ot_standings = LoadJsonFile(otstandings_datafile)
+
+            self.log.info(ot_standings)
+            self.log.info(ot_guesses)
+
             ot_games = list(self.ot_guesses.keys())
             for game_id in ot_games:
                 # Archive the threads made for this OT challenge
-                for _, message in self.messages[game_id]["OT"]["message_ids"]:
-                    try:
-                        thread = await self.bot.fetch_channel(message)
-                        await thread.edit(archived=True)
-                        self.log.info(f"Archived thread {thread.name}")
-                    except:
-                        self.log.error(f"Could not find thread id {message}")
+                await self.archive_ot_threads(game_id)
 
                 landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
-
-                # Ensure the game is actually "Official"
-                if landing["gameState"] != "OFF":
-                    self.log.error(f"Game state not final for {game_id}. Something is wrong.")
-                    has_errors = True
-                    continue
-
                 final_period = landing["summary"]["scoring"][-1]
 
                 # Some games won't reach overtime or will end in a shootout, so ignore them.
                 if final_period["periodDescriptor"]["periodType"] != "OT":
                     self.log.info(f"Game {game_id} did not end via Overtime.")
-                    del self.ot_guesses[game_id]
                     continue
 
                 # Sanity check
@@ -96,10 +100,15 @@ class Scoreboard(WesCog):
                     has_errors = True
                     continue
 
+                # Ensure the game is actually "Official"
+                if landing["gameState"] != "OFF":
+                    self.log.error(f"Game state not final for {game_id}. Something is wrong.")
+                    has_errors = True
+                    continue
+
                 gwg_scorer = final_period["goals"][0]["playerId"]
 
                 # Update the Standings
-                ot_standings = LoadJsonFile(otstandings_datafile)
                 for guild_id in self.ot_guesses[game_id]:
                     for user_id in self.ot_guesses[game_id][guild_id]:
                         # Add the guild to standings if it doesn't exist
@@ -115,11 +124,11 @@ class Scoreboard(WesCog):
                         if self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer:
                             ot_standings[guild_id][user_id]["correct"] += 1
 
-                        self.log.info(f"{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
+                        self.log.info(f"{guild_id}:{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
 
-                WriteJsonFile(otstandings_datafile, ot_standings)
-                del self.ot_guesses[game_id]
+            WriteJsonFile(otstandings_datafile, ot_standings)
 
+            self.ot_guesses = {}
             WriteJsonFile(ot_datafile, self.ot_guesses)
 
         if has_errors:
@@ -355,29 +364,28 @@ class Scoreboard(WesCog):
             ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
             await self.post_embed(self.messages[id], ot_key, ot_string)
 
-            if "State" not in self.messages[id][ot_key]:
+            if "ot_state" not in self.messages[id]:
                 await self.create_ot_thread(id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
                 self.log.info(f"Opened OT Challenge for {away}-{home}")
-                self.messages[id][ot_key]["State"] = "open"
-            elif self.messages[id][ot_key]["State"] == "closed":
-                self.messages[id][ot_key]["State"] = "open"
+                self.messages[id]["ot_state"] = "open"
+            elif self.messages[id]["ot_state"] == "closed":
+                self.messages[id]["ot_state"] = "open"
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-        # elif ot_key in self.messages[id]:
-        #     ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
-        #     await self.post_embed(self.messages[id], ot_key, ot_string)
+        elif ot_key in self.messages[id]:
+            ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
+            await self.post_embed(self.messages[id], ot_key, ot_string)
 
+###########################################################
         # Log when the ot state changes
-        # if ot_key in self.messages[id] and "State" in self.messages[id][ot_key]:
-        #     if not is_ot_challenge_window and self.messages[id][ot_key]["State"] == "open":
-        #         self.log.info(f"Closed OT Challenge for {away}-{home}")
-        #         self.messages[id][ot_key]["State"] = "closed"
-        #         async with self.messages_lock:
-        #             WriteJsonFile(messages_datafile, self.messages)
-        #     if is_ot_challenge_window and self.messages[id][ot_key]["State"] == "closed":
-        #         self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-        #         self.messages[id][ot_key]["State"] = "open"
-        #         async with self.messages_lock:
-        #             WriteJsonFile(messages_datafile, self.messages)
+        if "ot_state" in self.messages[id]:
+            if not is_ot_challenge_window and self.messages[id]["ot_state"] == "open":
+                self.log.info(f"Closed OT Challenge for {away}-{home}")
+                self.messages[id][ot_key]["State"] = "closed"
+
+            if is_ot_challenge_window and self.messages[id]["ot_state"] == "closed":
+                self.log.info(f"Re-opened OT Challenge for {away}-{home}")
+                self.messages[id][ot_key]["State"] = "open"
+############################################################
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
