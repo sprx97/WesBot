@@ -79,7 +79,7 @@ class Scoreboard(WesCog):
             ot_standings = LoadJsonFile(otstandings_datafile)
 
             self.log.info(ot_standings)
-            self.log.info(ot_guesses)
+            self.log.info(self.ot_guesses)
 
             ot_games = list(self.ot_guesses.keys())
             for game_id in ot_games:
