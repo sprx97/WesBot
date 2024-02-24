@@ -117,14 +117,14 @@ class Scoreboard(WesCog):
 
                         # Add the user to the guild's standings if they don't exist
                         if user_id not in ot_standings[guild_id]:
-                            ot_standings[guild_id][user_id] = {"guesses": 0, "correct": 0}
+                            ot_standings[guild_id][user_id] = {"name": self.ot_guesses[game_id][guild_id][user_id]["name"], "guesses": 0, "correct": 0}
 
                         # Update the user's stats
                         ot_standings[guild_id][user_id]["guesses"] += 1
-                        if self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer:
+                        if self.ot_guesses[game_id][guild_id][user_id]["guess"] == gwg_scorer:
                             ot_standings[guild_id][user_id]["correct"] += 1
 
-                        self.log.info(f"{guild_id}:{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]}. {self.ot_guesses[game_id][guild_id][user_id] == gwg_scorer}")
+                        self.log.info(f"{guild_id}:{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]['guess']}. {self.ot_guesses[game_id][guild_id][user_id]['guess'] == gwg_scorer}")
 
             WriteJsonFile(otstandings_datafile, ot_standings)
 
@@ -729,10 +729,12 @@ class Scoreboard(WesCog):
             async with self.ot_lock:
                 if game_id not in self.ot_guesses:
                     self.ot_guesses[game_id] = {}
-                if interaction.guild_id not in self.ot_guesses[game_id]:
-                    self.ot_guesses[game_id][interaction.guild.id] = {}
+                guild_id = str(interaction.guild_id)
+                if guild_id not in self.ot_guesses[game_id]:
+                    self.ot_guesses[game_id][guild_id] = {}
 
-                self.ot_guesses[game_id][interaction.guild.id][interaction.user.id] = roster_player["playerId"]
+                user_id = str(interaction.user.id)
+                self.ot_guesses[game_id][guild_id][user_id] = {"guess": roster_player["playerId"], "name": interaction.user.name}
 
                 WriteJsonFile(ot_datafile, self.ot_guesses)
 
@@ -764,9 +766,7 @@ class Scoreboard(WesCog):
             del ot_standings[guild_id]["role"]
         standings = sorted(ot_standings[guild_id].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
         for user in standings:
-            user_obj = await self.bot.fetch_user(user[0])
-            user_name = user_obj.display_name[:14] if user_obj else f"<unknown_user>"
-            message += "{:<15} {:>4} {:>4}\n".format(user_name, user[1]["correct"], user[1]["guesses"])
+            message += "{:<16} {:>4} {:>4}\n".format(user[1]["name"][:14], user[1]["correct"], user[1]["guesses"])
 
         message += "```"
         embed = discord.Embed(title="OT Challenge Standings", description=message)
