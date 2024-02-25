@@ -380,11 +380,11 @@ class Scoreboard(WesCog):
         if "ot_state" in self.messages[id]:
             if not is_ot_challenge_window and self.messages[id]["ot_state"] == "open":
                 self.log.info(f"Closed OT Challenge for {away}-{home}")
-                self.messages[id][ot_key]["State"] = "closed"
+                self.messages[id]["ot_state"] = "closed"
 
             if is_ot_challenge_window and self.messages[id]["ot_state"] == "closed":
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-                self.messages[id][ot_key]["State"] = "open"
+                self.messages[id]["ot_state"] = "open"
 ############################################################
 
     # Post Shootout results in a single updating embed.
