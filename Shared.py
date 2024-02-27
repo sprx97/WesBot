@@ -114,7 +114,7 @@ SPRX_USER_ID = 228258453599027200
 
 # Config settings
 MIN_INACTIVE_DAYS = 7 # Number of days where we deem a team to be "inactive" on fleaflicker
-OT_CHALLENGE_BUFFER_MINUTES = 2 # Mintues left in the 3rd at which OT challenge submissions are accepted
+OT_CHALLENGE_BUFFER_MINUTES = 5 # Mintues left in the 3rd at which OT challenge submissions are accepted
 ROLLOVER_HOUR_UTC = 11 # 11am UTC = 6am EST = 3am PST
 
 all_cogs = ["Cogs.Debug",
