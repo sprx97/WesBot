@@ -240,9 +240,10 @@ class Scoreboard(WesCog):
 
         is_ot_period = play_by_play["periodDescriptor"]["periodType"] == "OT"
         is_intermission = play_by_play["clock"]["inIntermission"]
+        is_playoff_game = play_by_play["gameType"] == 3
         is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3 and not is_intermission
 
-        if (is_intermission and is_ot_period) or is_near_end_of_third:
+        if (is_intermission and is_ot_period and is_playoff_game) or is_near_end_of_third:
             return True
 
         return False
@@ -371,7 +372,6 @@ class Scoreboard(WesCog):
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(play_by_play)
 
         is_ot_challenge_window = self.is_ot_challenge_window(play_by_play)
-#        is_in_ot = "periodDescriptor" in play_by_play and play_by_play["periodDescriptor"]["periodType"] == "OT"
 
         # Open the OT Challenge or update the message if needed
         if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
@@ -383,26 +383,22 @@ class Scoreboard(WesCog):
                 await self.create_ot_thread(game_id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
                 self.log.info(f"Opened OT Challenge for {away}-{home}")
                 self.messages[game_id]["ot_state"] = "open"
-            elif self.messages[game_id]["ot_state"] == "closed":
-                self.messages[game_id]["ot_state"] = "open"
-                self.log.info(f"Re-opened OT Challenge for {away}-{home}")
+
         elif ot_key in self.messages[game_id]:
             ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
             await self.post_embed(self.messages[game_id], ot_key, ot_string)
 
-###########################################################
         # Log when the ot state changes
         if "ot_state" in self.messages[game_id]:
             if not is_ot_challenge_window and self.messages[game_id]["ot_state"] == "open":
                 self.log.info(f"Closed OT Challenge for {away}-{home}")
                 self.messages[game_id]["ot_state"] = "closed"
-                await self.post_message_to_ot_thread(game_id, "OT has started, no more guesses will be counted.")
+                await self.post_message_to_ot_thread(game_id, "OT has closed, no more guesses will be counted. This means OT is about to start or the game ended without going to OT.")
 
             if is_ot_challenge_window and self.messages[game_id]["ot_state"] == "closed":
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
                 self.messages[game_id]["ot_state"] = "open"
-                await self.post_message_to_ot_thread(game_id, "Reopening guesses, either because we're in an OT Intermission or the closing was a false alarm.")
-############################################################
+                # await self.post_message_to_ot_thread(game_id, "Reopening guesses, either because we're in an OT Intermission or the closing was a false alarm.")
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
