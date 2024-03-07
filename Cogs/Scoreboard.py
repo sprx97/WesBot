@@ -224,7 +224,7 @@ class Scoreboard(WesCog):
                 continue
 
             for goal in period["goals"]:
-                period_num = period["period"]
+                period_num = period["periodDescriptor"]["number"]
                 time = goal["timeInPeriod"]
                 if f"{self.convert_timestamp_to_seconds(period_num, time)}" == logged_key:
                     return True
@@ -312,8 +312,8 @@ class Scoreboard(WesCog):
 
             for goal in period["goals"]:
                 # Get the timing info for the goal to create the key
-                period_num = period["period"]
-                period_ord = self.get_period_ordinal(period["period"])
+                period_num = period["periodDescriptor"]["number"]
+                period_ord = self.get_period_ordinal(period_num)
                 time = goal["timeInPeriod"]
                 time_in_seconds = self.convert_timestamp_to_seconds(period_num, time)
                 goal_key = f"{time_in_seconds}"
