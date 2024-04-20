@@ -371,7 +371,7 @@ class OTH(WesCog):
 
         # Format names for posting
         p1_name = f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})"
-        p1_PF = "{:>6.2f}\n".format(round(matchup['PF'], 2))
+        p1_PF = "{:>6.2f}".format(round(matchup['PF'], 2))
         if matchup["opp_name"] != None:
             p2_name = f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})"
             p2_PF = "{:>6.2f}".format(round(matchup['opp_PF'], 2))
@@ -387,7 +387,7 @@ class OTH(WesCog):
             p1_name += " "*(len(p2_name)-len(p1_name))
 
         # Format a matchup embed to send
-        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + f"{p1_PF}"
+        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + f"{p1_PF}\n"
         msg += f"`{p2_name}` " + f"\u2002"*(24-len(p2_name)) + f"{p2_PF}"
 
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77"]
