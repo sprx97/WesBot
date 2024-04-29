@@ -581,6 +581,8 @@ class Scoreboard(WesCog):
 
         # Now check for "normal" states
         game_state = game["gameState"]
+        game_type = game["gameType"] 
+        # TODO: SeriesStatus for playoffs
         if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
             utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
             local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
@@ -591,12 +593,17 @@ class Scoreboard(WesCog):
             away_points = 2*int(away_record[0]) + int(away_record[2])
             home_points = 2*int(home_record[0]) + int(home_record[2])
 
-            return f"{time}: {away} ({away_points} pts) at {home} ({home_points} pts)"
+            score_string = f"{time}: {away}"
+            if game_type == 2: # Regular season
+                score_string += f" ({away_points} pts)"
+            score_string += f" at {home}"
+            if game_type == 2: # Regular season
+                score_string += f" ({home_points} pts)"
         elif game_state == "OVER" or game_state == "FINAL" or game_state == "OFF":
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
 
-            return f"Final: {away} {away_score}, {home} {home_score}"
+            score_string = f"Final: {away} {away_score}, {home} {home_score}"
         elif game_state == "LIVE" or game_state == "CRIT":
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
@@ -608,9 +615,26 @@ class Scoreboard(WesCog):
             else:
                 time = game["clock"]["timeRemaining"]
 
-            return f"Live: {away} {away_score}, {home} {home_score} ({period} {time})"
+            score_string = f"Live: {away} {away_score}, {home} {home_score} ({period} {time})"
         else:
             raise Exception(f"Unrecognized game state {game_state}")
+
+        # Show series score for playoffs in all states
+        if game_type == 3:
+            lower_seed = game["seriesStatus"]["bottomSeedTeamAbbrev"]
+            lower_wins = game["seriesStatus"]["bottomSeedWins"]
+            higher_seed = game["seriesStatus"]["topSeedTeamAbbrev"]
+            higher_wins = game["seriesStatus"]["topSeedWins"]
+            if lower_wins > higher_wins:
+                score_string += f" ({lower_seed} leads {lower_wins}-{higher_wins})"
+            elif higher_wins > lower_wins:
+                score_string += f" ({higher_seed} leads {higher_wins}-{lower_wins})"
+            else:
+                score_string += f" (Series tied {lower_wins}-{higher_wins})"
+
+            score_string += ""
+
+        return score_string
 
     @app_commands.command(name="scoreboard", description="Check out today's full scoreboard.")
     @app_commands.guild_only()
