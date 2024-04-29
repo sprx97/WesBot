@@ -1,1 +1,86 @@
-{}
+{
+    "207634081700249601": {
+        "282997586020007937": {
+            "name": "nickfrompitt",
+            "guesses": 3,
+            "correct": 0
+        },
+        "795705765049401364": {
+            "name": "tsunkatse",
+            "guesses": 1,
+            "correct": 0
+        },
+        "228258453599027200": {
+            "name": "sprx97",
+            "guesses": 3,
+            "correct": 1
+        },
+        "243201978191052800": {
+            "name": "barrill",
+            "guesses": 1,
+            "correct": 0
+        },
+        "360940651153588234": {
+            "name": "imminentfate",
+            "guesses": 1,
+            "correct": 0
+        },
+        "703409741438648410": {
+            "name": "mailhotride",
+            "guesses": 1,
+            "correct": 0
+        },
+        "230875413423980545": {
+            "name": "spemason",
+            "guesses": 1,
+            "correct": 0
+        },
+        "785166734318764042": {
+            "name": "yoshirider2724",
+            "guesses": 1,
+            "correct": 0
+        },
+        "228714331120861185": {
+            "name": "ckroyal92",
+            "guesses": 1,
+            "correct": 1
+        },
+        "343882445105397760": {
+            "name": "swankeyunaboobaloo",
+            "guesses": 1,
+            "correct": 1
+        }
+    },
+    "742845693785276576": {
+        "228258453599027200": {
+            "name": "sprx97",
+            "guesses": 3,
+            "correct": 1
+        },
+        "340216701234970625": {
+            "name": "itsmedowney",
+            "guesses": 1,
+            "correct": 0
+        },
+        "290665788895920128": {
+            "name": "badd_speler",
+            "guesses": 2,
+            "correct": 0
+        },
+        "349602231755997185": {
+            "name": "bdub28",
+            "guesses": 2,
+            "correct": 0
+        },
+        "356989928690679808": {
+            "name": "shamstron",
+            "guesses": 1,
+            "correct": 0
+        },
+        "149732689979768833": {
+            "name": "ryan4095",
+            "guesses": 1,
+            "correct": 0
+        }
+    }
+}
