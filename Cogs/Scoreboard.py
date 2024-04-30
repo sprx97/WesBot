@@ -637,9 +637,49 @@ class Scoreboard(WesCog):
                 verb = "**wins**" if higher_wins == 4 else "**leads**"
                 score_string += f" ({higher_seed} {verb} {higher_wins}-{lower_wins})"
             else:
-                score_string += f" (Series tied {lower_wins}-{higher_wins})"
+                score_string += f" (Series **tied** {lower_wins}-{higher_wins})"
 
         return score_string
+
+    @app_commands.command(name="playoffs", description="List the playoff series.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def playoffs(self, interaction: discord.Interaction):
+        try:
+            year = Config.config["year"]
+            playoffs = make_api_call(f"https://api-web.nhle.com/v1/playoff-series/carousel/{year}{int(year)+1}/")
+            if not playoffs or not playoffs["rounds"]:
+                await interaction.response.send_message(f"No playoffs found for {year}-{year+1}")
+                return
+
+            for round in playoffs["rounds"]:
+                msg = f"**Round {round['roundNumber']}**\n"
+                for series in round["series"]:
+                    lower = series["bottomSeed"]["abbrev"]
+                    higher = series["topSeed"]["abbrev"]
+
+                    lower = f"{get_emoji(lower)} {lower}"
+                    higher = f"{get_emoji(higher)} {higher}"
+
+                    lower_wins = series["bottomSeed"]["wins"]
+                    higher_wins = series["topSeed"]["wins"]
+
+                    if lower_wins > higher_wins:
+                        verb = "defeats" if lower_wins == 4 else "leads"
+                        msg += f"{lower} {verb} {higher} {lower_wins}-{higher_wins}\n"
+                    elif higher_wins > lower_wins:
+                        verb = "defeats" if higher_wins == 4 else "leads"
+                        msg += f"{higher} {verb} {lower} {higher_wins}-{lower_wins}\n"
+                    else:
+                        msg += f"{lower}-{higher} tied {lower_wins}-{higher_wins}\n"
+
+                msg += "\n"
+
+            await interaction.response.send_message(msg)
+
+        except Exception as e:
+            await interaction.response.send_message(f"Error in `/playoffs` function: {e}")
 
     @app_commands.command(name="scoreboard", description="Check out today's full scoreboard.")
     @app_commands.guild_only()
@@ -659,7 +699,7 @@ class Scoreboard(WesCog):
             await interaction.response.send_message(msg)
 
         except Exception as e:
-            await interaction.response.send_message(f"Error in `/scores scoreboard` function: {e}")
+            await interaction.response.send_message(f"Error in `/scoreboard` function: {e}")
 
     @app_commands.command(name="score", description="Check the score for a specific team.")
     @app_commands.describe(team="An NHL team abbreviation, name, or nickname.")
@@ -703,6 +743,7 @@ class Scoreboard(WesCog):
     @scores_stop.error
     @scoreboard.error
     @score.error
+    @playoffs.error
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}", ephemeral=True)
 
