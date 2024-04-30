@@ -582,7 +582,7 @@ class Scoreboard(WesCog):
         # Now check for "normal" states
         game_state = game["gameState"]
         game_type = game["gameType"] 
-        # TODO: SeriesStatus for playoffs
+
         if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
             utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
             local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
@@ -622,17 +622,22 @@ class Scoreboard(WesCog):
         # Show series score for playoffs in all states
         if game_type == 3:
             lower_seed = game["seriesStatus"]["bottomSeedTeamAbbrev"]
-            lower_wins = game["seriesStatus"]["bottomSeedWins"]
             higher_seed = game["seriesStatus"]["topSeedTeamAbbrev"]
+
+            lower_seed = f"{get_emoji(lower_seed)} {lower_seed}"
+            higher_seed = f"{get_emoji(higher_seed)} {higher_seed}"
+
+            lower_wins = game["seriesStatus"]["bottomSeedWins"]
             higher_wins = game["seriesStatus"]["topSeedWins"]
+
             if lower_wins > higher_wins:
-                score_string += f" ({lower_seed} leads {lower_wins}-{higher_wins})"
+                verb = "**wins**" if lower_wins == 4 else "**leads**"
+                score_string += f" ({lower_seed} {verb} {lower_wins}-{higher_wins})"
             elif higher_wins > lower_wins:
-                score_string += f" ({higher_seed} leads {higher_wins}-{lower_wins})"
+                verb = "**wins**" if higher_wins == 4 else "**leads**"
+                score_string += f" ({higher_seed} {verb} {higher_wins}-{lower_wins})"
             else:
                 score_string += f" (Series tied {lower_wins}-{higher_wins})"
-
-            score_string += ""
 
         return score_string
 
