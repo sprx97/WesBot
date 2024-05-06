@@ -237,7 +237,7 @@ class Scoreboard(WesCog):
             return False
 
         is_intermission = play_by_play["clock"]["inIntermission"]
-        last_play_was_in_third_period = play_by_play["plays"][-1]["periodDescriptor"]["number"] == 3
+        last_play_was_in_third_period = len(play_by_play["plays"]) > 0 and play_by_play["plays"][-1]["periodDescriptor"]["number"] == 3
         last_play_was_in_ot_period = play_by_play["plays"][-1]["periodDescriptor"]["periodType"] == "OT"
         is_playoff_game = play_by_play["gameType"] == 3
 
