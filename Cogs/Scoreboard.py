@@ -653,8 +653,9 @@ class Scoreboard(WesCog):
                 await interaction.response.send_message(f"No playoffs found for {year}-{year+1}")
                 return
 
+            msg = ""
             for round in playoffs["rounds"]:
-                msg = f"**Round {round['roundNumber']}**\n"
+                msg += f"**Round {round['roundNumber']}**\n"
                 for series in round["series"]:
                     lower = series["bottomSeed"]["abbrev"]
                     higher = series["topSeed"]["abbrev"]
