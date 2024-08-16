@@ -260,7 +260,7 @@ class Scoreboard(WesCog):
                 "- Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n" + \
                 "- Use /ot_standings in any channel to display the scoreboard for this server.\n" + \
                 "- Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n" + \
-                f"- Contact <@{SPRX_USER_ID}> with any bugs or suggestions.\n"
+                f"- Contact sprx97 with any bugs or suggestions.\n"
 
         ot_standings = LoadJsonFile(otstandings_datafile)
 

@@ -1,7 +1,8 @@
 # Python Libraries
 import asyncio
-import os
 from datetime import datetime, timedelta
+import os
+import pygsheets
 
 # Discord Libraries
 import challonge
@@ -12,7 +13,6 @@ from discord.ext import commands, tasks
 
 # Local Includes
 from Shared import *
-
 
 class OTH(WesCog):
     def __init__(self, bot):
@@ -253,7 +253,6 @@ class OTH(WesCog):
         return interaction.channel.id == MODS_CHANNEL_ID or interaction.channel.id == OTH_TECH_CHANNEL_ID
 
     @app_commands.command(name="inactives", description="Checks for any inactive OTH teams on FF.")
-    @app_commands.describe()
     @app_commands.guild_only()
     @app_commands.default_permissions(manage_guild=True)
     @app_commands.checks.check(is_mods_channel)
@@ -344,7 +343,6 @@ class OTH(WesCog):
         await self.cog_command_error(None, error)
 
     @app_commands.command(name="trades", description="Checks for any new OTH trades.")
-    @app_commands.describe()
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     async def trades(self, interaction: discord.Interaction):
@@ -531,6 +529,14 @@ class OTH(WesCog):
                 embed_list.append(discord.Embed(title=f"User {user} has been eliminated from the tournament."))
 
         await interaction.followup.send(embeds=embed_list)
+
+    @app_commands.command(name="playoffpool", description="Formats the playoff pool standings.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def playoffpool(self, interaction: discord.Interaction):
+        client = pygsheets.authorize()
+        sh = client.open()
 
 #endregion
 
