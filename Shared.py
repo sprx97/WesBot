@@ -248,6 +248,9 @@ def get_channels_from_ids(bot, ids):
             bot.log.error(f"Could not find channel {id}. Does the bot have access to it?")
     return channels
 
+def get_offseason_league_role(bot):
+    return bot.get_guild(OTH_GUILD_ID).get_role(1274113360170061925)
+
 def get_roles_from_ids(bot):
     league_role_ids = {}
     league_role_ids["D1"] = bot.get_guild(OTH_GUILD_ID).get_role(340870807137812480)
@@ -271,7 +274,7 @@ def get_roles_from_ids(bot):
     league_role_ids["Chelios"] = bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
     league_role_ids["Pronger"] = bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
     league_role_ids["Coffey"] = bot.get_guild(OTH_GUILD_ID).get_role(1026259761265651742)
-
+    
     return league_role_ids
 
 def sanitize(name):

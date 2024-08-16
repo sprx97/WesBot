@@ -123,17 +123,12 @@ class OTH(WesCog):
     async def roles_clear(self, interaction: discord.Interaction, debug: Choice[int]):
         debug = (debug.value == 1)
 
-        # Early return if the roles assignment file is missing
-        assignments = self.get_role_assignments()
-        if assignments == None:
-            await interaction.response.send_message("Could not find role assignments list.")
-            return
-
         await interaction.response.send_message(f"Removing all league/division roles.")
         if debug:
             await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
 
         league_roles = get_roles_from_ids(self.bot)
+        offseason_role = get_offseason_league_role(self.bot)
 
         count = 0
         members = self.bot.get_guild(OTH_GUILD_ID).members
@@ -144,6 +139,7 @@ class OTH(WesCog):
                     self.log.info(f"Removing all league/division roles from {member.name}.")
                     if not debug:
                         await member.remove_roles(*league_roles.values())
+                        await member.add_roles(offseason_role)
                     break
 
         self.log.info(f"Found league/division roles on {count} members.")
@@ -173,6 +169,7 @@ class OTH(WesCog):
             await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
 
         league_roles = get_roles_from_ids(self.bot)
+        offseason_role = get_offseason_league_role(self.bot)
 
         count = 0
         members = self.bot.get_guild(OTH_GUILD_ID).members
@@ -190,6 +187,7 @@ class OTH(WesCog):
                 self.log.info(f"Adding roles {division} and {league} to {member.name}")
                 if not debug:
                     await member.add_roles(league_roles[division], league_roles[league])
+                    await member.remove_roles(offseason_role)
 
         self.log.info(f"Added league/division roles to {count} members.")
         if not debug:
