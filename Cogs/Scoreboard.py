@@ -441,14 +441,12 @@ class Scoreboard(WesCog):
         if end_key in self.messages[id] and self.messages[id][end_key]["content"]["url"] != None:
             return
 
-        linescore = landing["summary"]["linescore"]
-
-        away_score = linescore["totals"]["away"]
-        home_score = linescore["totals"]["home"]
+        away_score = landing["awayTeam"]["score"]
+        home_score = landing["homeTeam"]["score"]
 
         # Set the modifier for the final, ie (OT), (2OT), (SO), etc
         modifier = ""
-        last_period = linescore["byPeriod"][-1]["periodDescriptor"]
+        last_period = landing["periodDescriptor"]
         if last_period["periodType"] == "OT":
             ot_num = last_period["number"] - 3
             if ot_num == 1:
