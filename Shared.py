@@ -259,6 +259,7 @@ def get_roles_from_ids(bot):
     league_role_ids["D2"] = bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
     league_role_ids["D3"] = bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
     league_role_ids["D4"] = bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
+    league_role_ids["WAITLIST"] = bot.get_guild(OTH_GUILD_ID).get_role(1290010111598657567)
     league_role_ids["Gretzky"] = bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
     league_role_ids["Brodeur"] = bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
     league_role_ids["Hasek"] = bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
