@@ -94,6 +94,8 @@ class OTH(WesCog):
         for league in get_leagues_from_database(Config.config["year"]):
             choices.append(Choice(name=league["name"], value=league["name"]))
 
+        choices.append(Choice(name="Waitlist", value="WAITLIST"))
+
         return choices
 
     # TODO: Move the Emailer to a shared location instead of the other project, and use direct sheet access instead of the rolesfile
@@ -183,10 +185,14 @@ class OTH(WesCog):
                 if scope != division and scope != league:
                     continue
 
+                roles_to_add = [league_roles[league]]
+                if league_roles[league].name != "Waitlist":
+                    roles_to_add.append(league_roles[division])
+
                 count += 1
-                self.log.info(f"Adding roles {division} and {league} to {member.name}")
+                self.log.info(f"Adding roles {roles_to_add} to {member.name}")
                 if not debug:
-                    await member.add_roles(league_roles[division], league_roles[league])
+                    await member.add_roles(*roles_to_add)
                     await member.remove_roles(offseason_role)
 
         self.log.info(f"Added league/division roles to {count} members.")
@@ -469,8 +475,8 @@ class OTH(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def woppacup(self, interaction: discord.Interaction, user: str):
         # Temp override for weeks where it's paused. Update the text as necessary.
-        # await interaction.response.send_message(f"WoppaCup is on pause due to the short All-Star week. It will resume in fleaflicker week 18. Contact Woppa for more info.")
-        # return
+        await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 4 or 5.")
+        return
 
         await interaction.response.defer(thinking=True)
 
