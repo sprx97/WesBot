@@ -177,7 +177,7 @@ def sanitize_user(user):
 
     # For the lulz
     if user == "doodoosteve" or user == "dookie":
-        user = "voodoosteve"
+        user = "stevenrj"
     elif user == "sprx":
         user = "sprx97"
     elif user == "planks":
