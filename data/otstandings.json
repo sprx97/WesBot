@@ -8,7 +8,7 @@
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 1,
+            "guesses": 3,
             "correct": 0
         },
         "229287970186723339": {
@@ -18,6 +18,56 @@
         },
         "228258453599027200": {
             "name": "sprx97",
+            "guesses": 2,
+            "correct": 0
+        },
+        "486366622785994753": {
+            "name": "tgmills",
+            "guesses": 1,
+            "correct": 0
+        },
+        "492421946550648832": {
+            "name": "__edge",
+            "guesses": 1,
+            "correct": 0
+        },
+        "417851289284902925": {
+            "name": "porridge42",
+            "guesses": 1,
+            "correct": 0
+        },
+        "230875413423980545": {
+            "name": "spemason",
+            "guesses": 1,
+            "correct": 0
+        },
+        "888212096662274089": {
+            "name": "theandyrichter",
+            "guesses": 1,
+            "correct": 0
+        },
+        "829161095222394900": {
+            "name": "firebug2",
+            "guesses": 1,
+            "correct": 1
+        },
+        "243201978191052800": {
+            "name": "barrill",
+            "guesses": 1,
+            "correct": 1
+        },
+        "360940651153588234": {
+            "name": "imminentfate",
+            "guesses": 1,
+            "correct": 0
+        },
+        "221472911880355842": {
+            "name": "toomanypuppies",
+            "guesses": 1,
+            "correct": 0
+        },
+        "126095803692482560": {
+            "name": "bbrovsky",
             "guesses": 1,
             "correct": 0
         }
@@ -26,11 +76,16 @@
         "role": 1209388054171881483,
         "339479682422538245": {
             "name": "mashu86",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "228258453599027200": {
             "name": "sprx97",
+            "guesses": 2,
+            "correct": 0
+        },
+        "529041066205118464": {
+            "name": "rexlawrencecounty",
             "guesses": 1,
             "correct": 0
         }
