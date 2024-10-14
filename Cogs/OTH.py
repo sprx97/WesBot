@@ -26,8 +26,8 @@ class OTH(WesCog):
         self.loops.append(self.trades_loop)
 
 # Disabled for the summer
-#        self.inactives_loop.start()
-#        self.loops.append(self.inactives_loop)
+        self.inactives_loop.start()
+        self.loops.append(self.inactives_loop)
 
 #region Custom cog-specific exceptions
 

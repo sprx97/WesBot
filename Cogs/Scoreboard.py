@@ -78,7 +78,6 @@ class Scoreboard(WesCog):
         async with self.ot_lock:
             ot_standings = LoadJsonFile(otstandings_datafile)
 
-
             ot_games = list(self.ot_guesses.keys())
             for game_id in ot_games:
                 # Archive the threads made for this OT challenge
@@ -124,9 +123,9 @@ class Scoreboard(WesCog):
 
                         self.log.info(f"{guild_id}:{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]['guess']}. {self.ot_guesses[game_id][guild_id][user_id]['guess'] == gwg_scorer}")
 
-            WriteJsonFile(otstandings_datafile, ot_standings)
+                del self.ot_guesses[game_id]
 
-            self.ot_guesses = {}
+            WriteJsonFile(otstandings_datafile, ot_standings)
             WriteJsonFile(ot_datafile, self.ot_guesses)
 
         if has_errors:
@@ -390,6 +389,9 @@ class Scoreboard(WesCog):
                 await self.create_ot_thread(game_id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
                 self.log.info(f"Opened OT Challenge for {away}-{home}")
                 self.messages[game_id]["ot_state"] = "open"
+
+                if game_id not in self.ot_guesses:
+                    self.ot_guesses[game_id] = {}
 
         elif ot_key in self.messages[game_id]:
             ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
