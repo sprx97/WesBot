@@ -3,57 +3,57 @@
         "role": 1206140465641168986,
         "232566177140965376": {
             "name": "stevenrj",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 2,
+            "correct": 1
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 6,
-            "correct": 0
+            "guesses": 12,
+            "correct": 2
         },
         "229287970186723339": {
             "name": "ch1zzle",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "228258453599027200": {
             "name": "sprx97",
-            "guesses": 6,
+            "guesses": 10,
             "correct": 1
         },
         "486366622785994753": {
             "name": "tgmills",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 1
         },
         "492421946550648832": {
             "name": "__edge",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 3,
+            "correct": 1
         },
         "417851289284902925": {
             "name": "porridge42",
-            "guesses": 3,
+            "guesses": 5,
             "correct": 0
         },
         "230875413423980545": {
             "name": "spemason",
-            "guesses": 1,
+            "guesses": 6,
             "correct": 0
         },
         "888212096662274089": {
             "name": "theandyrichter",
-            "guesses": 5,
+            "guesses": 6,
             "correct": 0
         },
         "829161095222394900": {
             "name": "firebug2",
-            "guesses": 2,
-            "correct": 2
+            "guesses": 9,
+            "correct": 4
         },
         "243201978191052800": {
             "name": "barrill",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 1
         },
         "360940651153588234": {
@@ -63,36 +63,71 @@
         },
         "221472911880355842": {
             "name": "toomanypuppies",
-            "guesses": 1,
+            "guesses": 3,
             "correct": 0
         },
         "126095803692482560": {
             "name": "bbrovsky",
-            "guesses": 2,
+            "guesses": 5,
             "correct": 0
         },
         "329982578708971522": {
             "name": "bwemonts",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 5,
+            "correct": 1
         },
         "513530130145214484": {
             "name": "marcfromnewf",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 1
         },
         "220731816099840000": {
             "name": "akacesfan",
-            "guesses": 1,
+            "guesses": 4,
             "correct": 0
         },
         "795705765049401364": {
             "name": "tsunkatse",
-            "guesses": 2,
-            "correct": 0
+            "guesses": 5,
+            "correct": 1
         },
         "447077568403865620": {
             "name": "tom.jane",
+            "guesses": 1,
+            "correct": 0
+        },
+        "460639734222553088": {
+            "name": "thomsco",
+            "guesses": 2,
+            "correct": 1
+        },
+        "428370331225554951": {
+            "name": "cyperone",
+            "guesses": 2,
+            "correct": 0
+        },
+        "228714331120861185": {
+            "name": "ckroyal92",
+            "guesses": 2,
+            "correct": 0
+        },
+        "745414158266269746": {
+            "name": "yokieran",
+            "guesses": 1,
+            "correct": 0
+        },
+        "160838225487855617": {
+            "name": "goodleftundone",
+            "guesses": 2,
+            "correct": 1
+        },
+        "217052103904854016": {
+            "name": "haychan4",
+            "guesses": 1,
+            "correct": 0
+        },
+        "86530833749401600": {
+            "name": "christhrowsrocks",
             "guesses": 1,
             "correct": 0
         }
@@ -101,12 +136,12 @@
         "role": 1209388054171881483,
         "339479682422538245": {
             "name": "mashu86",
-            "guesses": 3,
+            "guesses": 6,
             "correct": 0
         },
         "228258453599027200": {
             "name": "sprx97",
-            "guesses": 6,
+            "guesses": 10,
             "correct": 1
         },
         "529041066205118464": {
@@ -121,23 +156,48 @@
         },
         "349602231755997185": {
             "name": "bdub28",
-            "guesses": 1,
-            "correct": 1
+            "guesses": 4,
+            "correct": 3
         },
         "216987381960540163": {
             "name": "trev1657",
-            "guesses": 3,
+            "guesses": 5,
             "correct": 1
         },
         "290665788895920128": {
             "name": "badd_speler",
-            "guesses": 3,
+            "guesses": 5,
             "correct": 2
         },
         "281499231045550083": {
             "name": "kcwinn66",
+            "guesses": 2,
+            "correct": 0
+        },
+        "223885071201861642": {
+            "name": "cpu_easy_",
+            "guesses": 2,
+            "correct": 0
+        },
+        "286396069158453248": {
+            "name": "brendon.w",
             "guesses": 1,
             "correct": 0
+        },
+        "664316360125448212": {
+            "name": "jgrnat",
+            "guesses": 1,
+            "correct": 1
+        },
+        "84111182943752192": {
+            "name": "zelnox",
+            "guesses": 1,
+            "correct": 0
+        },
+        "1004841604785385472": {
+            "name": "alexistats",
+            "guesses": 1,
+            "correct": 1
         }
     }
 }

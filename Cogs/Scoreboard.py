@@ -457,7 +457,8 @@ class Scoreboard(WesCog):
         elif last_period["periodType"] == "SO":
             modifier = " (SO)"
 
-        recap_link = self.get_recap_link(id)
+# As of October 2024 recap links are not included in the API anymore :(
+#        recap_link = self.get_recap_link(id)
 
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
         end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
@@ -731,7 +732,9 @@ class Scoreboard(WesCog):
 
             # Get the score and recap
             msg = self.get_score_string(game)
-            link = self.get_recap_link(str(game["id"]))
+
+# As of October 2024 recap links are not included in the API anymore :(
+#            link = self.get_recap_link(str(game["id"]))
 
             # Create and send the embed
             embed=discord.Embed(title=msg, url=link)
