@@ -213,9 +213,11 @@ class OTH(WesCog):
             standings = make_api_call(f"https://www.fleaflicker.com/api/FetchLeagueStandings?sport=NHL&league_id={league['id']}")
 
             for team in standings["divisions"][0]["teams"]:
+                team_url = f"https://www.fleaflicker.com/nhl/leagues/{league['id']}/teams/{team['id']}"
+
                 # If there's no owners, mark as inactive
                 if "owners" not in team:
-                    msg += f"**{league['name']}**: *Unowned team: {team['name']}*\n"
+                    msg += f"**{league['name']}**: *Unowned team: {team['name']}* {team_url}\n"
                     continue
 
                 # If there are owners, check if the primary one has been seen in the last MIN_INACTIVE_DAYS days
@@ -223,10 +225,10 @@ class OTH(WesCog):
                 last_seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ")
                 time_since_seen = datetime.utcnow()-last_seen
                 if time_since_seen.days > MIN_INACTIVE_DAYS:
-                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} not seen in last {time_since_seen.days} days*\n"
+                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} not seen in last {time_since_seen.days} days* {team_url}\n"
 
             if msg != "":
-                await channel.send(msg)
+                await channel.send(msg, suppress_embeds=True)
         self.log.info("Inactives check complete.")
 
     @tasks.loop(hours=7*24.0) # weekly -- could check more often if MIN_INACTIVE_DAYS is set to smaller
