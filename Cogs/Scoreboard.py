@@ -469,6 +469,7 @@ class Scoreboard(WesCog):
 
 # As of October 2024 recap links are not included in the API anymore :(
 #        recap_link = self.get_recap_link(id)
+        recap_link = None
 
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
         end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
