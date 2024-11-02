@@ -331,7 +331,17 @@ class Scoreboard(WesCog):
                 shot_type = f" {goal['shotType']}," if "shotType" in goal else ""
 
                 # Get the scorer and assists
-                scorer = f"{goal['firstName']['default']} {goal['lastName']['default']} ({goal['goalsToDate']}){shot_type}"
+                scorer = f"{goal['firstName']['default']} {goal['lastName']['default']}"
+                if goal['goalsToDate'] != 0:
+                    scorer += f" ({goal['goalsToDate']}"
+
+                    # Temporary for the record chase
+                    if goal['lastName']['default'] == "Ovechkin":
+                        scorer += f", {goal['goalsToDate']+853}"
+
+                    scorer += ")"
+
+                scorer += f"{shot_type}"
                 assists = []
                 for assist in goal["assists"]:
                     assists.append(f"{assist['firstName']['default']} {assist['lastName']['default']} ({assist['assistsToDate']})")
