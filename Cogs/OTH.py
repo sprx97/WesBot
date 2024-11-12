@@ -477,8 +477,8 @@ class OTH(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def woppacup(self, interaction: discord.Interaction, user: str):
         # Temp override for weeks where it's paused. Update the text as necessary.
-        await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 4 or 5.")
-        return
+        # await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
+        # return
 
         await interaction.response.defer(thinking=True)
 
@@ -506,7 +506,13 @@ class OTH(WesCog):
         curr_round = None
         is_group_stage = True
         embed_list = []
-        for m in challonge.matches.index(wc_id):
+
+        # Sort the matches by round. This is how the group stage used to sort,
+        # but now it sorts by group, which broke the below for loop.
+        all_matches = challonge.matches.index(wc_id)
+        all_matches = sorted(all_matches, key=lambda x: x["round"])
+
+        for m in all_matches:
             # Skip completed matches, because we only want the current ones
             if m["state"] != "open":
                 continue
