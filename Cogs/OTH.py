@@ -320,7 +320,13 @@ class OTH(WesCog):
 
                 trade_embed = self.format_trade(league, trade)
                 await trades_channel.send(f"<@&{TRADEREVIEW_ROLE_ID}>", embed=trade_embed)
-                await hockey_general_channel.send(embed=trade_embed)
+                msg = await hockey_general_channel.send(embed=trade_embed)
+
+                # Add reactions to the message for each team in the trade
+                number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
+                if len(trade["teams"]) < len(number_emojis):
+                    for n in len(trade["teams"]):
+                        await msg.add_reaction(number_emojis[n])
 
                 count += 1
 

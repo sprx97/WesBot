@@ -746,6 +746,7 @@ class Scoreboard(WesCog):
 
 # As of October 2024 recap links are not included in the API anymore :(
 #            link = self.get_recap_link(str(game["id"]))
+            link = None
 
             # Create and send the embed
             embed=discord.Embed(title=msg, url=link)
