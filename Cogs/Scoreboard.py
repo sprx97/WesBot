@@ -827,7 +827,7 @@ class Scoreboard(WesCog):
 
         found = False
         for roster_player in play_by_play["rosterSpots"]:
-            if roster_player["teamId"] == team_id and (roster_player["lastName"]["default"].lower() == player_name or f"{roster_player['firstName']['default']} {roster_player['lastName']['default']}".lower() == player_name or roster_player["sweaterNumber"] == player_num):
+            if roster_player["teamId"] == team_id and (sanitize(roster_player["lastName"]["default"].lower()) == player_name or sanitize(f"{roster_player['firstName']['default']} {roster_player['lastName']['default']}".lower()) == player_name or roster_player["sweaterNumber"] == player_num):
                 found = True
                 break
 
