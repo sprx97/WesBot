@@ -286,8 +286,9 @@ class OTH(WesCog):
 
             embed.add_field(name=f"**{team['team']['name']}** gets", value=players)
 
-        time_secs = int(trade["tentativeExecutionTime"])/1000.0
-        embed.set_footer(text="Processes " + datetime.fromtimestamp(time_secs).strftime("%A, %B %d, %Y %H:%M ET"))
+        if "tentativeExecutionTime" in trade:
+            time_secs = int(trade["tentativeExecutionTime"])/1000.0
+            embed.set_footer(text="Processes " + datetime.fromtimestamp(time_secs).strftime("%A, %B %d, %Y %H:%M ET"))
 
         return embed
 
@@ -325,7 +326,7 @@ class OTH(WesCog):
                 # Add reactions to the message for each team in the trade
                 number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
                 if len(trade["teams"]) < len(number_emojis):
-                    for n in len(trade["teams"]):
+                    for n in range(len(trade["teams"])):
                         await msg.add_reaction(number_emojis[n])
 
                 count += 1
