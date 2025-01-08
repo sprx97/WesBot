@@ -270,6 +270,7 @@ class OTH(WesCog):
     def format_trade(self, league, trade):
         embed = discord.Embed(url=f"https://www.fleaflicker.com/nhl/leagues/{league['id']}/trades/{trade['id']}")
         embed.title = "Trade in " + league["name"]
+        n_teams = 1
         for team in trade["teams"]:
             if "playersObtained" not in team:
                 embed.add_field(name=f"**{team['team']['name']}**", value="No players going to this team -- please investigate.")
@@ -284,7 +285,8 @@ class OTH(WesCog):
                 for player in team["playersReleased"]:
                     players += "*Dropping* " + player["proPlayer"]["nameFull"] + "\n"
 
-            embed.add_field(name=f"**{team['team']['name']}** gets", value=players)
+            embed.add_field(name=f"**[{n_teams}]{team['team']['name']}** gets", value=players)
+            n_teams += 1
 
         if "tentativeExecutionTime" in trade:
             time_secs = int(trade["tentativeExecutionTime"])/1000.0
