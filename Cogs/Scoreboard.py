@@ -62,7 +62,7 @@ class Scoreboard(WesCog):
 
     async def archive_ot_threads(self, game_id):
         if game_id not in self.messages:
-            self.log.error("Game_id not found in messages. May have to archive threads manually.")
+            self.log.error(f"Game_id {game_id} not found in messages. May have to archive threads manually.")
             return
 
         for _, message in self.messages[game_id]["OT"]["message_ids"]:

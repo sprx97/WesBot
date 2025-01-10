@@ -285,7 +285,7 @@ class OTH(WesCog):
                 for player in team["playersReleased"]:
                     players += "*Dropping* " + player["proPlayer"]["nameFull"] + "\n"
 
-            embed.add_field(name=f"**[{n_teams}]{team['team']['name']}** gets", value=players)
+            embed.add_field(name=f"**[{n_teams}] {team['team']['name']}** gets", value=players)
             n_teams += 1
 
         if "tentativeExecutionTime" in trade:
