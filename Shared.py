@@ -144,9 +144,12 @@ class WesCog(commands.Cog):
     # but can override this method or specific commands' error handlers in cogs
     async def cog_command_error(self, ctx, error):
         try:
-            self.log.error(error.message, stacklevel=3)
+            # import traceback
+            # for line in traceback.format_stack():
+            #   print(line.strip())
+            self.log.error(error.message)
         except:
-            self.log.error(error, stacklevel=3)
+            self.log.error(error)
 
 # Custom exception for a failure to fetch a link
 class LinkError(discord.ext.commands.CommandError):
