@@ -5,7 +5,6 @@ import os
 import pygsheets
 
 # Discord Libraries
-import challonge
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
@@ -13,6 +12,7 @@ from discord.ext import commands, tasks
 
 # Local Includes
 from Shared import *
+from Cogs.WoppaCup_Helper import *
 
 class OTH(WesCog):
     def __init__(self, bot):
@@ -411,217 +411,23 @@ class OTH(WesCog):
 #endregion
 #region Woppa Cup
 
-    def get_embed_for_woppacup_match(self, match, participants, url):
-        p1_id = match["player1_id"]
-        p2_id = match["player2_id"]
-        p1_name = p2_name = p1_div = p2_div = None
-        p1_prev = p2_prev = 0
-
-        if match["scores_csv"] != "":
-            scores = match["scores_csv"].split("-")
-            p1_prev = int(scores[0])/100.0
-            p2_prev = int(scores[1])/100.0
-
-        # Get the opponent from the participants list
-        for p in participants:
-            if p1_id == p["id"] or p1_id in p["group_player_ids"]:
-                p1_div = p["name"].split(".")[0]
-                p1_name = p["name"].split(".")[-1]
-            elif p2_id == p["id"] or p2_id in p["group_player_ids"]:
-                p2_div = p["name"].split(".")[0]
-                p2_name = p["name"].split(".")[-1]
-
-            # Found both names!
-            if p1_name != None and p2_name != None:
-                break
-
-        # Get p1's matchup from the database
-        p1_matchup = get_user_matchup_from_database(p1_name, p1_div)
-        if len(p1_matchup) == 0:
-            raise self.UserNotFound(p1_name, p1_div)
-        if len(p1_matchup) > 1:
-            raise self.MultipleMatchupsFound(p1_name)
-        p1_matchup = p1_matchup[0]
-
-        # Get p2's matchup from the database
-        p2_matchup = get_user_matchup_from_database(p2_name, p2_div)
-        if len(p2_matchup) == 0:
-            raise self.UserNotFound(p2_name, p2_div)
-        if len(p2_matchup) > 1:
-            raise self.MultipleMatchupsFound(p2_name)
-        p2_matchup = p2_matchup[0]
-
-        # Format names for posting
-        p1_name = f"{p1_div[:8]}.{p1_name}"
-        p2_name = f"{p2_div[:8]}.{p2_name}"
-        if len(p1_name) > len(p2_name):
-            p2_name += " "*(len(p1_name)-len(p2_name))
-        else:
-            p1_name += " "*(len(p2_name)-len(p1_name))
-
-        # Format a matchup embed to send
-        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "[{:>6.2f}]({})\n".format(round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
-        msg += f"`{p2_name}` "+ f"\u2002"*(24-len(p2_name)) + "[{:>6.2f}]({})".format(round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
-
-        if match["group_id"] != None:
-            round_name = f"Group Stage Week {match['round']}"
-        else:
-            week_in_matchup = 1 if p1_prev == 0 and p2_prev == 0 else 2
-            rounds = [0, "Round of 128", 
-                         "Round of 64", 
-                         "Round of 32", 
-                         "Round of 16", 
-                         f"Quarterfinal (Week {week_in_matchup} of 2)", 
-                         f"Semifinal (Week {week_in_matchup} of 2)", 
-                         f"Championship (Week {week_in_matchup} of 2)"]
-            round_name = rounds[match["round"]]
-
-        embed = discord.Embed(title=f"Woppa Cup {round_name}", description=msg, url=url)
-        return embed
-
-    def get_wc_data(self, wc_id):
-        participants = challonge.participants.index(wc_id)
-
-        # Sort the matches by round to ensure finding the current round works
-        matches = challonge.matches.index(wc_id)
-        matches = sorted(matches, key=lambda x: x["round"])
-
-        url = challonge.tournaments.show(wc_id)["full_challonge_url"]
-
-        return participants, matches, url
-
-    def get_round_and_stage(self, matches):
-        for m in matches:
-            # Skip completed matches, because we only want the current ones
-            if m["state"] != "open":
-                continue
-
-            # Assume the first open match has the correct round, and set for the entire bracket
-            return m["round"], (m["group_id"] != None)
-
-        return 999, False
-
     @app_commands.command(name="wc_all", description="Shows all scores for the current round of Woppa Cup in a pager.")
     @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def woppacup_new(self, interaction: discord.Interaction):
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def woppacup_all(self, interaction: discord.Interaction):
+        # Temp override for weeks where it's paused. Update the text as necessary.
+        # await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
+        # return
+
         await interaction.response.defer(thinking=True, ephemeral=True)
 
-        ################### Move this somewhere better
-        class WCView(discord.ui.View):
-            def __init__(self, participants, matches, url):
-                super().__init__()
-                self.participants = participants
-                self.matches = matches
-                self.url = url
-                self.current = 0
-                self.embed = self.get_embed_for_woppacup_match(self.matches[self.current], participants, url)
+        participants, matches, url = WoppaCup.get_wc_data()
+        curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
+        matches = WoppaCup.trim_matches(matches, curr_round, is_group_stage)
 
-            # TODO: Move out to helper to deduplicate
-            def get_embed_for_woppacup_match(self, match, participants, url):
-                p1_id = match["player1_id"]
-                p2_id = match["player2_id"]
-                p1_name = p2_name = p1_div = p2_div = None
-                p1_prev = p2_prev = 0
-
-                if match["scores_csv"] != "":
-                    scores = match["scores_csv"].split("-")
-                    p1_prev = int(scores[0])/100.0
-                    p2_prev = int(scores[1])/100.0
-
-                # Get the opponent from the participants list
-                for p in participants:
-                    if p1_id == p["id"] or p1_id in p["group_player_ids"]:
-                        p1_div = p["name"].split(".")[0]
-                        p1_name = p["name"].split(".")[-1]
-                    elif p2_id == p["id"] or p2_id in p["group_player_ids"]:
-                        p2_div = p["name"].split(".")[0]
-                        p2_name = p["name"].split(".")[-1]
-
-                    # Found both names!
-                    if p1_name != None and p2_name != None:
-                        break
-
-                # Get p1's matchup from the database
-                p1_matchup = get_user_matchup_from_database(p1_name, p1_div)
-                if len(p1_matchup) == 0:
-                    raise self.UserNotFound(p1_name, p1_div)
-                if len(p1_matchup) > 1:
-                    raise self.MultipleMatchupsFound(p1_name)
-                p1_matchup = p1_matchup[0]
-
-                # Get p2's matchup from the database
-                p2_matchup = get_user_matchup_from_database(p2_name, p2_div)
-                if len(p2_matchup) == 0:
-                    raise self.UserNotFound(p2_name, p2_div)
-                if len(p2_matchup) > 1:
-                    raise self.MultipleMatchupsFound(p2_name)
-                p2_matchup = p2_matchup[0]
-
-                # Format names for posting
-                p1_name = f"{p1_div[:8]}.{p1_name}"
-                p2_name = f"{p2_div[:8]}.{p2_name}"
-                if len(p1_name) > len(p2_name):
-                    p2_name += " "*(len(p1_name)-len(p2_name))
-                else:
-                    p1_name += " "*(len(p2_name)-len(p1_name))
-
-                # Format a matchup embed to send
-                msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "[{:>6.2f}]({})\n".format(round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
-                msg += f"`{p2_name}` "+ f"\u2002"*(24-len(p2_name)) + "[{:>6.2f}]({})".format(round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
-
-                if match["group_id"] != None:
-                    round_name = f"Group Stage Week {match['round']}"
-                else:
-                    week_in_matchup = 1 if p1_prev == 0 and p2_prev == 0 else 2
-                    rounds = [0, "Round of 128", 
-                                "Round of 64", 
-                                "Round of 32", 
-                                "Round of 16", 
-                                f"Quarterfinal (Week {week_in_matchup} of 2)", 
-                                f"Semifinal (Week {week_in_matchup} of 2)", 
-                                f"Championship (Week {week_in_matchup} of 2)"]
-                    round_name = rounds[match["round"]]
-
-                embed = discord.Embed(title=f"Woppa Cup {round_name}", description=msg, url=url)
-                embed.set_footer(text=url, icon_url=None)
-                return embed
-
-            async def update_embed(self, interaction: discord.Interaction,):
-                self.embed = self.get_embed_for_woppacup_match(self.matches[self.current], participants, url)
-                await interaction.response.edit_message(embed=self.embed)
-
-            @discord.ui.button(label="Prev", style=discord.ButtonStyle.green)
-            async def prev(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-                self.current -= 1
-                if self.current == -1:
-                    self.current = len(self.matches)-1
-                await self.update_embed(interaction)
-
-            @discord.ui.button(label="Next", style=discord.ButtonStyle.green)
-            async def next(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-                self.current += 1
-                if self.current == len(self.matches):
-                    self.current = 0
-                await self.update_embed(interaction)
-
-            # Not really needed, since ephemerals come with "dismiss message" already
-            # @discord.ui.button(label="Exit", style=discord.ButtonStyle.red)
-            # async def exit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-            #     await interaction.response.edit_message(view=None)
-        ##############################################
-
-        challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-        wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
-        participants, matches, url = self.get_wc_data(wc_id)
-        # TODO: Trim matches to only current ones
-
-        view = WCView(participants, matches, url)
+        view = WoppaCup.WCView(participants, matches, url)
         await interaction.followup.send(embed=view.embed, view=view)
-
-#        challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-#        wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
 
     @app_commands.command(name="wc", description="Check the score for a specific manager's Woppa Cup matchup.")
     @app_commands.describe(user="A fleaflicker username, 'all', or 'bracket'")
@@ -636,10 +442,7 @@ class OTH(WesCog):
         await interaction.response.defer(thinking=True)
 
         user = sanitize_user(user)
-
-        challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-        wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
-        participants, matches, url = self.get_wc_data(wc_id)
+        participants, matches, url = WoppaCup.get_wc_data()
 
         # Check that the user requested actually exists
         me = None
@@ -654,15 +457,15 @@ class OTH(WesCog):
             await interaction.followup.send(embed=embed)
             return
 
-        curr_round, is_group_stage = self.get_round_and_stage(matches)
+        curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
         if curr_round == 999:
             embed = embed=discord.Embed(title=f"This tournament appears to be over.")
             embed.set_footer(text=url, icon_url=None)
             await interaction.followup.send(embed=embed)
             return
 
+        # Find the user's match from this week
         embed = None
-
         for m in matches:
             # Skip the group stage if necessary
             if not is_group_stage and m["group_id"] != None:
@@ -673,16 +476,17 @@ class OTH(WesCog):
                 continue
 
             if m["player1_id"] == me["id"] or m["player2_id"] == me["id"] or m["player1_id"] in me["group_player_ids"] or m["player2_id"] in me["group_player_ids"]:
-                embed = self.get_embed_for_woppacup_match(m, participants, url)
+                embed = WoppaCup.get_embed_for_woppacup_match(m, participants, url)
                 break
 
+        # A few scenarios for if the user is not playing this week
         if embed == None:
             if is_group_stage:
                 embed = discord.Embed(title=f"User {user} is on bye.")
             else:
                 embed = discord.Embed(title=f"User {user} has been eliminated from the tournament.")
 
-        embed.set_footer(text=url, icon_url=None)
+        embed.set_footer(text="Looking for more scores? Try /wc_all", icon_url=None)
         await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="playoffpool", description="Formats the playoff pool standings.")
