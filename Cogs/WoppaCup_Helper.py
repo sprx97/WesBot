@@ -16,6 +16,10 @@ class WoppaCup():
             self.embed = None
             self.update_embed()
 
+            # Remove the buttons if there's only one page
+            if len(self.matches) <= MATCHES_PER_PAGE:
+                self.clear_items()
+
         def update_embed(self):
             # Wraparound
             if self.current == -1:
@@ -29,7 +33,8 @@ class WoppaCup():
             for m in self.matches[start_match:end_match]:
                 self.embed.add_field(name="\u200b", value=WoppaCup.get_embed_for_woppacup_match(m, self.participants, self.url).description, inline=False)
 
-            self.embed.title += f" ({self.current+1}/{int(len(self.matches)/MATCHES_PER_PAGE)})"
+            if len(self.matches) > MATCHES_PER_PAGE:
+                self.embed.title += f" ({self.current+1}/{int(len(self.matches)/MATCHES_PER_PAGE)})"
 
         @discord.ui.button(label="Prev", style=discord.ButtonStyle.green)
         async def prev(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
