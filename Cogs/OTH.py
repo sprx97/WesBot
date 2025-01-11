@@ -411,6 +411,33 @@ class OTH(WesCog):
 #endregion
 #region Woppa Cup
 
+    @app_commands.command(name="wc_bracket", description="Dumps all WoppaCup scores to the chat. Only Ro16 and later.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    @app_commands.checks.cooldown(1, 300.0)
+    async def woppacup_bracket(self, interaction: discord.Interaction):
+        # Temp override for weeks where it's paused. Update the text as necessary.
+        # await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
+        # return
+
+        await interaction.response.defer(thinking=True, ephemeral=False)
+
+        participants, matches, url = WoppaCup.get_wc_data()
+        curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
+        matches = WoppaCup.trim_matches(matches, curr_round, is_group_stage)
+
+        if len(matches) > 8:
+            await interaction.followup.send("Too many matches remain to display full bracket. Please wait until Ro16")
+            return
+
+        embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(matches[0]['round'], False)}")
+        matches = matches[:8]
+        for m in matches:
+            embed.add_field(name="\u200b", value=WoppaCup.get_embed_for_woppacup_match(m, participants, url).description, inline=False)
+
+        await interaction.followup.send(embed=embed)
+
     @app_commands.command(name="wc_all", description="Shows all scores for the current round of Woppa Cup in a pager.")
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)

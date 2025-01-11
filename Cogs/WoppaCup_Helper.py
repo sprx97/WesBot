@@ -3,6 +3,8 @@ import discord
 
 from Shared import *
 
+MATCHES_PER_PAGE = 4 # Must be a power of 2
+
 class WoppaCup():
     class WCView(discord.ui.View):
         def __init__(self, participants, matches, url):
@@ -11,29 +13,35 @@ class WoppaCup():
             self.matches = matches
             self.url = url
             self.current = 0
+            self.embed = None
+            self.update_embed()
 
-            # Set initial embed
-            self.embed = get_embed_for_woppacup_match(self.matches[self.current], self.participants, self.url)
-            self.embed.title += f" ({self.current+1}/{len(self.matches)})"
+        def update_embed(self):
+            # Wraparound
+            if self.current == -1:
+                self.current = int(len(self.matches)/MATCHES_PER_PAGE-1)
+            if self.current == len(self.matches)/MATCHES_PER_PAGE:
+                self.current = 0
 
-        async def update_embed(self, interaction: discord.Interaction):
-            self.embed = get_embed_for_woppacup_match(self.matches[self.current], self.participants, self.url)
-            self.embed.title += f" ({self.current+1}/{len(self.matches)})"
-            await interaction.response.edit_message(embed=self.embed)
+            self.embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(self.matches[0]['round'], (self.matches[0]['group_id'] != None))}")
+            start_match = self.current * MATCHES_PER_PAGE
+            end_match = (self.current + 1) * MATCHES_PER_PAGE
+            for m in self.matches[start_match:end_match]:
+                self.embed.add_field(name="\u200b", value=WoppaCup.get_embed_for_woppacup_match(m, self.participants, self.url).description, inline=False)
+
+            self.embed.title += f" ({self.current+1}/{int(len(self.matches)/MATCHES_PER_PAGE)})"
 
         @discord.ui.button(label="Prev", style=discord.ButtonStyle.green)
         async def prev(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
             self.current -= 1
-            if self.current == -1:
-                self.current = len(self.matches)-1
-            await self.update_embed(interaction)
+            self.update_embed()
+            await interaction.response.edit_message(embed=self.embed)
 
         @discord.ui.button(label="Next", style=discord.ButtonStyle.green)
         async def next(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
             self.current += 1
-            if self.current == len(self.matches):
-                self.current = 0
-            await self.update_embed(interaction)
+            self.update_embed()
+            await interaction.response.edit_message(embed=self.embed)
 
     def get_wc_data():
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
@@ -68,6 +76,19 @@ class WoppaCup():
             matching_matches.append(m)
 
         return matching_matches
+
+    def get_round_name(round_id, is_group_stage):
+        if is_group_stage:
+            return f"Group Stage Week {round_id}"
+        else:
+            rounds = [0, "Round of 128", 
+                         "Round of 64", 
+                         "Round of 32", 
+                         "Round of 16", 
+                         f"Quarterfinal", 
+                         f"Semifinal", 
+                         f"Championship"]
+            return rounds[round_id]
 
     def get_round_and_stage(matches):
         for m in matches:
