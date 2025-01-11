@@ -89,6 +89,7 @@ class Scoreboard(WesCog):
                 # Some games won't reach overtime or will end in a shootout, so ignore them.
                 if final_period["periodDescriptor"]["periodType"] != "OT":
                     self.log.info(f"Game {game_id} did not end via Overtime.")
+                    del self.ot_guesses[game_id]
                     continue
 
                 # Sanity check
