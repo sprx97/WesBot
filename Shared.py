@@ -6,6 +6,7 @@ from discord.ext import commands
 import json
 import pymysql
 import requests
+import traceback
 
 # Local Includes
 import Config
@@ -144,10 +145,8 @@ class WesCog(commands.Cog):
     # but can override this method or specific commands' error handlers in cogs
     async def cog_command_error(self, ctx, error):
         try:
-            # import traceback
-            # for line in traceback.format_stack():
-            #   print(line.strip())
-            self.log.error(error.message)
+            for line in traceback.format_stack():
+                self.log.error(line.strip())
         except:
             self.log.error(error)
 
