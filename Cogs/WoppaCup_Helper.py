@@ -31,7 +31,7 @@ class WoppaCup():
             start_match = self.current * MATCHES_PER_PAGE
             end_match = (self.current + 1) * MATCHES_PER_PAGE
             for m in self.matches[start_match:end_match]:
-                self.embed.add_field(name="\u200b", value=WoppaCup.get_embed_for_woppacup_match(m, self.participants, self.url).description, inline=False)
+                self.embed.add_field(name="------------------------------", value=WoppaCup.get_embed_for_woppacup_match(m, self.participants, self.url).description, inline=False)
 
             if len(self.matches) > MATCHES_PER_PAGE:
                 self.embed.title += f" ({self.current+1}/{int(len(self.matches)/MATCHES_PER_PAGE)})"
