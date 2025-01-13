@@ -418,8 +418,9 @@ class OTH(WesCog):
     @app_commands.checks.cooldown(1, 300.0)
     async def woppacup_bracket(self, interaction: discord.Interaction):
         # Temp override for weeks where it's paused. Update the text as necessary.
-        # await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
-        # return
+        if not WoppaCup.has_tournament_started:
+            await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
+            return
 
         await interaction.response.defer(thinking=True, ephemeral=False)
 
@@ -431,10 +432,9 @@ class OTH(WesCog):
             await interaction.followup.send("Too many matches remain to display full bracket. Please wait until Ro16")
             return
 
-        embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(matches[0]['round'], False)}")
-        matches = matches[:8]
+        embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(matches[0])}")
         for m in matches:
-            embed.add_field(name="------------------------------", value=WoppaCup.get_embed_for_woppacup_match(m, participants, url).description, inline=False)
+            embed.add_field(name="-", value=WoppaCup.get_description_for_woppacup_embed(m, participants), inline=False)
 
         await interaction.followup.send(embed=embed)
 
@@ -444,16 +444,12 @@ class OTH(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def woppacup_all(self, interaction: discord.Interaction):
         # Temp override for weeks where it's paused. Update the text as necessary.
-        # await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
-        # return
+        if not WoppaCup.has_tournament_started:
+            await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
+            return
 
         await interaction.response.defer(thinking=True, ephemeral=True)
-
-        participants, matches, url = WoppaCup.get_wc_data()
-        curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
-        matches = WoppaCup.trim_matches(matches, curr_round, is_group_stage)
-
-        view = WoppaCup.WCView(participants, matches, url)
+        view = WoppaCup.WCView()
         await interaction.followup.send(embed=view.embed, view=view)
 
     @app_commands.command(name="wc", description="Check the score for a specific manager's Woppa Cup matchup.")
@@ -463,8 +459,9 @@ class OTH(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def woppacup(self, interaction: discord.Interaction, user: str):
         # Temp override for weeks where it's paused. Update the text as necessary.
-        # await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
-        # return
+        if not WoppaCup.has_tournament_started:
+            await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
+            return
 
         await interaction.response.defer(thinking=True)
 

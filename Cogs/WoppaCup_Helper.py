@@ -3,38 +3,47 @@ import discord
 
 from Shared import *
 
-MATCHES_PER_PAGE = 4 # Must be a power of 2
-
 class WoppaCup():
+    has_tournament_started = True
+
     class WCView(discord.ui.View):
-        def __init__(self, participants, matches, url):
+        def __init__(self):
             super().__init__()
-            self.participants = participants
-            self.matches = matches
-            self.url = url
+
+            # Get info about the tournament
+            self.participants, self.matches, self.url = WoppaCup.get_wc_data()
+            self.curr_round, self.is_group_stage = WoppaCup.get_round_and_stage(self.matches)
+            self.matches = WoppaCup.trim_matches(self.matches, self.curr_round, self.is_group_stage)
+            self.round_name = WoppaCup.get_round_name(self.matches[0])
+
+            # Group stage has 3 matches per group, so display them together
+            # Knockout round display 4 for bracket purposes
+            self.matches_per_page = 3 if self.is_group_stage else 4
             self.current = 0
             self.embed = None
+
             self.update_embed()
 
             # Remove the buttons if there's only one page
-            if len(self.matches) <= MATCHES_PER_PAGE:
+            if len(self.matches) <= self.matches_per_page:
                 self.clear_items()
 
         def update_embed(self):
             # Wraparound
             if self.current == -1:
-                self.current = int(len(self.matches)/MATCHES_PER_PAGE-1)
-            if self.current == len(self.matches)/MATCHES_PER_PAGE:
+                self.current = int(len(self.matches)/self.matches_per_page-1)
+            if self.current == len(self.matches)/self.matches_per_page:
                 self.current = 0
 
-            self.embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(self.matches[0]['round'], (self.matches[0]['group_id'] != None))}")
-            start_match = self.current * MATCHES_PER_PAGE
-            end_match = (self.current + 1) * MATCHES_PER_PAGE
+            self.embed = discord.Embed(title=f"Woppa Cup {self.round_name}", url=self.url)
+            start_match = self.current * self.matches_per_page
+            end_match = (self.current + 1) * self.matches_per_page
             for m in self.matches[start_match:end_match]:
-                self.embed.add_field(name="------------------------------", value=WoppaCup.get_embed_for_woppacup_match(m, self.participants, self.url).description, inline=False)
+                self.embed.add_field(name="", value=WoppaCup.get_description_for_woppacup_embed(m, self.participants), inline=False)
 
-            if len(self.matches) > MATCHES_PER_PAGE:
-                self.embed.title += f" ({self.current+1}/{int(len(self.matches)/MATCHES_PER_PAGE)})"
+            # Add a page count to the footer
+            if len(self.matches) > self.matches_per_page:
+                self.embed.set_footer(text=f"{self.current+1}/{int(len(self.matches)/self.matches_per_page)}", icon_url=None)
 
         @discord.ui.button(label="Prev", style=discord.ButtonStyle.green)
         async def prev(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -82,7 +91,11 @@ class WoppaCup():
 
         return matching_matches
 
-    def get_round_name(round_id, is_group_stage):
+    def get_round_name(match):
+        round_id = match["round"]
+        is_group_stage = match["group_id"] != None
+        week_in_matchup = 1 if match["scores_csv"] == "0-0" else 2
+
         if is_group_stage:
             return f"Group Stage Week {round_id}"
         else:
@@ -90,9 +103,9 @@ class WoppaCup():
                          "Round of 64", 
                          "Round of 32", 
                          "Round of 16", 
-                         f"Quarterfinal", 
-                         f"Semifinal", 
-                         f"Championship"]
+                         f"Quarterfinal (Week {week_in_matchup} of 2)", 
+                         f"Semifinal (Week {week_in_matchup} of 2)", 
+                         f"Championship (Week {week_in_matchup} of 2)"]
             return rounds[round_id]
 
     def get_round_and_stage(matches):
@@ -106,8 +119,7 @@ class WoppaCup():
 
         return 999, False
 
-    # Creates an embed for a given woppa cup matchup
-    def get_embed_for_woppacup_match(match, participants, url):
+    def get_description_for_woppacup_embed(match, participants):
         p1_id = match["player1_id"]
         p2_id = match["player2_id"]
         p1_name = p2_name = p1_div = p2_div = None
@@ -160,19 +172,10 @@ class WoppaCup():
         msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + "[{:>6.2f}]({})\n".format(round(p1_matchup['PF'] + p1_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p1_matchup['league_id']}/scores/{p1_matchup['matchup_id']}")
         msg += f"`{p2_name}` "+ f"\u2002"*(24-len(p2_name)) + "[{:>6.2f}]({})".format(round(p2_matchup['PF'] + p2_prev, 2), f"https://www.fleaflicker.com/nhl/leagues/{p2_matchup['league_id']}/scores/{p2_matchup['matchup_id']}")
 
-        if match["group_id"] != None:
-            round_name = f"Group Stage Week {match['round']} (Group {match['group_id']})"
-        else:
-            week_in_matchup = 1 if p1_prev == 0 and p2_prev == 0 else 2
-            rounds = [0, "Round of 128", 
-                        "Round of 64", 
-                        "Round of 32", 
-                        "Round of 16", 
-                        f"Quarterfinal (Week {week_in_matchup} of 2)", 
-                        f"Semifinal (Week {week_in_matchup} of 2)", 
-                        f"Championship (Week {week_in_matchup} of 2)"]
-            round_name = rounds[match["round"]]
+        return msg
 
-        embed = discord.Embed(title=f"Woppa Cup {round_name}", description=msg, url=url)
-        embed.set_footer(text=url, icon_url=None)
+    # Creates an embed for a given woppa cup matchup
+    def get_embed_for_woppacup_match(match, participants, url):
+        embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(match)}", description=WoppaCup.get_description_for_woppacup_embed(match, participants), url=url)
+        # embed.set_footer(text=url, icon_url=None)
         return embed
