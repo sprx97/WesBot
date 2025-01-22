@@ -434,7 +434,7 @@ class OTH(WesCog):
 
         embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(matches[0])}")
         for m in matches:
-            embed.add_field(name="-", value=WoppaCup.get_description_for_woppacup_embed(m, participants), inline=False)
+            embed.add_field(name="", value=WoppaCup.get_description_for_woppacup_embed(m, participants), inline=False)
 
         await interaction.followup.send(embed=embed)
 

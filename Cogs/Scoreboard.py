@@ -177,9 +177,11 @@ class Scoreboard(WesCog):
     # Gets the game recap video link if it's available
     def get_recap_link(self, id):
         try:
-            media = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/boxscore")
-            recap = media["gameVideo"]["threeMinRecap"]
-            return f"{self.media_link_base}{recap}"
+            scoreboard = make_api_call(f"https://api-web.nhle.com/v1/score/now")
+            for game in scoreboard["games"]:
+                if game["id"] == int(id):
+                    video_id = game["threeMinRecap"].split("-")[-1]
+                    return f"{self.media_link_base}{video_id}"
         except:
             return None
 
@@ -468,9 +470,7 @@ class Scoreboard(WesCog):
         elif last_period["periodType"] == "SO":
             modifier = " (SO)"
 
-# As of October 2024 recap links are not included in the API anymore :(
-#        recap_link = self.get_recap_link(id)
-        recap_link = None
+        recap_link = self.get_recap_link(id)
 
         away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
         end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
@@ -745,9 +745,7 @@ class Scoreboard(WesCog):
             # Get the score and recap
             msg = self.get_score_string(game)
 
-# As of October 2024 recap links are not included in the API anymore :(
-#            link = self.get_recap_link(str(game["id"]))
-            link = None
+            link = self.get_recap_link(str(game["id"]))
 
             # Create and send the embed
             embed=discord.Embed(title=msg, url=link)
