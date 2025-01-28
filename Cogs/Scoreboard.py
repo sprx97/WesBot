@@ -205,6 +205,9 @@ class Scoreboard(WesCog):
         if strength != "ev":
             ret += f"({strength.upper()}) "
 
+        if modifier == "own-goal":
+            ret += "(OG) "
+
         if modifier == "penalty-shot":
             ret += "(PS) "
 
