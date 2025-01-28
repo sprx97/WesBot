@@ -94,17 +94,17 @@ class WoppaCup():
     def get_round_name(match):
         round_id = match["round"]
         is_group_stage = match["group_id"] != None
-        week_in_matchup = 1 if match["scores_csv"] == "0-0" else 2
+        week_in_matchup = 1 if match["scores_csv"] == "" else 2
 
         if is_group_stage:
             return f"Group Stage Week {round_id}"
         else:
-            rounds = [0, "Round of 128", 
-                         "Round of 64", 
-                         "Round of 32", 
-                         "Round of 16", 
-                         f"Quarterfinal (Week {week_in_matchup} of 2)", 
-                         f"Semifinal (Week {week_in_matchup} of 2)", 
+            rounds = [0, "Round of 128",
+                         "Round of 64",
+                         "Round of 32",
+                         "Round of 16",
+                         f"Quarterfinal",
+                         f"Semifinal (Week {week_in_matchup} of 2)",
                          f"Championship (Week {week_in_matchup} of 2)"]
             return rounds[round_id]
 
