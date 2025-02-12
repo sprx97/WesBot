@@ -48,10 +48,18 @@ team_map["van"] = team_map["vancouver"] = team_map["canucks"] = team_map["nucks"
 team_map["vgk"] = team_map["vegas"] = team_map["las vegas"] = team_map["golden knights"] = team_map["knights"]              = "VGK"
 team_map["wsh"] = team_map["was"] = team_map["washington"] = team_map["capitals"] = team_map["caps"]                        = "WSH"
 team_map["wpj"] = team_map["wpg"] = team_map["winnipeg"] = team_map["jets"]                                                 = "WPG"
+
+# All-star teams
 team_map["atl"] = team_map["atlantic"] = team_map["team atlantic"]                                                          = "ATL"
 team_map["cen"] = team_map["central"] = team_map["team central"]                                                            = "CEN"
 team_map["met"] = team_map["metropolitan"] = team_map["team metropolitan"]                                                  = "MET"
 team_map["pac"] = team_map["pacific"] = team_map["team pacific"]                                                            = "PAC"
+
+# 4-nations teams
+team_map["can"] = team_map["canada"]                                                                                        = "CAN"
+team_map["fin"] = team_map["finland"]                                                                                       = "FIN"
+team_map["swe"] = team_map["sweden"]                                                                                        = "SWE"
+team_map["usa"] = team_map["us"] = team_map["america"] = team_map["united states"]                                          = "USA"
 
 emojis = {}
 emojis["ANA"] = "<:ANA:271881573375279104>"
@@ -89,6 +97,14 @@ emojis["VGK"] = "<:VGK:363836502859448320>"
 emojis["WSH"] = "<:WSH:269327070977458181>"
 emojis["WPG"] = "<:WPJ:269315448833703946>"
 emojis["WPJ"] = "<:WPJ:269315448833703946>"
+
+# 4-nations
+emojis["CAN"] = ":flag_ca"
+emojis["FIN"] = ":flag_fi"
+emojis["SWE"] = ":flag_se"
+emojis["USA"] = ":flag_us"
+
+# Other
 emojis["goal"] = "<a:goalsiren:750190349963624510>"
 
 # Returns the emoji if it's in the map, and a dummy if not
