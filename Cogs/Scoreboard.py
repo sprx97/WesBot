@@ -5,17 +5,17 @@ from discord import app_commands
 # Python Libraries
 import asyncio
 from datetime import datetime
+from functools import reduce
 import pytz
 import time
 
 # Local Includes
 from Shared import *
+from Cogs.Scoreboard_Helper import *
 
 class Scoreboard(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
-
-        self.media_link_base = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 
         self.channel_ids = LoadJsonFile(channels_datafile)
         self.debug_channel_ids = {"207634081700249601": 489882482838077451} # OldTimeHockey's #oth-tech channel
@@ -174,92 +174,6 @@ class Scoreboard(WesCog):
 #endregion
 #region Parsing Helper Functions
 
-    # Gets the game recap video link if it's available
-    def get_recap_link(self, id):
-        try:
-            scoreboard = make_api_call(f"https://api-web.nhle.com/v1/score/now")
-            for game in scoreboard["games"]:
-                if game["id"] == int(id):
-                    video_id = game["threeMinRecap"].split("-")[-1]
-                    return f"{self.media_link_base}{video_id}"
-        except:
-            return None
-
-    def get_teams_from_landing(self, landing):
-        return landing["awayTeam"]["abbrev"], get_emoji(landing["awayTeam"]["abbrev"]), landing["homeTeam"]["abbrev"], get_emoji(landing["homeTeam"]["abbrev"])
-
-    def get_period_ordinal(self, period):
-        period_ordinals = [None, "1st", "2nd", "3rd", "OT"]
-        if period <= 4:
-            period = period_ordinals[period]
-        else:
-            period = f"{period-3}OT"
-
-        return period
-
-    def get_goal_strength(self, goal):
-        strength = goal["strength"] if "strength" in goal else "ev"
-        modifier = goal["goalModifier"]
-
-        ret = " "
-        if strength != "ev":
-            ret += f"({strength.upper()}) "
-
-        if modifier == "own-goal":
-            ret += "(OG) "
-
-        if modifier == "penalty-shot":
-            ret += "(PS) "
-
-        if modifier == "empty-net":
-            ret += "(EN) "
-
-        return ret
-
-    def convert_timestamp_to_seconds(self, period, time):
-        mins, secs = time.split(":")
-        return 20*60*(period-1) + (60*int(mins) + int(secs))
-
-    def goal_found_in_summary(self, logged_key, scoring):
-        for period in scoring:
-            # Skip shootout "periods" because we handle those separately
-            if period["periodDescriptor"]["periodType"] == "SO":
-                continue
-
-            for goal in period["goals"]:
-                period_num = period["periodDescriptor"]["number"]
-                time = goal["timeInPeriod"]
-                if f"{self.convert_timestamp_to_seconds(period_num, time)}" == logged_key:
-                    return True
-
-        return False
-
-    def is_ot_challenge_window(self, play_by_play):
-        if play_by_play["gameState"] not in ["LIVE", "CRIT"]:
-            return False
-
-        if "periodDescriptor" not in play_by_play or "clock" not in play_by_play:
-            return False
-
-        is_intermission = play_by_play["clock"]["inIntermission"]
-        last_play_was_in_third_period = len(play_by_play["plays"]) > 0 and play_by_play["plays"][-1]["periodDescriptor"]["number"] == 3
-        last_play_was_in_ot_period = len(play_by_play["plays"]) > 0 and play_by_play["plays"][-1]["periodDescriptor"]["periodType"] == "OT"
-        is_playoff_game = play_by_play["gameType"] == 3
-
-        # Need to be a bit careful here because sometimes period rolls over from 2nd to 3rd during the intermission
-        is_third_intermission = is_intermission and last_play_was_in_third_period
-
-        # Need to be a bit careful here because sometimes period changes over from OT to SO late and re-opens
-        is_ot_intermission = is_intermission and last_play_was_in_ot_period and is_playoff_game
-
-        # Open in a close game late in the third too
-        is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3 and not is_intermission
-
-        if is_third_intermission or is_ot_intermission or is_near_end_of_third:
-            return True
-
-        return False
-
     async def create_ot_thread(self, id, name):
         intro = "# Welcome to OT Challenge v2 (beta)!\n\n" + \
                 "- Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n" + \
@@ -306,12 +220,12 @@ class Scoreboard(WesCog):
 #endregion
 #region Game Parsing Sections
 
-    async def check_game_start(self, id, landing):
+    async def check_game_start(self, game_id, landing):
         start_key = f"Start"
 
-        away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
+        away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
         start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
-        await self.post_embed(self.messages[id], start_key, start_string)
+        await self.post_embed([game_id], start_key, start_string)
 
     async def check_goals(self, id, landing):
         if "summary" not in landing or "scoring" not in landing["summary"]:
@@ -325,13 +239,13 @@ class Scoreboard(WesCog):
             for goal in period["goals"]:
                 # Get the timing info for the goal to create the key
                 period_num = period["periodDescriptor"]["number"]
-                period_ord = self.get_period_ordinal(period_num)
+                period_ord = get_period_ordinal(period_num)
                 time = goal["timeInPeriod"]
-                time_in_seconds = self.convert_timestamp_to_seconds(period_num, time)
+                time_in_seconds = convert_timestamp_to_seconds(period_num, time)
                 goal_key = f"{time_in_seconds}"
 
                 # Get info about the goal
-                strength = self.get_goal_strength(goal)
+                strength = get_goal_strength(goal)
                 team = goal["teamAbbrev"]["default"]
                 team = f"{get_emoji(team)} {team}"
                 shot_type = f" {goal['shotType']}," if "shotType" in goal else ""
@@ -358,10 +272,13 @@ class Scoreboard(WesCog):
                     goal_str += f" assists: {', '.join(assists)}"
                 else:
                     goal_str += " unassisted"
-                away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
+                away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
                 score_str = f"{away_emoji} {away} **{goal['awayScore']} - {goal['homeScore']}** {home} {home_emoji}"
 
-                highlight = f"{self.media_link_base}{goal['highlightClip']}" if "highlightClip" in goal else None
+                try:
+                    highlight = f"{MEDIA_LINK_BASE}{goal['highlightClip']}"
+                except:
+                    highlight = None
 
                 # Compare goal_key to existing keys, and replace if it's just an existing one shifted by a few seconds
                 for t in range(time_in_seconds - 4, time_in_seconds + 5):
@@ -374,32 +291,32 @@ class Scoreboard(WesCog):
                         del self.messages[id]["Goals"][check_key]
                         self.log.info(f"Timestamp corrected in {away}-{home} key {goal_key}")
 
-                await self.post_embed(self.messages[id]["Goals"], goal_key, goal_str, highlight, score_str)
+                await self.post_embed([id, "Goals"], goal_key, goal_str, highlight, score_str)
 
     async def check_disallowed_goals(self, id, landing):
         if "summary" not in landing or "scoring" not in landing["summary"]:
             return
 
         for logged_key, logged_value in self.messages[id]["Goals"].items():
-            if logged_value["content"]["title"][0] == "~" or self.goal_found_in_summary(logged_key, landing["summary"]["scoring"]):
+            if logged_value["content"]["title"][0] == "~" or goal_found_in_summary(logged_key, landing["summary"]["scoring"]):
                 continue # Goal still exists or is already disallowed, we're good!
 
             # If we get here, we want to cross out that goal key and change it to a *D key
-            await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
+            await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~", breadcrumbs=[id, "Goals"])
 
     async def check_ot_challenge(self, game_id):
         play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
 
         ot_key = "OT"
-        away, away_emoji, home, home_emoji = self.get_teams_from_landing(play_by_play)
+        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
 
-        is_ot_challenge_window = self.is_ot_challenge_window(play_by_play)
+        is_otc_window = is_ot_challenge_window(play_by_play)
 
         # Open the OT Challenge or update the message if needed
-        if is_ot_challenge_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
+        if is_otc_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
-            await self.post_embed(self.messages[game_id], ot_key, ot_string)
+            await self.post_embed([game_id], ot_key, ot_string)
 
             if "ot_state" not in self.messages[game_id]:
                 await self.create_ot_thread(game_id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
@@ -411,16 +328,16 @@ class Scoreboard(WesCog):
 
         elif ot_key in self.messages[game_id]:
             ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
-            await self.post_embed(self.messages[game_id], ot_key, ot_string)
+            await self.post_embed([game_id], ot_key, ot_string)
 
         # Log when the ot state changes
         if "ot_state" in self.messages[game_id]:
-            if not is_ot_challenge_window and self.messages[game_id]["ot_state"] == "open":
+            if not is_otc_window and self.messages[game_id]["ot_state"] == "open":
                 self.log.info(f"Closed OT Challenge for {away}-{home}")
                 self.messages[game_id]["ot_state"] = "closed"
                 await self.post_message_to_ot_thread(game_id, "OT has closed, no more guesses will be counted. This means OT is about to start or the game ended without going to OT.")
 
-            if is_ot_challenge_window and self.messages[game_id]["ot_state"] == "closed":
+            if is_otc_window and self.messages[game_id]["ot_state"] == "closed":
                 self.log.info(f"Re-opened OT Challenge for {away}-{home}")
                 self.messages[game_id]["ot_state"] = "open"
                 # await self.post_message_to_ot_thread(game_id, "Reopening guesses, either because we're in an OT Intermission or the closing was a false alarm.")
@@ -432,7 +349,7 @@ class Scoreboard(WesCog):
 
         so_key = f"Shootout"
         shootout = landing["summary"]["shootout"]
-        away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
+        away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
 
         title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
         away_shooters = ""
@@ -452,11 +369,11 @@ class Scoreboard(WesCog):
             {"name": f"{home_emoji} {home}", "value": home_shooters, "inline": True}
         ]
 
-        await self.post_embed(self.messages[id], so_key, title, fields=fields)
+        await self.post_embed([id], so_key, title, fields=fields)
 
-    async def check_final(self, id, landing):
+    async def check_final(self, game_id, landing):
         end_key = "End"
-        if end_key in self.messages[id] and self.messages[id][end_key]["content"]["url"] != None:
+        if end_key in self.messages[game_id] and self.messages[game_id][end_key]["content"]["url"] != None:
             return
 
         away_score = landing["awayTeam"]["score"]
@@ -473,21 +390,21 @@ class Scoreboard(WesCog):
         elif last_period["periodType"] == "SO":
             modifier = " (SO)"
 
-        recap_link = self.get_recap_link(id)
+        recap_link = get_recap_link(game_id)
 
-        away, away_emoji, home, home_emoji = self.get_teams_from_landing(landing)
+        away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
         end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
 
-        await self.post_embed(self.messages[id], end_key, end_string, recap_link)
+        await self.post_embed([game_id], end_key, end_string, recap_link)
 
 #endregion
 #region Core Parsing/Posting Functions
 
-    async def post_embed_to_debug(self, parent, key, title, link=None, desc=None, fields=[]):
-        await self.post_embed(parent, key, title, desc, link, fields, True)
+    # TODO: Remove parent and replace with breadcrumbs
+    async def post_embed(self, breadcrumbs, key, title, link=None, desc=None, fields=[], debug=False):
+        parent = reduce(lambda d, key: d[key], breadcrumbs, self.messages)
 
-    async def post_embed(self, parent, key, title, link=None, desc=None, fields=[], debug=False):
-       # Add emoji to end of string to indicate a replay exists.
+        # Add emoji to end of string to indicate a replay exists.
         if link != None:
             title += " :movie_camera:"
 
@@ -517,37 +434,171 @@ class Scoreboard(WesCog):
                 channels = self.debug_channel_ids
                 post_type += "_DEBUG"
 
+            game = self.messages[breadcrumbs[0]]
             for channel in get_channels_from_ids(self.bot, channels):
-                msg = await channel.send(embed=embed)
+                reference = None
+                try:
+                    last_msg_ids = game["last_msg_ids"] if "last_msg_ids" in game else None
+                    if last_msg_ids:
+                        msg_id = next((msg_id for channel_id, msg_id in last_msg_ids if channel_id == channel.id), None)
+                        if msg_id:
+                            reference = await channel.fetch_message(msg_id)
+                except:
+                    self.log.info("Bad python 1")
+                msg = await channel.send(embed=embed, reference=reference)
                 embed_dict["message_ids"].append([msg.channel.id, msg.id])
+            try:
+                game["last_msg_ids"] = embed_dict["message_ids"]
+            except:
+                self.log.info("Bad python 2")
 
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
         parent[key] = embed_dict
 
-        # Parent should always be some subkey of self.messages, so write it out
+        # All these chanegs will affect self.messages, because of how assigining dicts to variables works
+        # So write it out to our datafile
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
 
     async def parse_game(self, game):
         state = game["gameState"]
-        id = str(game["id"])
+        game_id = str(game["id"])
 
+        # Early return to avoid doing work before a game has actually started
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
 
-        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{id}/landing")
+        GATE_USE_PLAY_BY_PLAY = True
 
-        # Add all games to the messages list
-        if id not in self.messages:
-            self.messages[id] = {"awayTeam": landing["awayTeam"]["abbrev"], "homeTeam": landing["homeTeam"]["abbrev"], "Goals": {}}
+        try:
+            if GATE_USE_PLAY_BY_PLAY:
+                play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
+                away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
 
-        await self.check_game_start(id, landing)
-        await self.check_goals(id, landing)
-        await self.check_disallowed_goals(id, landing)
-        await self.check_ot_challenge(id)
-        await self.check_shootout(id, landing)
+                if game_id not in self.messages:
+                    self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}}
+                
+                breadcrumbs = [game_id, "events"]
+                for event in play_by_play["plays"]:
+                    event_id = str(event["eventId"])
+
+                    # Game Starting Message
+                    if event["typeDescKey"] == "period-start" and event["periodDescriptor"]["number"] == 1:
+                        start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
+                        await self.post_embed(breadcrumbs, event_id, start_string, debug=True)
+
+                    # Goal Message
+                    if event["typeDescKey"] == "goal":
+                        # Skip shootout goals because those are handled separately
+                        if event["periodDescriptor"]["periodType"] == "SO":
+                            continue
+
+                        # Get the timing info for the goal to create the key
+                        # TODO: Can get rid of Scoreboard_Helper.convert_timestamp_to_seconds once finished
+                        period_ord = get_period_ordinal(event["periodDescriptor"]["number"])
+                        time = event["timeInPeriod"]
+
+                        # Get the team that scored the goal
+                        team_id = event["details"]["eventOwnerTeamId"]
+                        is_home_team = True
+                        if play_by_play["awayTeam"]["id"] == team_id:
+                            team = play_by_play["awayTeam"]["abbrev"]
+                            is_home_team = False
+                        else:
+                            team = play_by_play["homeTeam"]["abbrev"]
+                        team = f"{get_emoji(team)} {team}"
+
+                        # Get the strength (PP, SH, EN, PS, etc)
+                        # TODO: Get rid of the old get_goal_strength when switching over
+                        strength = get_goal_strength_2(event, is_home_team)
+
+                        # get the shot type
+                        shot_type = f" {event['details']['shotType']},"
+
+                        # Get the scorer and assists
+                        scorer = get_player_name_from_id(event["details"]["scoringPlayerId"], play_by_play["rosterSpots"])
+                        scorer += f" ({event['details']['scoringPlayerTotal']}"
+
+                        # Temporary for Ovechkin's record chase
+                        if event["details"]["scoringPlayerId"] == 8471214:
+                            scorer += f", {event['details']['scoringPlayerTotal']+853}"
+
+                        scorer += ")"
+                        scorer += f"{shot_type}"
+
+                        goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
+                        if "assist1PlayerId" in event["details"]:
+                            goal_str += f" assists: {get_player_name_from_id(event['details']['assist1PlayerId'], play_by_play['rosterSpots'])} ({event['details']['assist1PlayerTotal']})"
+                            
+                            # We'll only have an assist2 if we had an assist1
+                            if "assist2PlayerId" in event["details"]:
+                                goal_str += f", {get_player_name_from_id(event['details']['assist2PlayerId'], play_by_play['rosterSpots'])} ({event['details']['assist2PlayerTotal']})"
+                        else:
+                            goal_str += " unassisted"
+
+                        score_str = f"{away_emoji} {away} **{event['details']['awayScore']} - {event['details']['homeScore']}** {home} {home_emoji}"
+
+                        try:
+                            highlight = f"{MEDIA_LINK_BASE}{event['details']['highlightClip']}"
+                        except:
+                            highlight = None
+
+                        await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str, debug=True)
+
+                    # Disallowed Goals Check/Message
+                    # TODO: Implement this based on what happens to a goal event when its disallowed.
+                    #       Challenge events exist, but unsure if they replace the goal one or if the goal one gets deleted.
+                    # await self.check_disallowed_goals_2(game_id, play_by_play) # [typeDescKey] == "stoppage" and [details][reason] = "chlg-vis-off-side", and the original goal even disappears
+
+                    # TODO: Check OT Challenge based on time left in period, period-start event for OT, etc
+                    # await self.check_ot_challenge_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 4
+                    
+                    # TODO: Check Shootouts based on goal/shot/save events happening in a SO period
+                    # await self.check_shootout_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 5, "goal", "missed-shot", "shot-on-goal", [typeDescKey] == "shootout-complete"
+
+                    # Game Ending Message
+                    elif event["typeDescKey"] == "game-end":
+                        # Return if we've already handled this and have the recap video.
+                        if event_id in self.messages[game_id]["events"] and self.messages[game_id][event_id]["content"]["url"] != None:
+                            return
+
+                        # Set the modifier for the final, ie (OT), (2OT), (SO), etc
+                        modifier = ""
+                        last_period = event["periodDescriptor"]
+                        if last_period["periodType"] == "OT":
+                            ot_num = last_period["number"] - 3
+                            if ot_num == 1:
+                                ot_num = ""
+                            modifier = f" ({ot_num}OT)"
+                        elif last_period["periodType"] == "SO":
+                            modifier = " (SO)"
+
+                        # Get the score of the game
+                        away_score = play_by_play["awayTeam"]["score"]
+                        home_score = play_by_play["homeTeam"]["score"]
+
+                        # Get the video recap from the scoreboard
+                        recap_link = get_recap_link(game_id)
+
+                        end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
+
+                        await self.post_embed(breadcrumbs, event_id, end_string, recap_link, debug=True)
+        except:
+            self.log.error("Something went very wrong in the play_by_play based messages.")
+
+        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
+
+        # Add game to the messages list
+        if game_id not in self.messages:
+            self.messages[game_id] = {"awayTeam": landing["awayTeam"]["abbrev"], "homeTeam": landing["homeTeam"]["abbrev"], "Goals": {}}
+
+        await self.check_game_start(game_id, landing)
+        await self.check_goals(game_id, landing)
+        await self.check_disallowed_goals(game_id, landing)
+        await self.check_ot_challenge(game_id)
+        await self.check_shootout(game_id, landing)
         if state in ["FINAL", "OFF"]:
-            await self.check_final(id, landing)
+            await self.check_final(game_id, landing)
 
 #endregion
 #region Scoreboard Slash Commands
@@ -624,7 +675,7 @@ class Scoreboard(WesCog):
             away_score = game["awayTeam"]["score"]
             home_score = game["homeTeam"]["score"]
 
-            period = self.get_period_ordinal(game["period"])
+            period = get_period_ordinal(game["period"])
 
             if game["clock"]["inIntermission"]:
                 time = "INT"
@@ -748,7 +799,7 @@ class Scoreboard(WesCog):
             # Get the score and recap
             msg = self.get_score_string(game)
 
-            link = self.get_recap_link(str(game["id"]))
+            link = get_recap_link(str(game["id"]))
 
             # Create and send the embed
             embed=discord.Embed(title=msg, url=link)
@@ -807,7 +858,7 @@ class Scoreboard(WesCog):
             return
 
         play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
-        if not self.is_ot_challenge_window(play_by_play):
+        if not is_ot_challenge_window(play_by_play):
             await interaction.followup.send(f"OT Challenge window is closed. No guesses allowed.")
             return
 

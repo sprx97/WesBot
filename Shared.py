@@ -107,6 +107,8 @@ emojis["USA"] = ":flag_us:"
 # Other
 emojis["goal"] = "<a:goalsiren:750190349963624510>"
 
+MEDIA_LINK_BASE = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
+
 # Returns the emoji if it's in the map, and a dummy if not
 def get_emoji(team):
     if team in emojis:
