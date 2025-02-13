@@ -99,10 +99,10 @@ emojis["WPG"] = "<:WPJ:269315448833703946>"
 emojis["WPJ"] = "<:WPJ:269315448833703946>"
 
 # 4-nations
-emojis["CAN"] = ":flag_ca"
-emojis["FIN"] = ":flag_fi"
-emojis["SWE"] = ":flag_se"
-emojis["USA"] = ":flag_us"
+emojis["CAN"] = ":flag_ca:"
+emojis["FIN"] = ":flag_fi:"
+emojis["SWE"] = ":flag_se:"
+emojis["USA"] = ":flag_us:"
 
 # Other
 emojis["goal"] = "<a:goalsiren:750190349963624510>"
