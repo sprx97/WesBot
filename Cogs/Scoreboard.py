@@ -476,8 +476,20 @@ class Scoreboard(WesCog):
                 away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
 
                 if game_id not in self.messages:
-                    self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}}
+                    # TODO: Remove "Goals" when changing over
+                    self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}, "Goals": {}}
                 
+                # Disallowed Goals Check/Message
+                # TODO: Implement this based on what happens to a goal event when its disallowed.
+                #       Challenge events exist, but unsure if they replace the goal one or if the goal one gets deleted.
+                # [typeDescKey] == "stoppage" and [details][reason] = "chlg-vis-off-side", and the original goal even disappears
+                # Look through all event ids we've logged for this game, and make sure they still exist in the API.
+                # If they've disappeared it means something got disallowed.
+                for logged_event_id in self.messages[game_id]["events"].keys():
+                    found = list(filter(lambda event: (str(event["eventId"]) == logged_event_id), play_by_play["plays"]))
+                    if len(found) == 0:
+                        self.log.error(f"Event {logged_event_id} has disappeared from the play_by_play.")
+
                 breadcrumbs = [game_id, "events"]
                 for event in play_by_play["plays"]:
                     event_id = str(event["eventId"])
@@ -513,7 +525,7 @@ class Scoreboard(WesCog):
                         strength = get_goal_strength_2(event, is_home_team)
 
                         # get the shot type
-                        shot_type = f" {event['details']['shotType']},"
+                        shot_type = f" {event['details']['shotType']}," if "shotType" in event["details"] else ""
 
                         # Get the scorer and assists
                         scorer = get_player_name_from_id(event["details"]["scoringPlayerId"], play_by_play["rosterSpots"])
@@ -545,11 +557,7 @@ class Scoreboard(WesCog):
 
                         await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str, debug=True)
 
-                    # Disallowed Goals Check/Message
-                    # TODO: Implement this based on what happens to a goal event when its disallowed.
-                    #       Challenge events exist, but unsure if they replace the goal one or if the goal one gets deleted.
-                    # await self.check_disallowed_goals_2(game_id, play_by_play) # [typeDescKey] == "stoppage" and [details][reason] = "chlg-vis-off-side", and the original goal even disappears
-
+                    # await self.check_disallowed_goals_2(game_id, play_by_play) 
                     # TODO: Check OT Challenge based on time left in period, period-start event for OT, etc
                     # await self.check_ot_challenge_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 4
                     
@@ -559,7 +567,7 @@ class Scoreboard(WesCog):
                     # Game Ending Message
                     elif event["typeDescKey"] == "game-end":
                         # Return if we've already handled this and have the recap video.
-                        if event_id in self.messages[game_id]["events"] and self.messages[game_id][event_id]["content"]["url"] != None:
+                        if event_id in self.messages[game_id]["events"] and self.messages[game_id]["events"][event_id]["content"]["url"] != None:
                             return
 
                         # Set the modifier for the final, ie (OT), (2OT), (SO), etc
@@ -583,8 +591,8 @@ class Scoreboard(WesCog):
                         end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
 
                         await self.post_embed(breadcrumbs, event_id, end_string, recap_link, debug=True)
-        except:
-            self.log.error("Something went very wrong in the play_by_play based messages.")
+        except Exception as e:
+            self.log.error(f"{e}")
 
         landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
 
