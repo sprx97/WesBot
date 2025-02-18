@@ -304,9 +304,7 @@ class Scoreboard(WesCog):
             # If we get here, we want to cross out that goal key and change it to a *D key
             await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~", breadcrumbs=[id, "Goals"])
 
-    async def check_ot_challenge(self, game_id):
-        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
-
+    async def check_ot_challenge(self, game_id, play_by_play):
         ot_key = "OT"
         away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
 
@@ -437,20 +435,18 @@ class Scoreboard(WesCog):
             game = self.messages[breadcrumbs[0]]
             for channel in get_channels_from_ids(self.bot, channels):
                 reference = None
-                try:
-                    last_msg_ids = game["last_msg_ids"] if "last_msg_ids" in game else None
-                    if last_msg_ids:
-                        msg_id = next((msg_id for channel_id, msg_id in last_msg_ids if channel_id == channel.id), None)
-                        if msg_id:
-                            reference = await channel.fetch_message(msg_id)
-                except:
-                    self.log.info("Bad python 1")
+                last_msg_ids = game["last_msg_ids"] if "last_msg_ids" in game else None
+                if last_msg_ids:
+                    msg_id = next((msg_id for channel_id, msg_id in last_msg_ids if channel_id == channel.id), None)
+                    if msg_id:
+                        reference = await channel.fetch_message(msg_id)
+
                 msg = await channel.send(embed=embed, reference=reference)
                 embed_dict["message_ids"].append([msg.channel.id, msg.id])
-            try:
+
+            # Turn off reply chaining for debug
+            if not debug:
                 game["last_msg_ids"] = embed_dict["message_ids"]
-            except:
-                self.log.info("Bad python 2")
 
         self.log.info(f"{self.scores_loop.current_loop} {post_type} {key}: {embed_dict['content']}")
         parent[key] = embed_dict
@@ -489,6 +485,11 @@ class Scoreboard(WesCog):
                     found = list(filter(lambda event: (str(event["eventId"]) == logged_event_id), play_by_play["plays"]))
                     if len(found) == 0:
                         self.log.error(f"Event {logged_event_id} has disappeared from the play_by_play.")
+
+                # OT Challenge message
+                # TODO: Should just have to enable this, as OTC was already using the play-by-play
+                # TODO: Need to ensure it goes under "events", and that disallowed goal check handles this appropriately
+                # await self.check_ot_challenge(game_id, play_by_play)
 
                 breadcrumbs = [game_id, "events"]
                 for event in play_by_play["plays"]:
@@ -557,11 +558,9 @@ class Scoreboard(WesCog):
 
                         await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str, debug=True)
 
-                    # await self.check_disallowed_goals_2(game_id, play_by_play) 
-                    # TODO: Check OT Challenge based on time left in period, period-start event for OT, etc
-                    # await self.check_ot_challenge_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 4
-                    
                     # TODO: Check Shootouts based on goal/shot/save events happening in a SO period
+                    # TODO: Might just be easiest to wait til the end, pull the landing, and use that for now.
+                    #       At least this will allow for cleanup of the old methods
                     # await self.check_shootout_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 5, "goal", "missed-shot", "shot-on-goal", [typeDescKey] == "shootout-complete"
 
                     # Game Ending Message
@@ -603,7 +602,8 @@ class Scoreboard(WesCog):
         await self.check_game_start(game_id, landing)
         await self.check_goals(game_id, landing)
         await self.check_disallowed_goals(game_id, landing)
-        await self.check_ot_challenge(game_id)
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
+        await self.check_ot_challenge(game_id, play_by_play)
         await self.check_shootout(game_id, landing)
         if state in ["FINAL", "OFF"]:
             await self.check_final(game_id, landing)
