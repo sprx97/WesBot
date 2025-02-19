@@ -314,7 +314,7 @@ class Scoreboard(WesCog):
         if is_otc_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
             time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
             ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
-            await self.post_embed([game_id], ot_key, ot_string)
+            await self.post_embed([game_id, "events"], ot_key, ot_string)
 
             if "ot_state" not in self.messages[game_id]:
                 await self.create_ot_thread(game_id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
@@ -324,9 +324,9 @@ class Scoreboard(WesCog):
                 if game_id not in self.ot_guesses:
                     self.ot_guesses[game_id] = {}
 
-        elif ot_key in self.messages[game_id]:
+        elif ot_key in self.messages[game_id]["events"]:
             ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
-            await self.post_embed([game_id], ot_key, ot_string)
+            await self.post_embed([game_id, "events"], ot_key, ot_string)
 
         # Log when the ot state changes
         if "ot_state" in self.messages[game_id]:
