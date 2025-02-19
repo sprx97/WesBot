@@ -367,7 +367,7 @@ class Scoreboard(WesCog):
             {"name": f"{home_emoji} {home}", "value": home_shooters, "inline": True}
         ]
 
-        await self.post_embed([id], so_key, title, fields=fields)
+        await self.post_embed([id, "events"], so_key, title, fields=fields)
 
     async def check_final(self, game_id, landing):
         end_key = "End"
