@@ -464,6 +464,9 @@ class Scoreboard(WesCog):
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
 
+        # TODO: This works with either play_by_play or landing
+        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
+
         # Add game to messages list
         if game_id not in self.messages:
             # TODO: Remove "Goals" when changing over to play-by-play
@@ -472,9 +475,6 @@ class Scoreboard(WesCog):
         # TODO: Try to eliminate reliance on landing
         landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
         play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
-
-        # TODO: This works with either play_by_play or landing
-        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
 
         GATE_USE_PLAY_BY_PLAY = True
 
