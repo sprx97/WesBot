@@ -183,7 +183,7 @@ class Scoreboard(WesCog):
 
         ot_standings = LoadJsonFile(otstandings_datafile)
 
-        for message_id in self.messages[id]["OT"]["message_ids"]:
+        for message_id in self.messages[id]["events"]["OT"]["message_ids"]:
             channel = message_id[0]
             message = message_id[1]
 
@@ -204,7 +204,7 @@ class Scoreboard(WesCog):
 
     async def post_message_to_ot_thread(self, id, msg):
         try:
-            for message_id in self.messages[id]["OT"]["message_ids"]:
+            for message_id in self.messages[id]["events"]["OT"]["message_ids"]:
                 channel = message_id[0]
                 message = message_id[1]
 
@@ -302,7 +302,7 @@ class Scoreboard(WesCog):
                 continue # Goal still exists or is already disallowed, we're good!
 
             # If we get here, we want to cross out that goal key and change it to a *D key
-            await self.post_embed(self.messages[id]["Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~", breadcrumbs=[id, "Goals"])
+            await self.post_embed([id, "Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~", breadcrumbs=[id, "Goals"])
 
     async def check_ot_challenge(self, game_id, play_by_play):
         ot_key = "OT"
@@ -464,7 +464,7 @@ class Scoreboard(WesCog):
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
 
-        GATE_USE_PLAY_BY_PLAY = True
+        GATE_USE_PLAY_BY_PLAY = False
 
         try:
             if GATE_USE_PLAY_BY_PLAY:
@@ -597,7 +597,7 @@ class Scoreboard(WesCog):
 
         # Add game to the messages list
         if game_id not in self.messages:
-            self.messages[game_id] = {"awayTeam": landing["awayTeam"]["abbrev"], "homeTeam": landing["homeTeam"]["abbrev"], "Goals": {}}
+            self.messages[game_id] = {"awayTeam": landing["awayTeam"]["abbrev"], "homeTeam": landing["homeTeam"]["abbrev"], "Goals": {}, "events": {}}
 
         await self.check_game_start(game_id, landing)
         await self.check_goals(game_id, landing)
