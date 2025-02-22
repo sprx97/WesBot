@@ -464,17 +464,22 @@ class Scoreboard(WesCog):
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
 
-        GATE_USE_PLAY_BY_PLAY = False
+        # Add game to messages list
+        if game_id not in self.messages:
+            # TODO: Remove "Goals" when changing over to play-by-play
+            self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}, "Goals": {}}
+
+        # TODO: Try to eliminate reliance on landing
+        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
+
+        # TODO: This works with either play_by_play or landing
+        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
+
+        GATE_USE_PLAY_BY_PLAY = True
 
         try:
             if GATE_USE_PLAY_BY_PLAY:
-                play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
-                away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
-
-                if game_id not in self.messages:
-                    # TODO: Remove "Goals" when changing over
-                    self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}, "Goals": {}}
-                
                 # Disallowed Goals Check/Message
                 # TODO: Implement this based on what happens to a goal event when its disallowed.
                 #       Challenge events exist, but unsure if they replace the goal one or if the goal one gets deleted.
@@ -482,13 +487,16 @@ class Scoreboard(WesCog):
                 # Look through all event ids we've logged for this game, and make sure they still exist in the API.
                 # If they've disappeared it means something got disallowed.
                 for logged_event_id in self.messages[game_id]["events"].keys():
+                    # Skip the OT Challenge key, since it's our own and won't be in the play-by-play
+                    if logged_event_id == "OT":
+                        continue
+
                     found = list(filter(lambda event: (str(event["eventId"]) == logged_event_id), play_by_play["plays"]))
                     if len(found) == 0:
                         self.log.error(f"Event {logged_event_id} has disappeared from the play_by_play.")
 
                 # OT Challenge message
                 # TODO: Should just have to enable this, as OTC was already using the play-by-play
-                # TODO: Need to ensure it goes under "events", and that disallowed goal check handles this appropriately
                 # await self.check_ot_challenge(game_id, play_by_play)
 
                 breadcrumbs = [game_id, "events"]
@@ -593,16 +601,9 @@ class Scoreboard(WesCog):
         except Exception as e:
             self.log.error(f"{e}")
 
-        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
-
-        # Add game to the messages list
-        if game_id not in self.messages:
-            self.messages[game_id] = {"awayTeam": landing["awayTeam"]["abbrev"], "homeTeam": landing["homeTeam"]["abbrev"], "Goals": {}, "events": {}}
-
         await self.check_game_start(game_id, landing)
         await self.check_goals(game_id, landing)
         await self.check_disallowed_goals(game_id, landing)
-        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
         await self.check_ot_challenge(game_id, play_by_play)
         await self.check_shootout(game_id, landing)
         if state in ["FINAL", "OFF"]:
