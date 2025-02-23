@@ -486,14 +486,25 @@ class Scoreboard(WesCog):
                 # [typeDescKey] == "stoppage" and [details][reason] = "chlg-vis-off-side", and the original goal even disappears
                 # Look through all event ids we've logged for this game, and make sure they still exist in the API.
                 # If they've disappeared it means something got disallowed.
-                for logged_event_id in self.messages[game_id]["events"].keys():
+                for logged_event_id, logged_message in self.messages[game_id]["events"].items():
                     # Skip the OT Challenge key, since it's our own and won't be in the play-by-play
                     if logged_event_id == "OT":
                         continue
 
                     found = list(filter(lambda event: (str(event["eventId"]) == logged_event_id), play_by_play["plays"]))
-                    if len(found) == 0:
-                        self.log.error(f"Event {logged_event_id} has disappeared from the play_by_play.")
+                    if len(found) == 0 or found[0]["typeDescKey"] != "goal":
+                        # Skip ones we've already disallowed
+                        if logged_message["content"]["title"][0] == "~" or "Final " in logged_message["content"]["title"] or " Starting." in logged_message["content"]["title"]:
+                            continue
+
+                        # TODO: Edit with the actual reason for disallowing -- will involve scanning the rest of the events
+
+                        # If we get here, we want to cross out that goal key and change it to a disallowed
+                        await self.post_embed([game_id, "events"], logged_event_id, f"~~{logged_message['content']['title']}~~", logged_message["content"]["url"], f"~~{logged_message['content']['description']}~~", debug=True)
+                        
+                    # In one such case, the goal event changed from a goal to a shot-on-goal
+                    # The following event then was a clg-vis-goal-interference
+                    # Later that event completely disappeared
 
                 # OT Challenge message
                 # TODO: Should just have to enable this, as OTC was already using the play-by-play
