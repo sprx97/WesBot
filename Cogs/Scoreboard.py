@@ -302,7 +302,7 @@ class Scoreboard(WesCog):
                 continue # Goal still exists or is already disallowed, we're good!
 
             # If we get here, we want to cross out that goal key and change it to a *D key
-            await self.post_embed([id, "Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~", breadcrumbs=[id, "Goals"])
+            await self.post_embed([id, "Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
 
     async def check_ot_challenge(self, game_id, play_by_play):
         ot_key = "OT"
