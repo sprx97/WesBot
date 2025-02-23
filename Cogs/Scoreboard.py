@@ -493,8 +493,8 @@ class Scoreboard(WesCog):
 
                     found = list(filter(lambda event: (str(event["eventId"]) == logged_event_id), play_by_play["plays"]))
                     if len(found) == 0 or found[0]["typeDescKey"] != "goal":
-                        # Skip ones we've already disallowed
-                        if logged_message["content"]["title"][0] == "~" or "Final " in logged_message["content"]["title"] or " Starting." in logged_message["content"]["title"]:
+                        # Skip ones we've already disallowed and start/end events (non-goals)
+                        if logged_message["content"]["title"][0] == "~" or logged_message["content"]["title"].startswith("Final") or logged_message["content"]["title"].endswith("Starting."):
                             continue
 
                         # TODO: Edit with the actual reason for disallowing -- will involve scanning the rest of the events
