@@ -65,7 +65,7 @@ class Scoreboard(WesCog):
             self.log.error(f"Game_id {game_id} not found in messages. May have to archive threads manually.")
             return
 
-        for _, message in self.messages[game_id]["OT"]["message_ids"]:
+        for _, message in self.messages[game_id]["events"]["OT"]["message_ids"]:
             try:
                 thread = await self.bot.fetch_channel(message)
                 await thread.edit(archived=True)
@@ -487,18 +487,17 @@ class Scoreboard(WesCog):
                 # Look through all event ids we've logged for this game, and make sure they still exist in the API.
                 # If they've disappeared it means something got disallowed.
                 for logged_event_id, logged_message in self.messages[game_id]["events"].items():
-                    # Skip the OT Challenge key, since it's our own and won't be in the play-by-play
-                    if logged_event_id == "OT":
+                    # Skip non-goal events or already-disallowed ones
+                    if logged_event_id == "OT" or \
+                       logged_event_id == "Shootout" or \
+                       logged_message["content"]["title"][0] == "~" or \
+                       logged_message["content"]["title"].startswith("Final") or \
+                       logged_message["content"]["title"].endswith("Starting."):
                         continue
 
                     found = list(filter(lambda event: (str(event["eventId"]) == logged_event_id), play_by_play["plays"]))
                     if len(found) == 0 or found[0]["typeDescKey"] != "goal":
-                        # Skip ones we've already disallowed and start/end events (non-goals)
-                        if logged_message["content"]["title"][0] == "~" or logged_message["content"]["title"].startswith("Final") or logged_message["content"]["title"].endswith("Starting."):
-                            continue
-
                         # TODO: Edit with the actual reason for disallowing -- will involve scanning the rest of the events
-
                         # If we get here, we want to cross out that goal key and change it to a disallowed
                         await self.post_embed([game_id, "events"], logged_event_id, f"~~{logged_message['content']['title']}~~", logged_message["content"]["url"], f"~~{logged_message['content']['description']}~~", debug=True)
                         
