@@ -220,84 +220,10 @@ class Scoreboard(WesCog):
 #endregion
 #region Game Parsing Sections
 
-    async def check_game_start(self, game_id, landing):
-        start_key = f"Start"
-
-        away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
-        start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
-        await self.post_embed([game_id], start_key, start_string)
-
-    async def check_goals(self, id, landing):
-        if "summary" not in landing or "scoring" not in landing["summary"]:
-            return
-
-        for period in landing["summary"]["scoring"]:
-            # Skip shootout "periods" because we handle those separately
-            if period["periodDescriptor"]["periodType"] == "SO":
-                continue
-
-            for goal in period["goals"]:
-                # Get the timing info for the goal to create the key
-                period_num = period["periodDescriptor"]["number"]
-                period_ord = get_period_ordinal(period_num)
-                time = goal["timeInPeriod"]
-                time_in_seconds = convert_timestamp_to_seconds(period_num, time)
-                goal_key = f"{time_in_seconds}"
-
-                # Get info about the goal
-                strength = get_goal_strength(goal)
-                team = goal["teamAbbrev"]["default"]
-                team = f"{get_emoji(team)} {team}"
-                shot_type = f" {goal['shotType']}," if "shotType" in goal else ""
-
-                # Get the scorer and assists
-                scorer = f"{goal['firstName']['default']} {goal['lastName']['default']}"
-                if goal['goalsToDate'] != 0:
-                    scorer += f" ({goal['goalsToDate']}"
-
-                    # Temporary for the record chase
-                    if goal['lastName']['default'] == "Ovechkin":
-                        scorer += f", {goal['goalsToDate']+853}"
-
-                    scorer += ")"
-
-                scorer += f"{shot_type}"
-                assists = []
-                for assist in goal["assists"]:
-                    assists.append(f"{assist['firstName']['default']} {assist['lastName']['default']} ({assist['assistsToDate']})")
-
-                # Concatonate all the above info into the string to post
-                goal_str = f"{get_emoji('goal')} GOAL{strength}{team} {time} {period_ord}: {scorer}"
-                if len(assists) > 0:
-                    goal_str += f" assists: {', '.join(assists)}"
-                else:
-                    goal_str += " unassisted"
-                away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
-                score_str = f"{away_emoji} {away} **{goal['awayScore']} - {goal['homeScore']}** {home} {home_emoji}"
-
-                try:
-                    highlight = f"{MEDIA_LINK_BASE}{goal['highlightClip']}"
-                except:
-                    highlight = None
-
-                # Compare goal_key to existing keys, and replace if it's just an existing one shifted by a few seconds
-                for t in range(time_in_seconds - 4, time_in_seconds + 5):
-                    check_key = f"{t}"
-                    if check_key == goal_key:
-                        continue
-
-                    if check_key in self.messages[id]["Goals"] and score_str == self.messages[id]["Goals"][check_key]["content"]["description"]:
-                        self.messages[id]["Goals"][goal_key] = self.messages[id]["Goals"][check_key]
-                        del self.messages[id]["Goals"][check_key]
-                        self.log.info(f"Timestamp corrected in {away}-{home} key {goal_key}")
-
-                await self.post_embed([id, "Goals"], goal_key, goal_str, highlight, score_str)
-
     def format_goal_embed(self, event, play_by_play):
         away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
 
         # Get the timing info for the goal to create the key
-        # TODO: Can get rid of Scoreboard_Helper.convert_timestamp_to_seconds once finished
         period_ord = get_period_ordinal(event["periodDescriptor"]["number"])
         time = event["timeInPeriod"]
 
@@ -312,8 +238,7 @@ class Scoreboard(WesCog):
         team = f"{get_emoji(team)} {team}"
 
         # Get the strength (PP, SH, EN, PS, etc)
-        # TODO: Get rid of the old get_goal_strength when switching over
-        strength = get_goal_strength_2(event, is_home_team)
+        strength = get_goal_strength(event, is_home_team)
 
         # get the shot type
         shot_type = f" {event['details']['shotType']}," if "shotType" in event["details"] else ""
@@ -348,18 +273,7 @@ class Scoreboard(WesCog):
 
         return goal_str, highlight, score_str
 
-    async def check_disallowed_goals(self, id, landing):
-        if "summary" not in landing or "scoring" not in landing["summary"]:
-            return
-
-        for logged_key, logged_value in self.messages[id]["Goals"].items():
-            if logged_value["content"]["title"][0] == "~" or goal_found_in_summary(logged_key, landing["summary"]["scoring"]):
-                continue # Goal still exists or is already disallowed, we're good!
-
-            # If we get here, we want to cross out that goal key and change it to a *D key
-            await self.post_embed([id, "Goals"], logged_key, f"~~{logged_value['content']['title']}~~", logged_value["content"]["url"], f"~~{logged_value['content']['description']}~~")
-
-    async def check_disallowed_goals_2(self, game_id, play_by_play):
+    async def check_disallowed_goals(self, game_id, play_by_play):
         # TODO: Implement this based on what happens to a goal event when its disallowed.
         #       Challenge events exist, but unsure if they replace the goal one or if the goal one gets deleted.
         # [typeDescKey] == "stoppage" and [details][reason] = "chlg-vis-off-side", and the original goal even disappears
@@ -382,7 +296,7 @@ class Scoreboard(WesCog):
             if len(found) == 0 or found[0]["typeDescKey"] != "goal":
                 # TODO: Edit with the actual reason for disallowing -- will involve scanning the rest of the events
                 # If we get here, we want to cross out that goal key and change it to a disallowed
-                await self.post_embed([game_id, "events"], logged_event_id, f"~~{logged_message['content']['title']}~~", logged_message["content"]["url"], f"~~{logged_message['content']['description']}~~", debug=True)
+                await self.post_embed([game_id, "events"], logged_event_id, f"~~{logged_message['content']['title']}~~", logged_message["content"]["url"], f"~~{logged_message['content']['description']}~~")
 
     async def check_ot_challenge(self, game_id, play_by_play):
         ot_key = "OT"
@@ -432,14 +346,19 @@ class Scoreboard(WesCog):
         title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
         away_shooters = ""
         home_shooters = ""
-        for shooter in shootout:
-            shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
-            if "firstName" in shooter and "lastName" in shooter:
-                shooter_str += f" {shooter['firstName']} {shooter['lastName']}"
-            if shooter["teamAbbrev"] == home:
-                home_shooters += shooter_str + "\n"
-            else:
-                away_shooters += shooter_str + "\n"
+        try:
+            for shooter in shootout:
+                shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
+                if "firstName" in shooter and "lastName" in shooter:
+                    shooter_str += f" {shooter['firstName']['default']} {shooter['lastName']['default']}"
+                if shooter["teamAbbrev"]["default"] == home:
+                    home_shooters += shooter_str + "\n"
+                elif shooter["teamAbbrev"]["default"] == away:
+                    away_shooters += shooter_str + "\n"
+                else:
+                    self.log.error(f"Shooter team {shooter['teamAbbrev']['default']} not found")
+        except Exception as e:
+            self.log.error(f"Failure logging shootout {e}")
         away_shooters += "\u200b" # Zero-width character for spacing on mobile
 
         fields = [
@@ -448,32 +367,6 @@ class Scoreboard(WesCog):
         ]
 
         await self.post_embed([id, "events"], so_key, title, fields=fields)
-
-    async def check_final(self, game_id, landing):
-        end_key = "End"
-        if end_key in self.messages[game_id] and self.messages[game_id][end_key]["content"]["url"] != None:
-            return
-
-        away_score = landing["awayTeam"]["score"]
-        home_score = landing["homeTeam"]["score"]
-
-        # Set the modifier for the final, ie (OT), (2OT), (SO), etc
-        modifier = ""
-        last_period = landing["periodDescriptor"]
-        if last_period["periodType"] == "OT":
-            ot_num = last_period["number"] - 3
-            if ot_num == 1:
-                ot_num = ""
-            modifier = f" ({ot_num}OT)"
-        elif last_period["periodType"] == "SO":
-            modifier = " (SO)"
-
-        recap_link = get_recap_link(game_id)
-
-        away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
-        end_string = f"Final{modifier}: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
-
-        await self.post_embed([game_id], end_key, end_string, recap_link)
 
     def format_game_end_embed(self, event, play_by_play):
         away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
@@ -574,59 +467,46 @@ class Scoreboard(WesCog):
 
         # Add game to messages list
         if game_id not in self.messages:
-            # TODO: Remove "Goals" when changing over to play-by-play
-            self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}, "Goals": {}}
-
-        GATE_USE_PLAY_BY_PLAY = True
+            self.messages[game_id] = {"awayTeam": away, "homeTeam": home, "events": {}}
 
         try:
-            if GATE_USE_PLAY_BY_PLAY:
-                await self.check_disallowed_goals_2(game_id, play_by_play)
-                # await self.check_ot_challenge(game_id, play_by_play)
+            await self.check_disallowed_goals(game_id, play_by_play)
+            await self.check_ot_challenge(game_id, play_by_play)
 
-                breadcrumbs = [game_id, "events"]
-                for event in play_by_play["plays"]:
-                    event_id = str(event["eventId"])
+            breadcrumbs = [game_id, "events"]
+            for event in play_by_play["plays"]:
+                event_id = str(event["eventId"])
 
-                    # Game Starting Message
-                    if event["typeDescKey"] == "period-start" and event["periodDescriptor"]["number"] == 1:
-                        start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
-                        await self.post_embed(breadcrumbs, event_id, start_string, debug=True)
+                # Game Starting Message
+                if event["typeDescKey"] == "period-start" and event["periodDescriptor"]["number"] == 1:
+                    start_string = f"{away_emoji} {away} at {home_emoji} {home} Starting."
+                    await self.post_embed(breadcrumbs, event_id, start_string)
 
-                    # Goal Message
-                    if event["typeDescKey"] == "goal":
-                        # Skip shootout goals because those are handled separately
-                        if event["periodDescriptor"]["periodType"] == "SO":
-                            continue
+                # Goal Message
+                if event["typeDescKey"] == "goal":
+                    # Skip shootout goals because those are handled separately
+                    if event["periodDescriptor"]["periodType"] == "SO":
+                        continue
 
-                        goal_str, highlight, score_str = self.format_goal_embed(event, play_by_play)
-                        await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str, debug=True)
+                    goal_str, highlight, score_str = self.format_goal_embed(event, play_by_play)
+                    await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str)
 
-                    # TODO: Check Shootouts based on goal/shot/save events happening in a SO period
-                    # TODO: Might just be easiest to wait til the end, pull the landing, and use that for now.
-                    #       At least this will allow for cleanup of the old methods
-                    # await self.check_shootout_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 5, "goal", "missed-shot", "shot-on-goal", [typeDescKey] == "shootout-complete"
-                    # await self.check_shootout(game_id, landing)
+                # TODO: Check Shootouts based on goal/shot/save events happening in a SO period
+                # TODO: Need to move these to use play_by_play
+                # await self.check_shootout_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 5, "goal", "missed-shot", "shot-on-goal", [typeDescKey] == "shootout-complete"
+                await self.check_shootout(game_id, landing)
 
-                    # Game Ending Message
-                    elif event["typeDescKey"] == "game-end":
-                        # Return if we've already handled this and have the recap video.
-                        if event_id in self.messages[game_id]["events"] and self.messages[game_id]["events"][event_id]["content"]["url"] != None:
-                            return
+                # Game Ending Message
+                if event["typeDescKey"] == "game-end":
+                    # Return if we've already handled this and have the recap video.
+                    if event_id in self.messages[game_id]["events"] and self.messages[game_id]["events"][event_id]["content"]["url"] != None:
+                        return
 
-                        end_string = self.format_game_end_embed(event, play_by_play)
-                        recap_link = get_recap_link(game_id)
-                        await self.post_embed(breadcrumbs, event_id, end_string, recap_link, debug=True)
+                    end_string = self.format_game_end_embed(event, play_by_play)
+                    recap_link = get_recap_link(game_id)
+                    await self.post_embed(breadcrumbs, event_id, end_string, recap_link)
         except Exception as e:
             self.log.error(f"{e}")
-
-        await self.check_game_start(game_id, landing)
-        await self.check_goals(game_id, landing)
-        await self.check_disallowed_goals(game_id, landing)
-        await self.check_ot_challenge(game_id, play_by_play)
-        await self.check_shootout(game_id, landing)
-        if state in ["FINAL", "OFF"]:
-            await self.check_final(game_id, landing)
 
 #endregion
 #region Scoreboard Slash Commands

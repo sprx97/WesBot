@@ -16,26 +16,7 @@ def get_period_ordinal(period):
 
     return period
 
-def get_goal_strength(goal):
-    strength = goal["strength"] if "strength" in goal else "ev"
-    modifier = goal["goalModifier"]
-
-    ret = " "
-    if strength != "ev":
-        ret += f"({strength.upper()}) "
-
-    if modifier == "own-goal":
-        ret += "(OG) "
-
-    if modifier == "penalty-shot":
-        ret += "(PS) "
-
-    if modifier == "empty-net":
-        ret += "(EN) "
-
-    return ret
-
-def get_goal_strength_2(event, is_home_team):
+def get_goal_strength(event, is_home_team):
     situation = event["situationCode"]
     if not is_home_team:
         situation = situation[::-1]
@@ -63,24 +44,6 @@ def get_player_name_from_id(player_id, rosters):
             return player["firstName"]["default"] + " " + player["lastName"]["default"]
 
     return "UNKNOWN PLAYER"
-
-def convert_timestamp_to_seconds(period, time):
-    mins, secs = time.split(":")
-    return 20*60*(period-1) + (60*int(mins) + int(secs))
-
-def goal_found_in_summary(logged_key, scoring):
-    for period in scoring:
-        # Skip shootout "periods" because we handle those separately
-        if period["periodDescriptor"]["periodType"] == "SO":
-            continue
-
-        for goal in period["goals"]:
-            period_num = period["periodDescriptor"]["number"]
-            time = goal["timeInPeriod"]
-            if f"{convert_timestamp_to_seconds(period_num, time)}" == logged_key:
-                return True
-
-    return False
 
 def is_ot_challenge_window(play_by_play):
     if play_by_play["gameState"] not in ["LIVE", "CRIT"]:
