@@ -102,7 +102,7 @@ emojis["SWE"] = ":flag_se:"
 emojis["USA"] = ":flag_us:"
 
 # Other
-emojis["goal"] = "<a:goalsiren:750190349963624510>" # TODO: Replace with bot-emoji
+emojis["goal"] = "<a:goalsiren:1354137595424014470>"
 
 MEDIA_LINK_BASE = "https://players.brightcove.net/6415718365001/EXtG1xJ7H_default/index.html?videoId="
 
