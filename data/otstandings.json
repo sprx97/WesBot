@@ -8,12 +8,12 @@
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 96,
+            "guesses": 100,
             "correct": 14
         },
         "229287970186723339": {
             "name": "ch1zzle",
-            "guesses": 31,
+            "guesses": 32,
             "correct": 1
         },
         "228258453599027200": {
@@ -23,7 +23,7 @@
         },
         "486366622785994753": {
             "name": "tgmills",
-            "guesses": 44,
+            "guesses": 47,
             "correct": 2
         },
         "492421946550648832": {
@@ -33,12 +33,12 @@
         },
         "417851289284902925": {
             "name": "porridge42",
-            "guesses": 93,
-            "correct": 9
+            "guesses": 106,
+            "correct": 11
         },
         "230875413423980545": {
             "name": "spemason",
-            "guesses": 37,
+            "guesses": 40,
             "correct": 3
         },
         "888212096662274089": {
@@ -53,7 +53,7 @@
         },
         "243201978191052800": {
             "name": "barrill",
-            "guesses": 48,
+            "guesses": 50,
             "correct": 5
         },
         "360940651153588234": {
@@ -73,8 +73,8 @@
         },
         "329982578708971522": {
             "name": "bwemonts",
-            "guesses": 98,
-            "correct": 11
+            "guesses": 108,
+            "correct": 12
         },
         "513530130145214484": {
             "name": "marcfromnewf",
@@ -93,8 +93,8 @@
         },
         "447077568403865620": {
             "name": "tom.jane",
-            "guesses": 62,
-            "correct": 4
+            "guesses": 71,
+            "correct": 5
         },
         "460639734222553088": {
             "name": "thomsco",
@@ -118,12 +118,12 @@
         },
         "160838225487855617": {
             "name": "goodleftundone",
-            "guesses": 48,
+            "guesses": 50,
             "correct": 6
         },
         "217052103904854016": {
             "name": "haychan4",
-            "guesses": 23,
+            "guesses": 24,
             "correct": 1
         },
         "86530833749401600": {
@@ -133,7 +133,7 @@
         },
         "267125044898037761": {
             "name": "indeed12",
-            "guesses": 32,
+            "guesses": 34,
             "correct": 0
         },
         "620710934159294465": {
@@ -153,13 +153,13 @@
         },
         "138106850225684480": {
             "name": "sergeantbbq",
-            "guesses": 72,
+            "guesses": 74,
             "correct": 9
         },
         "1075039002673033327": {
             "name": "snowdog2112",
-            "guesses": 25,
-            "correct": 8
+            "guesses": 31,
+            "correct": 10
         },
         "299127676088877057": {
             "name": "mikep254",
@@ -183,8 +183,8 @@
         },
         "747171502591442997": {
             "name": "minneapolistim",
-            "guesses": 8,
-            "correct": 3
+            "guesses": 18,
+            "correct": 4
         },
         "149614475631132673": {
             "name": "alittlelion",
@@ -226,8 +226,8 @@
         "role": 1209388054171881483,
         "339479682422538245": {
             "name": "mashu86",
-            "guesses": 63,
-            "correct": 9
+            "guesses": 66,
+            "correct": 10
         },
         "228258453599027200": {
             "name": "sprx97",
@@ -251,8 +251,8 @@
         },
         "216987381960540163": {
             "name": "trev1657",
-            "guesses": 35,
-            "correct": 4
+            "guesses": 39,
+            "correct": 6
         },
         "290665788895920128": {
             "name": "badd_speler",
@@ -291,7 +291,7 @@
         },
         "363115347248939008": {
             "name": "shawnthemenace",
-            "guesses": 3,
+            "guesses": 5,
             "correct": 0
         },
         "234704198325764096": {
@@ -336,6 +336,16 @@
         },
         "776146272158875658": {
             "name": "andyp455",
+            "guesses": 1,
+            "correct": 0
+        },
+        "617880668743139369": {
+            "name": "vamosquesi",
+            "guesses": 1,
+            "correct": 0
+        },
+        "353251774011932672": {
+            "name": "gingaflo",
             "guesses": 1,
             "correct": 0
         }

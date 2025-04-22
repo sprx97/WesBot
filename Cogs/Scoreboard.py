@@ -247,10 +247,6 @@ class Scoreboard(WesCog):
         scorer = get_player_name_from_id(event["details"]["scoringPlayerId"], play_by_play["rosterSpots"])
         scorer += f" ({event['details']['scoringPlayerTotal']}"
 
-        # Temporary for Ovechkin's record chase
-        if event["details"]["scoringPlayerId"] == 8471214:
-            scorer += f", {event['details']['scoringPlayerTotal']+853}"
-
         scorer += ")"
         scorer += f"{shot_type}"
 
