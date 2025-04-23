@@ -559,10 +559,11 @@ class Scoreboard(WesCog):
             local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
             time = local_time.strftime("%-I:%M%P")
 
-            away_record = game["awayTeam"]["record"].split("-")
-            home_record = game["homeTeam"]["record"].split("-")
-            away_points = 2*int(away_record[0]) + int(away_record[2])
-            home_points = 2*int(home_record[0]) + int(home_record[2])
+            if game_type == 2: # Regular season
+                away_record = game["awayTeam"]["record"].split("-")
+                home_record = game["homeTeam"]["record"].split("-")
+                away_points = 2*int(away_record[0]) + int(away_record[2])
+                home_points = 2*int(home_record[0]) + int(home_record[2])
 
             score_string = f"{time}: {away}"
             if game_type == 2: # Regular season
