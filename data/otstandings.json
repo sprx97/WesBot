@@ -7,12 +7,12 @@
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "329982578708971522": {
             "name": "bwemonts",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "228258453599027200": {
@@ -27,7 +27,7 @@
         },
         "447077568403865620": {
             "name": "tom.jane",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 1
         },
         "296064364715180033": {
@@ -42,6 +42,21 @@
         },
         "243201978191052800": {
             "name": "barrill",
+            "guesses": 1,
+            "correct": 0
+        },
+        "230875413423980545": {
+            "name": "spemason",
+            "guesses": 1,
+            "correct": 0
+        },
+        "232566177140965376": {
+            "name": "stevenrj",
+            "guesses": 1,
+            "correct": 0
+        },
+        "222830283399888897": {
+            "name": "twoplanks",
             "guesses": 1,
             "correct": 0
         }

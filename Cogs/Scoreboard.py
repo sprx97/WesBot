@@ -6,7 +6,6 @@ from discord import app_commands
 import asyncio
 from datetime import datetime
 from functools import reduce
-import pytz
 import time
 
 # Local Includes
@@ -552,12 +551,11 @@ class Scoreboard(WesCog):
 
         # Now check for "normal" states
         game_state = game["gameState"]
-        game_type = game["gameType"] 
+        game_type = game["gameType"]
 
         if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
             utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
-            local_time = utc_time.astimezone(pytz.timezone("America/New_York"))
-            time = local_time.strftime("%-I:%M%P")
+            time = f"<t:{int(utc_time.timestamp())}:t>"
 
             if game_type == 2: # Regular season
                 away_record = game["awayTeam"]["record"].split("-")
