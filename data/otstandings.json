@@ -3,22 +3,22 @@
         "role": 1206140465641168986,
         "747171502591442997": {
             "name": "minneapolistim",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 1
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 0
         },
         "329982578708971522": {
             "name": "bwemonts",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "228258453599027200": {
             "name": "sprx97",
-            "guesses": 4,
+            "guesses": 7,
             "correct": 0
         },
         "417851289284902925": {
@@ -28,7 +28,7 @@
         },
         "447077568403865620": {
             "name": "tom.jane",
-            "guesses": 3,
+            "guesses": 5,
             "correct": 1
         },
         "296064364715180033": {
@@ -38,12 +38,12 @@
         },
         "160838225487855617": {
             "name": "goodleftundone",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "243201978191052800": {
             "name": "barrill",
-            "guesses": 2,
+            "guesses": 5,
             "correct": 0
         },
         "230875413423980545": {
@@ -53,7 +53,7 @@
         },
         "232566177140965376": {
             "name": "stevenrj",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "222830283399888897": {
@@ -68,20 +68,35 @@
         },
         "460639734222553088": {
             "name": "thomsco",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 1
+        },
+        "1075039002673033327": {
+            "name": "snowdog2112",
+            "guesses": 1,
+            "correct": 0
+        },
+        "183930901023948800": {
+            "name": "jorikke",
+            "guesses": 1,
+            "correct": 0
+        },
+        "677644935406813230": {
+            "name": "deliveryduck",
+            "guesses": 1,
+            "correct": 0
         }
     },
     "742845693785276576": {
         "role": 1209388054171881483,
         "216987381960540163": {
             "name": "trev1657",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 1
         },
         "228258453599027200": {
             "name": "sprx97",
-            "guesses": 4,
+            "guesses": 7,
             "correct": 0
         },
         "84111182943752192": {
@@ -96,6 +111,16 @@
         },
         "339479682422538245": {
             "name": "mashu86",
+            "guesses": 1,
+            "correct": 0
+        },
+        "363115347248939008": {
+            "name": "shawnthemenace",
+            "guesses": 1,
+            "correct": 0
+        },
+        "789206129683071006": {
+            "name": "underpantsgnomes",
             "guesses": 1,
             "correct": 0
         }
