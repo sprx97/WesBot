@@ -221,8 +221,8 @@ def get_user_matchup_from_database(user, division=None):
     query = "SELECT l.name as league_name, l.tier as tier, me_u.FFname as name, me.currentWeekPF as PF, opp_u.FFname as opp_name, opp.currentWeekPF as opp_PF, " + \
                           "me.leagueID as league_id, me.matchupID as matchup_id, " + \
                           "me.wins as wins, me.losses as losses, opp.wins as opp_wins, opp.losses as opp_losses, me.year as year, " + \
-                          f"(select count(1) FROM Teams t where t.currentWeekPF > PF and t.year={year})+1 as rank, " + \
-                          f"(select count(1) FROM Teams t where t.currentWeekPF > opp_PF and t.year={year})+1 as opp_rank " + \
+                          f"(select count(1) FROM Teams t where t.currentWeekPF > PF and t.year={year})+1 as ranking, " + \
+                          f"(select count(1) FROM Teams t where t.currentWeekPF > opp_PF and t.year={year})+1 as opp_ranking " + \
                           "FROM Teams AS me " + \
                           "LEFT JOIN Teams AS opp ON (me.CurrOpp=opp.teamID AND me.year=opp.year) " + \
                           "INNER JOIN Users AS me_u ON me.ownerID=me_u.FFid " + \
