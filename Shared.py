@@ -268,7 +268,16 @@ def get_channels_from_ids(bot, ids):
     return channels
 
 def get_offseason_league_role(bot):
-    return bot.get_guild(OTH_GUILD_ID).get_role(1274113360170061925)
+    return bot.get_guild(OTH_GUILD_ID).get_role(1420486478365982873) # "Played Last Season" role
+
+def get_nonmember_league_role(bot):
+    return bot.get_guild(OTH_GUILD_ID).get_role(937389082248613898) # "Non-member (For now)" role
+
+def get_waitlist_league_role(bot):
+    return bot.get_guild(OTH_GUILD_ID).get_role(1290010111598657567) # "Waitlist" role
+
+def get_retired_league_role(bot):
+    return bot.get_guild(OTH_GUILD_ID).get_role(888571930473545758) # "Retired" role
 
 def get_roles_from_ids(bot):
     league_role_ids = {}
@@ -276,24 +285,23 @@ def get_roles_from_ids(bot):
     league_role_ids["D2"] = bot.get_guild(OTH_GUILD_ID).get_role(340871193039208452)
     league_role_ids["D3"] = bot.get_guild(OTH_GUILD_ID).get_role(340871418453426177)
     league_role_ids["D4"] = bot.get_guild(OTH_GUILD_ID).get_role(340871648313868291)
+    league_role_ids["D5"] = bot.get_guild(OTH_GUILD_ID).get_role(1303495584124108901)
     league_role_ids["WAITLIST"] = bot.get_guild(OTH_GUILD_ID).get_role(1290010111598657567)
     league_role_ids["Gretzky"] = bot.get_guild(OTH_GUILD_ID).get_role(479121618224807947)
     league_role_ids["Brodeur"] = bot.get_guild(OTH_GUILD_ID).get_role(479133674282024960)
-    league_role_ids["Hasek"] = bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
     league_role_ids["Roy"] = bot.get_guild(OTH_GUILD_ID).get_role(479133440902561803)
-    league_role_ids["Lemieux"] = bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
-    league_role_ids["Jagr"] = bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
+    league_role_ids["Messier"] = bot.get_guild(OTH_GUILD_ID).get_role(479133581822918667)
     league_role_ids["Yzerman"] = bot.get_guild(OTH_GUILD_ID).get_role(479133873658396683)
-    league_role_ids["Howe"] = bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
-    league_role_ids["Dionne"] = bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
+    league_role_ids["Jagr"] = bot.get_guild(OTH_GUILD_ID).get_role(479133917325033472)
+    league_role_ids["Coffey"] = bot.get_guild(OTH_GUILD_ID).get_role(1026259761265651742)
+    league_role_ids["Leetch"] = bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
     league_role_ids["Bourque"] = bot.get_guild(OTH_GUILD_ID).get_role(496384675141648385)
     league_role_ids["Orr"] = bot.get_guild(OTH_GUILD_ID).get_role(496384733228564530)
-    league_role_ids["Lidstrom"] = bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
-    league_role_ids["Niedermayer"] = bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
-    league_role_ids["Leetch"] = bot.get_guild(OTH_GUILD_ID).get_role(496384959720718348)
-    league_role_ids["Chelios"] = bot.get_guild(OTH_GUILD_ID).get_role(496385004574605323)
-    league_role_ids["Pronger"] = bot.get_guild(OTH_GUILD_ID).get_role(496385073507991552)
-    league_role_ids["Coffey"] = bot.get_guild(OTH_GUILD_ID).get_role(1026259761265651742)
+    league_role_ids["Williams"] = bot.get_guild(OTH_GUILD_ID).get_role(479133957288493056)
+    league_role_ids["Hunter"] = bot.get_guild(OTH_GUILD_ID).get_role(479133989559599135)
+    league_role_ids["Domi"] = bot.get_guild(OTH_GUILD_ID).get_role(479134018546302977)
+    league_role_ids["McSorley"] = bot.get_guild(OTH_GUILD_ID).get_role(496384804359766036)
+    league_role_ids["Probert"] = bot.get_guild(OTH_GUILD_ID).get_role(496384857648267266)
     
     return league_role_ids
 

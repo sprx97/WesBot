@@ -88,7 +88,7 @@ class OTH(WesCog):
     def roles_scope_choices_helper():
         choices = [Choice(name="All", value="All")]
 
-        for division in ["D1", "D2", "D3", "D4"]:
+        for division in ["D1", "D2", "D3", "D4", "D5"]:
             choices.append(Choice(name=division, value=division))
 
         for league in get_leagues_from_database(Config.config["year"]):
@@ -132,6 +132,10 @@ class OTH(WesCog):
         league_roles = get_roles_from_ids(self.bot)
         offseason_role = get_offseason_league_role(self.bot)
 
+        if offseason_role == None:
+            self.log.warning("Could not find offseason role. Aborting.")
+            return
+
         count = 0
         members = self.bot.get_guild(OTH_GUILD_ID).members
         for member in members:
@@ -141,7 +145,13 @@ class OTH(WesCog):
                     self.log.info(f"Removing all league/division roles from {member.name}.")
                     if not debug:
                         await member.remove_roles(*league_roles.values())
-                        await member.add_roles(offseason_role)
+                        self.log.info("Roles removed")
+                        try:
+                            await member.add_roles(offseason_role)
+                            self.log.info("Offseason role added")
+                        except Exception as e:
+                            await interaction.channel.send(f"Could not add offseason role to {member.name}: {e}")
+                            return
                     break
 
         self.log.info(f"Found league/division roles on {count} members.")
@@ -172,6 +182,9 @@ class OTH(WesCog):
 
         league_roles = get_roles_from_ids(self.bot)
         offseason_role = get_offseason_league_role(self.bot)
+        nonmember_role = get_nonmember_league_role(self.bot)
+        waitlist_role = get_waitlist_league_role(self.bot)
+        retired_role = get_retired_league_role(self.bot)
 
         count = 0
         members = self.bot.get_guild(OTH_GUILD_ID).members
@@ -194,6 +207,9 @@ class OTH(WesCog):
                 if not debug:
                     await member.add_roles(*roles_to_add)
                     await member.remove_roles(offseason_role)
+                    await member.remove_roles(nonmember_role)
+                    await member.remove_roles(waitlist_role)
+                    await member.remove_roles(retired_role)
 
         self.log.info(f"Added league/division roles to {count} members.")
         if not debug:

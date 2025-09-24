@@ -6,7 +6,6 @@ from discord import app_commands
 import asyncio
 from datetime import datetime
 from functools import reduce
-import time
 
 # Local Includes
 from Shared import *
@@ -148,7 +147,7 @@ class Scoreboard(WesCog):
         # Get the week scoreboard and today's date
         root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
         date = root["focusedDate"]
-        date = self.messages["date"] # I think this works just as well, and apparently "focusedDate" breaks near the end of the SCF
+        # date = self.messages["date"] # I think this works just as well, and apparently "focusedDate" breaks near the end of the SCF
 
         # Execute rollover if the date has changed
         if "date" not in self.messages or self.messages["date"] < date:
