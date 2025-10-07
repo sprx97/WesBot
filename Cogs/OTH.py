@@ -91,7 +91,7 @@ class OTH(WesCog):
         for division in ["D1", "D2", "D3", "D4", "D5"]:
             choices.append(Choice(name=division, value=division))
 
-        for league in get_leagues_from_database(Config.config["year"]):
+        for league in get_leagues_from_database(int(Config.config["year"])+1):
             choices.append(Choice(name=league["name"], value=league["name"]))
 
         choices.append(Choice(name="Waitlist", value="WAITLIST"))
