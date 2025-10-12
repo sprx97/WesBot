@@ -421,7 +421,7 @@ class OTH(WesCog):
         msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + f"{p1_PF}\n"
         msg += f"`{p2_name}` " + f"\u2002"*(24-len(p2_name)) + f"{p2_PF}"
 
-        tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77"]
+        tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77", "#AD1457"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
         embed = discord.Embed(title=f"{matchup['league_name']} Matchup", description=f"{msg}", url=link, color=color)
         await interaction.followup.send(embed=embed)

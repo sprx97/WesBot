@@ -85,7 +85,7 @@ class Scoreboard(WesCog):
                 final_period = landing["summary"]["scoring"][-1]
 
                 # Some games won't reach overtime or will end in a shootout, so ignore them.
-                if final_period["periodDescriptor"]["periodType"] != "OT":
+                if final_period["periodDescriptor"]["periodType"] != "OT" and final_period["periodDescriptor"]["periodType"] != "SO":
                     self.log.info(f"Game {game_id} did not end via Overtime.")
                     del self.ot_guesses[game_id]
                     continue
@@ -821,7 +821,7 @@ class Scoreboard(WesCog):
             await interaction.followup.send("No standings found for this server.", ephemeral=True)
             return
 
-        message = "Updates every night at 3am PST.\n"
+        message = "Updates every night at noon EST.\n"
         message += "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
 
         if "role" in ot_standings[guild_id]:
