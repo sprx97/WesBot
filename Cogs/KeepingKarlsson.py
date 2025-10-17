@@ -9,7 +9,7 @@ class KeepingKarlsson(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
-        self.MANAGER_CARD_URL_BASE = "https://metabase-kkupfl.herokuapp.com/public/dashboard/43c4f00d-4056-4668-b3ed-652858167dc8?discordid="
+        self.MANAGER_CARD_URL_BASE = "https://stats.kkupfl.com/dashboard/4-kkupfl-manager-card?discord_username=kevinshi&discordid="
         self.FAST_TRACK_URL = "https://metabase-kkupfl.herokuapp.com/public/dashboard/20301480-3e1e-483a-8a38-3b67a2b55816"
 
     @app_commands.command(name="card", description="Show the link to a player's KKUPFL Manager Card.")
