@@ -1,4 +1,5 @@
 # Discord Libraries
+import traceback
 from discord.ext import tasks
 from discord import app_commands
 
@@ -52,8 +53,10 @@ class Scoreboard(WesCog):
 
     @scores_loop.error
     async def scores_loop_error(self, error):
-        await self.cog_command_error(None, error)
-        self.scores_loop.restart()
+        tb = traceback.extract_tb(error.__traceback__)
+        filename, lineno, _func, _text = tb[-1]
+        self.log.error(f"Error in scores_loop at {filename}:{lineno} — {type(error).__name__}: {error}")
+#        self.scores_loop.restart()
 
 #endregion
 #region Date/Today Functions
