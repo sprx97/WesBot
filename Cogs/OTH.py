@@ -289,8 +289,10 @@ class OTH(WesCog):
         embed.title = "Trade in " + league["name"]
         n_teams = 1
         for team in trade["teams"]:
+            owner = get_owner_for_team(Config.config["year"], team["team"]["id"])["FFname"]
+
             if "playersObtained" not in team:
-                embed.add_field(name=f"**{team['team']['name']}**", value="No players going to this team -- please investigate.")
+                embed.add_field(name=f"**{team['team']['name']} ({owner})**", value="No players going to this team -- please investigate.")
                 continue
 
             players = ""
@@ -302,7 +304,7 @@ class OTH(WesCog):
                 for player in team["playersReleased"]:
                     players += "*Dropping* " + player["proPlayer"]["nameFull"] + "\n"
 
-            embed.add_field(name=f"**[{n_teams}] {team['team']['name']}** gets", value=players)
+            embed.add_field(name=f"**[{n_teams}] {team['team']['name']} ({owner})** gets", value=players)
             n_teams += 1
 
         if "tentativeExecutionTime" in trade:
@@ -339,6 +341,7 @@ class OTH(WesCog):
                     continue
 
                 trade_embed = self.format_trade(league, trade)
+                return
                 await trades_channel.send(f"<@&{TRADEREVIEW_ROLE_ID}>", embed=trade_embed)
                 msg = await hockey_general_channel.send(embed=trade_embed)
 

@@ -56,7 +56,8 @@ class Scoreboard(WesCog):
         tb = traceback.extract_tb(error.__traceback__)
         filename, lineno, _func, _text = tb[-1]
         self.log.error(f"Error in scores_loop at {filename}:{lineno} — {type(error).__name__}: {error}")
-#        self.scores_loop.restart()
+        if type(error).__name__ == "LinkError":
+            self.scores_loop.restart()
 
 #endregion
 #region Date/Today Functions

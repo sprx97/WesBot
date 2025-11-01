@@ -179,6 +179,14 @@ class DataFileNotFound(discord.ext.commands.CommandError):
 DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)
 DB.autocommit(True)
 
+def get_owner_for_team(year, team_id):
+    cursor = DB.cursor()
+    cursor.execute(f"SELECT U.FFname from Teams T INNER JOIN Users U on T.ownerID = U.FFid where year={year} AND teamID={team_id}")
+    owner = cursor.fetchone()
+    cursor.close()
+
+    return owner
+
 # Grabs the list of OTH leagues for the given year
 # from the SQL database
 def get_leagues_from_database(year):
@@ -248,8 +256,8 @@ def make_api_call(link):
     try:
         with requests.get(link, headers={"Cache-Control": "must-revalidate, max-age=0", "Pragma": "no-cache"}) as response:
             data = response.json()
-    except Exception:
-        raise LinkError(link)
+    except Exception as e:
+        raise LinkError(e.str() + "\n"+ e.__cause__.__str__())
 
     return data
 
