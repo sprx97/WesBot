@@ -257,7 +257,7 @@ def make_api_call(link):
         with requests.get(link, headers={"Cache-Control": "must-revalidate, max-age=0", "Pragma": "no-cache"}) as response:
             data = response.json()
     except Exception as e:
-        raise LinkError(e.str() + "\n"+ e.__cause__.__str__())
+        raise LinkError(str(e) + "\n"+ str(e.__cause__))
 
     return data
 
