@@ -341,7 +341,6 @@ class OTH(WesCog):
                     continue
 
                 trade_embed = self.format_trade(league, trade)
-                return
                 await trades_channel.send(f"<@&{TRADEREVIEW_ROLE_ID}>", embed=trade_embed)
                 msg = await hockey_general_channel.send(embed=trade_embed)
 
