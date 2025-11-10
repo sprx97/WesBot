@@ -59,7 +59,7 @@ class WoppaCup():
 
     def get_wc_data():
         challonge.set_credentials(Config.config["challonge_username"], Config.config["challonge_api_key"])
-        wc_id = int(Config.config["woppa_cup_id"]) # This can be found here: https://username:api-key@api.challonge.com/v1/tournaments.json. Don't forget to update both config files each year.
+        wc_id = Config.config["woppa_cup_id"]
 
         participants = challonge.participants.index(wc_id)
 
