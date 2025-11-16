@@ -1,8 +1,9 @@
 # Python Libraries
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import pygsheets
+import pytz
 
 # Discord Libraries
 import discord
@@ -308,8 +309,14 @@ class OTH(WesCog):
             n_teams += 1
 
         if "tentativeExecutionTime" in trade:
-            time_secs = int(trade["tentativeExecutionTime"])/1000.0
-            embed.set_footer(text="Processes " + datetime.fromtimestamp(time_secs).strftime("%A, %B %d, %Y %H:%M ET"))
+            ts = int(trade["tentativeExecutionTime"]) / 1000
+            
+            utc = pytz.utc
+            est = pytz.timezone("America/New_York")
+            dt_utc = datetime.fromtimestamp(ts, tz=utc)
+            dt_local = dt_utc.astimezone(est)
+
+            embed.set_footer(text="Processes " + dt_local.strftime("%A, %B %d, %Y %H:%M ET"))
 
         return embed
 
