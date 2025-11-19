@@ -43,6 +43,8 @@ class Memes(WesCog):
                 "Think of Ornette Coleman or Buddy Rich, not Henrik Lundqvist or Tuukka Rask. The dorian stylings of a Eric Dolphy better describe Ned's game " + \
                 "than a monotone listing-off of conventional goalie skills. Puck handles? When you're in constant tune with the precise Hz pitch of the ice like Nedeljkovic, " + \
                 "English words like 'good save' cannot encapsulate even a fractoid of the scientific and metaphysical majesty of Alex."],
+        "nopoke": ["<@{}> yes, you can slowpoke me because you posted the vid a couple hours earlier. But on the other hand, your post got zero engagement, " + \
+                "because you didn't contribute anything valuable to the conversation, whereas I said 'what the HECK is this'"],
         "pathetic": ["I don't know what's more pathetic <@{}>, that you actually took the time out of your afternoon to do this, " + \
                      " or that you waited several minutes after the conversation and it still bothers you enough to provoke you to do this"],
         "petey": ["Kid might look like if Malfoy was a Hufflepuff but he plays like if Potter was a Slytherin the kids absolutely fucking nasty. " + \
