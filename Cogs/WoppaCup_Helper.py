@@ -35,9 +35,12 @@ class WoppaCup():
             if self.current == len(self.matches)/self.matches_per_page:
                 self.current = 0
 
-            self.embed = discord.Embed(title=f"Woppa Cup {self.round_name}", url=self.url)
+            # First and last match to be displayed on this page
             start_match = self.current * self.matches_per_page
             end_match = (self.current + 1) * self.matches_per_page
+            group_name = chr(65 + self.current) if self.current <= 26 else "A" + chr(65 - 26 + self.current)
+
+            self.embed = discord.Embed(title=f"Woppa Cup {self.round_name.replace("Stage", group_name)}", url=self.url)
             for m in self.matches[start_match:end_match]:
                 self.embed.add_field(name="", value=WoppaCup.get_description_for_woppacup_embed(m, self.participants), inline=False)
 
