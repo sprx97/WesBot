@@ -3,33 +3,33 @@
         "role": 1206140465641168986,
         "126095803692482560": {
             "name": "bbrovsky",
-            "guesses": 15,
+            "guesses": 18,
             "correct": 2
         },
         "149614475631132673": {
             "name": "alittlelion",
-            "guesses": 15,
-            "correct": 2
+            "guesses": 16,
+            "correct": 3
         },
         "417851289284902925": {
             "name": "porridge42",
-            "guesses": 54,
-            "correct": 8
+            "guesses": 67,
+            "correct": 10
         },
         "329982578708971522": {
             "name": "bwemonts",
-            "guesses": 58,
+            "guesses": 71,
             "correct": 8
         },
         "169647186622021632": {
             "name": "allenisfeliz",
-            "guesses": 36,
-            "correct": 2
+            "guesses": 45,
+            "correct": 3
         },
         "243201978191052800": {
             "name": "barrill",
-            "guesses": 33,
-            "correct": 1
+            "guesses": 44,
+            "correct": 2
         },
         "385450726236618752": {
             "name": "schenley",
@@ -38,52 +38,52 @@
         },
         "138106850225684480": {
             "name": "sergeantbbq",
-            "guesses": 61,
-            "correct": 9
+            "guesses": 79,
+            "correct": 11
         },
         "299127676088877057": {
             "name": "mikep254",
-            "guesses": 21,
+            "guesses": 22,
             "correct": 4
         },
         "795705765049401364": {
             "name": "tsunkatse",
-            "guesses": 34,
+            "guesses": 36,
             "correct": 1
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 50,
-            "correct": 4
+            "guesses": 58,
+            "correct": 5
         },
         "230875413423980545": {
             "name": "spemason",
-            "guesses": 26,
+            "guesses": 27,
             "correct": 1
         },
         "160838225487855617": {
             "name": "goodleftundone",
-            "guesses": 32,
+            "guesses": 38,
             "correct": 0
         },
         "447077568403865620": {
             "name": "tom.jane",
-            "guesses": 36,
-            "correct": 4
+            "guesses": 48,
+            "correct": 5
         },
         "232566177140965376": {
             "name": "stevenrj",
-            "guesses": 2,
-            "correct": 0
+            "guesses": 4,
+            "correct": 1
         },
         "486366622785994753": {
             "name": "tgmills",
-            "guesses": 10,
+            "guesses": 14,
             "correct": 0
         },
         "267125044898037761": {
             "name": "indeed12",
-            "guesses": 18,
+            "guesses": 24,
             "correct": 2
         },
         "175419301157797888": {
@@ -98,22 +98,22 @@
         },
         "747171502591442997": {
             "name": "minneapolistim",
-            "guesses": 8,
-            "correct": 0
+            "guesses": 11,
+            "correct": 1
         },
         "217052103904854016": {
             "name": "Haychan4",
-            "guesses": 15,
+            "guesses": 16,
             "correct": 1
         },
         "1075039002673033327": {
             "name": "snowdog2112",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 0
         },
         "269630861073317899": {
             "name": ".zodiac33",
-            "guesses": 10,
+            "guesses": 12,
             "correct": 2
         },
         "171690656714981376": {
@@ -123,7 +123,7 @@
         },
         "1275989673541636117": {
             "name": "iamabulldozer",
-            "guesses": 22,
+            "guesses": 24,
             "correct": 2
         },
         "888212096662274089": {
@@ -143,22 +143,22 @@
         },
         "360940651153588234": {
             "name": "imminentfate",
-            "guesses": 7,
+            "guesses": 8,
             "correct": 1
         },
         "398923270084362240": {
             "name": "fliodhais",
-            "guesses": 20,
-            "correct": 2
+            "guesses": 25,
+            "correct": 3
         },
         "797290038572351519": {
             "name": "hayzer13",
-            "guesses": 57,
-            "correct": 4
+            "guesses": 72,
+            "correct": 6
         },
         "492421946550648832": {
             "name": "__edge",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 0
         },
         "296064364715180033": {
@@ -173,12 +173,12 @@
         },
         "565538980389584896": {
             "name": "empressjuno",
-            "guesses": 13,
+            "guesses": 17,
             "correct": 3
         },
         "677644935406813230": {
             "name": "deliveryduck",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "220731816099840000": {
@@ -198,8 +198,8 @@
         },
         "229287970186723339": {
             "name": "ch1zzle",
-            "guesses": 22,
-            "correct": 3
+            "guesses": 27,
+            "correct": 4
         },
         "428370331225554951": {
             "name": "cyperone",
@@ -208,7 +208,7 @@
         },
         "595332625569284125": {
             "name": "squeegeedinotoy",
-            "guesses": 6,
+            "guesses": 7,
             "correct": 0
         },
         "620710934159294465": {
@@ -223,8 +223,8 @@
         },
         "829161095222394900": {
             "name": "firebug2",
-            "guesses": 4,
-            "correct": 1
+            "guesses": 5,
+            "correct": 2
         },
         "376128142915534858": {
             "name": "billyuso",
@@ -238,8 +238,13 @@
         },
         "1256118144330760194": {
             "name": "mysticalrake",
-            "guesses": 16,
-            "correct": 2
+            "guesses": 28,
+            "correct": 4
+        },
+        "442105563115945999": {
+            "name": "vin4dawin",
+            "guesses": 8,
+            "correct": 0
         }
     },
     "742845693785276576": {
@@ -251,17 +256,17 @@
         },
         "761491662870020107": {
             "name": "patti2023",
-            "guesses": 9,
+            "guesses": 10,
             "correct": 0
         },
         "617880668743139369": {
             "name": "vamosquesi",
-            "guesses": 7,
+            "guesses": 8,
             "correct": 1
         },
         "149732689979768833": {
             "name": "ryan4095",
-            "guesses": 24,
+            "guesses": 27,
             "correct": 3
         },
         "887442950311772251": {
@@ -271,8 +276,8 @@
         },
         "349602231755997185": {
             "name": "bdub28",
-            "guesses": 32,
-            "correct": 5
+            "guesses": 37,
+            "correct": 6
         },
         "340216701234970625": {
             "name": "itsmedowney",
@@ -281,12 +286,12 @@
         },
         "216987381960540163": {
             "name": "trev1657",
-            "guesses": 49,
-            "correct": 7
+            "guesses": 61,
+            "correct": 8
         },
         "192830027534958593": {
             "name": "pj6939",
-            "guesses": 5,
+            "guesses": 6,
             "correct": 0
         },
         "364861775348367360": {
@@ -321,7 +326,7 @@
         },
         "339479682422538245": {
             "name": "mashu86",
-            "guesses": 15,
+            "guesses": 19,
             "correct": 1
         },
         "1361067734666051857": {
@@ -341,8 +346,8 @@
         },
         "234704198325764096": {
             "name": "yakolev",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 3,
+            "correct": 1
         },
         "1012173290313359400": {
             "name": "acermacrophyllum",
@@ -356,16 +361,26 @@
         },
         "149949215190155264": {
             "name": "jbru",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 0
         },
         "150472298984505345": {
             "name": "cam5639",
-            "guesses": 4,
+            "guesses": 5,
             "correct": 1
         },
         "141057575914307584": {
             "name": "kendrickd33",
+            "guesses": 8,
+            "correct": 1
+        },
+        "789206129683071006": {
+            "name": "underpantsgnomes",
+            "guesses": 1,
+            "correct": 0
+        },
+        "268909972845363211": {
+            "name": "dondangus",
             "guesses": 1,
             "correct": 0
         }
