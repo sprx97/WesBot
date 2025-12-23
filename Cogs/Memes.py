@@ -45,6 +45,9 @@ class Memes(WesCog):
                 "English words like 'good save' cannot encapsulate even a fractoid of the scientific and metaphysical majesty of Alex."],
         "nopoke": ["<@{}> yes, you can slowpoke me because you posted the vid a couple hours earlier. But on the other hand, your post got zero engagement, " + \
                 "because you didn't contribute anything valuable to the conversation, whereas I said 'what the HECK is this'"],
+        "olympics": ["I am, with every fiber of my cognitive being, genuinely, spectacularly, almost transcendently baffled—so baffled that the sensation borders on a " + \
+                "philosophical crisis—by the astonishing fact that you, somehow, against all odds and in defiance of basic global awareness, do not appear to realize, acknowledge, " + \
+                "or even faintly sense the monumentally, colossally, earth-shatteringly, history-defining, civilization-shaping, culturally seismic magnitude of the Olympics."],
         "pathetic": ["I don't know what's more pathetic <@{}>, that you actually took the time out of your afternoon to do this, " + \
                      " or that you waited several minutes after the conversation and it still bothers you enough to provoke you to do this"],
         "petey": ["Kid might look like if Malfoy was a Hufflepuff but he plays like if Potter was a Slytherin the kids absolutely fucking nasty. " + \
