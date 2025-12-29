@@ -174,6 +174,16 @@ class DataFileNotFound(discord.ext.commands.CommandError):
     def __init(self, file):
         self.message = f"Could not find file {file}."
 
+# Custom exception for an invalid fleaflicker username
+class UserNotFound(discord.ext.commands.CommandError):
+    def __init__(self, user, division):
+        self.message = f"Matchup for user {user} in division {division} not found."
+
+# Custom exception for finding multiple matchups for a user
+class MultipleMatchupsFound(discord.ext.commands.CommandError):
+    def __init__(self, user):
+        self.message = f"Multiple matchups found for user {user}."
+
 #region Database helper functions
 
 DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)

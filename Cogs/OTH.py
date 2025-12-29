@@ -31,19 +31,9 @@ class OTH(WesCog):
 
 #region Custom cog-specific exceptions
 
-    # Custom exception for an invalid fleaflicker username
-    class UserNotFound(discord.ext.commands.CommandError):
-        def __init__(self, user, division):
-            self.message = f"Matchup for user {user} in division {division} not found."
-
     class WoppaCupOpponentNotFound(discord.ext.commands.CommandError):
         def __init__(self, user):
             self.message = f"Current opponent for user {user} not found."
-
-    # Custom exception for finding multiple matchups for a user
-    class MultipleMatchupsFound(discord.ext.commands.CommandError):
-        def __init__(self, user):
-            self.message = f"Multiple matchups found for user {user}."
 
 #endregion
 #region Member Management (Box and Roles)
@@ -403,9 +393,9 @@ class OTH(WesCog):
 
         matchup = get_user_matchup_from_database(user, division)
         if len(matchup) == 0:
-            raise self.UserNotFound(user, division)
+            raise UserNotFound(user, division)
         if len(matchup) > 1:
-            raise self.MultipleMatchupsFound(user)
+            raise MultipleMatchupsFound(user)
         matchup = matchup[0]
 
         # Format names for posting
@@ -554,9 +544,9 @@ class OTH(WesCog):
     async def matchup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, self.WoppaCupOpponentNotFound):
             await interaction.followup.send(error.message)
-        elif isinstance(error, self.UserNotFound):
+        elif isinstance(error, UserNotFound):
             await interaction.followup.send(error.message)
-        elif isinstance(error, self.MultipleMatchupsFound):
+        elif isinstance(error, MultipleMatchupsFound):
             await interaction.followup.send(error.message)
         else:
             await interaction.followup.send(error)

@@ -166,17 +166,17 @@ class WoppaCup():
         # Get p1's matchup from the database
         p1_matchup = get_user_matchup_from_database(p1_name, p1_div)
         if len(p1_matchup) == 0:
-            raise OTH.UserNotFound(p1_name, p1_div)
+            raise UserNotFound(p1_name, p1_div)
         if len(p1_matchup) > 1:
-            raise OTH.MultipleMatchupsFound(p1_name)
+            raise MultipleMatchupsFound(p1_name)
         p1_matchup = p1_matchup[0]
 
         # Get p2's matchup from the database
         p2_matchup = get_user_matchup_from_database(p2_name, p2_div)
         if len(p2_matchup) == 0:
-            raise OTH.UserNotFound(p2_name, p2_div)
+            raise UserNotFound(p2_name, p2_div)
         if len(p2_matchup) > 1:
-            raise OTH.MultipleMatchupsFound(p2_name)
+            raise MultipleMatchupsFound(p2_name)
         p2_matchup = p2_matchup[0]
 
         # Format names for posting
