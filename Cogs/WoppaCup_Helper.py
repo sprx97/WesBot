@@ -94,22 +94,38 @@ class WoppaCup():
 
         return matching_matches
 
+    def is_two_week_matchup(m):
+        # Semifinals and finals are always two-week
+        if m["group_id"] == None and m["round"] >= 6:
+            return True
+
+        # In 2025-2026, the Round of 64 is a 2-week matchup due to Christmas
+        if int(Config.config["year"]) == 2025 and m["round"] == 2 and m["group_id"] == None:
+            return True
+
+        return False
+
     def get_round_name(match):
         round_id = match["round"]
         is_group_stage = match["group_id"] != None
         week_in_matchup = 1 if match["scores_csv"] == "" else 2
 
         if is_group_stage:
-            return f"Group Stage Week {round_id}"
+            name = f"Group Stage Week {round_id}"
         else:
             rounds = [0, "Round of 128",
                          "Round of 64",
                          "Round of 32",
                          "Round of 16",
                          f"Quarterfinal",
-                         f"Semifinal (Week {week_in_matchup} of 2)",
-                         f"Championship (Week {week_in_matchup} of 2)"]
-            return rounds[round_id]
+                         f"Semifinal",
+                         f"Championship"]
+            name = rounds[round_id]
+
+        if WoppaCup.is_two_week_matchup(match):
+            name += f" (Week {week_in_matchup} of 2)"
+
+        return name
 
     def get_round_and_stage(matches):
         for m in matches:
