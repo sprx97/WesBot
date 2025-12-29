@@ -11,6 +11,7 @@ from functools import reduce
 # Local Includes
 from Shared import *
 from Cogs.Scoreboard_Helper import *
+from Cogs.Scoreboard_WJC import *
 
 class Scoreboard(WesCog):
     def __init__(self, bot):
@@ -39,6 +40,43 @@ class Scoreboard(WesCog):
         games = await self.get_games_for_today()
         for game in games:
             await self.parse_game(game)
+
+        try:
+            if is_wjc_dates():
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{Config.config['wjc_event_id']}")
+                for game in root:
+                    # Skip upcoming games
+                    if game["Status"] == "UPCOMING":
+                        continue
+
+                    game_id = game["GameId"]
+                    away = game["GuestTeam"]["TeamCode"]
+                    home = game["HomeTeam"]["TeamCode"]
+
+                    # Add wjc game to messages if it doesn't exist
+                    if "wjc" not in self.messages:
+                            self.messages["wjc"] = {}
+                    if game_id not in self.messages["wjc"]:
+                        self.messages["wjc"][game_id] = {"homeTeam": f"{home} U20", "awayTeam": f"{away} U20", "events": {}}
+
+                    breadcrumbs = ["wjc", game_id, "events"]
+
+                    if game["Status"] == "FINAL" or game["Status"] == "F(OT)" or game["Status"] == "F(SO)":
+                        end_string = parse_wjc_final(game)
+                        await self.post_embed(breadcrumbs, "end", end_string, debug=True)
+
+                    start_string = parse_wjc_start(game)
+                    await self.post_embed(breadcrumbs, "start", start_string, debug=True)
+
+                    play_by_play = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestState/{game_id}")
+                    for period in play_by_play["Periods"]:
+                        for goal in period["ScoringActions"]:
+                            goal_string = parse_wjc_goal(goal)
+                            score_string = f"{emojis[away]} {away} U20 {goal['NewScore']['Away']} - {goal['NewScore']['Home']} {home} U20 {emojis[home]}"
+                            await self.post_embed(breadcrumbs, goal["Id"], goal_string, None, score_string, debug=True)
+
+        except Exception as e:
+            self.log.error("Error in WJC Scoreboard parsing: {e}.")
 
     @scores_loop.before_loop
     async def before_scores_loop(self):

@@ -95,11 +95,17 @@ emojis["VGK"] = "<:VGK:1353413969628364931>"
 emojis["WPG"] = emojis["WPJ"] = "<:WPG:1353413976469536878>"
 emojis["WSH"] = "<:WSH:1353413983440343182>"
 
-# 4-nations
+# International
 emojis["CAN"] = ":flag_ca:"
 emojis["FIN"] = ":flag_fi:"
 emojis["SWE"] = ":flag_se:"
 emojis["USA"] = ":flag_us:"
+emojis["CZE"] = ":flag_cz:"
+emojis["SVK"] = ":flag_sk:"
+emojis["GER"] = ":flag_de:"
+emojis["LAT"] = ":flat_lv:"
+emojis["SUI"] = ":flag_ch:"
+emojis["DEN"] = ":flag_dk:"
 
 # Other
 emojis["goal"] = "<a:goalsiren:1354137595424014470>"
