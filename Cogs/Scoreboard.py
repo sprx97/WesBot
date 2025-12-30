@@ -11,7 +11,7 @@ from functools import reduce
 # Local Includes
 from Shared import *
 from Cogs.Scoreboard_Helper import *
-from Cogs.Scoreboard_WJC import *
+from Cogs.Scoreboard_IIHF import *
 
 class Scoreboard(WesCog):
     def __init__(self, bot):
@@ -42,8 +42,8 @@ class Scoreboard(WesCog):
             await self.parse_game(game)
 
         try:
-            if is_wjc_dates():
-                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{Config.config['wjc_event_id']}")
+            for id, tourney_type in Config.config["active_iihf_tourneys"].items():
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}")
                 for game in root:
                     # Skip upcoming games
                     if game["Status"] == "UPCOMING":
@@ -52,31 +52,36 @@ class Scoreboard(WesCog):
                     game_id = game["GameId"]
                     away = game["GuestTeam"]["TeamCode"]
                     home = game["HomeTeam"]["TeamCode"]
+                    away_emoji = get_emoji(away)
+                    home_emoji = get_emoji(home)
+                    if tourney_type.lower() == "wjc":
+                        away += " U20"
+                        home += " U20"
 
-                    # Add wjc game to messages if it doesn't exist
-                    if "wjc" not in self.messages:
-                            self.messages["wjc"] = {}
-                    if game_id not in self.messages["wjc"]:
-                        self.messages["wjc"][game_id] = {"homeTeam": f"{home} U20", "awayTeam": f"{away} U20", "events": {}}
+                    # Add iihf game to messages if it doesn't exist
+                    if "iihf" not in self.messages:
+                            self.messages["iihf"] = {}
+                    if game_id not in self.messages["iihf"]:
+                        self.messages["iihf"][game_id] = {"homeTeam": f"{home}", "awayTeam": f"{away}", "events": {}}
 
-                    breadcrumbs = ["wjc", game_id, "events"]
+                    breadcrumbs = ["iihf", game_id, "events"]
 
                     if game["Status"] == "FINAL" or game["Status"] == "F(OT)" or game["Status"] == "F(SO)":
-                        end_string = parse_wjc_final(game)
+                        end_string = parse_iihf_final(game, " U20" if tourney_type.lower() == "wjc" else "")
                         await self.post_embed(breadcrumbs, "end", end_string)
 
-                    start_string = parse_wjc_start(game)
+                    start_string = parse_iihf_start(game, " U20" if tourney_type.lower() == "wjc" else "")
                     await self.post_embed(breadcrumbs, "start", start_string)
 
                     play_by_play = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestState/{game_id}")
                     for period in play_by_play["Periods"]:
                         for goal in period["ScoringActions"]:
-                            goal_string = parse_wjc_goal(goal)
-                            score_string = f"{get_emoji(away)} {away} U20 {goal['NewScore']['Away']} - {goal['NewScore']['Home']} {home} U20 {get_emoji(home)}"
+                            goal_string = parse_iihf_goal(goal, " U20" if tourney_type.lower() == "wjc" else "")
+                            score_string = f"{away_emoji} {away} {goal['NewScore']['Away']} - {goal['NewScore']['Home']} {home} {home_emoji}"
                             await self.post_embed(breadcrumbs, goal["Id"], goal_string, None, score_string)
 
         except Exception as e:
-            self.log.error("Error in WJC Scoreboard parsing: {e}.")
+            self.log.error(f"Error in IIHF Scoreboard parsing: {e}.")
 
     @scores_loop.before_loop
     async def before_scores_loop(self):
@@ -709,9 +714,9 @@ class Scoreboard(WesCog):
             return
 
         try:
-            if is_wjc_dates():
-                is_first_wjc = True
-                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{Config.config['wjc_event_id']}")
+            for id, tourney_type in Config.config["active_iihf_tourneys"].items():
+                is_first_of_type = True
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}")
                 for game in root:
                     game_dt_utc = datetime.strptime(f"{game['GameDateTimeUTC']} +0000", "%Y-%m-%dT%H:%M:%SZ %z")
                     game_dt_est = game_dt_utc - timedelta(hours=5)
@@ -720,12 +725,12 @@ class Scoreboard(WesCog):
                     if game_dt_est.date() == date_dt:
                         time = f"<t:{int(game_dt_utc.timestamp())}:t>"
 
-                        if is_first_wjc:
+                        if is_first_of_type:
                             msg += "\n"
-                            is_first_wjc = False
-                        msg += get_score_string_wjc(game) + "\n"
+                            is_first_of_type = False
+                        msg += get_iihf_score_string(game, " U20" if tourney_type.lower() == "wjc" else "") + "\n"
         except Exception as e:
-            await interaction.response.send_message(f"Error in WJC scores for `/scoreboard` function: {e}")
+            await interaction.response.send_message(f"Error in IIHF scores for `/scoreboard` function: {e}")
             return
 
         if msg == "":
@@ -743,6 +748,7 @@ class Scoreboard(WesCog):
             # Get the proper abbreviation from our aliases
             team = team.lower()
             team = team_map.get(team)
+            team_emoji = get_emoji(team)
             if team == None:
                 await interaction.response.send_message(f"Team '{team}' not found.")
                 return
@@ -757,19 +763,20 @@ class Scoreboard(WesCog):
                     link = get_recap_link(str(game["id"]))
                     break
 
-            if is_wjc_dates():
-                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{Config.config['wjc_event_id']}")
+            for id, tourney_type in Config.config["active_iihf_tourneys"].items():
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}")
                 for game in root:
                     if game["GuestTeam"]["TeamCode"] == team or game["HomeTeam"]["TeamCode"] == team:
                         found = True
-                        msg = get_score_string_wjc(game)
+                        msg = get_iihf_score_string(game, " U20" if tourney_type.lower() == "wjc" else "")
                         link = None
-                        team += " U20"
+                        if tourney_type.lower() == "wjc":
+                            team += " U20"
                         break
 
             # If the team doesn't play today, return
             if not found:
-                await interaction.response.send_message(f"{get_emoji(team)} {team} does not play today.")
+                await interaction.response.send_message(f"{team_emoji} {team} does not play today.")
                 return
 
             # Create and send the embed

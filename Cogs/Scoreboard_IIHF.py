@@ -4,28 +4,29 @@ from datetime import date, datetime
 from Shared import *
 from Cogs.Scoreboard_Helper import *
 
-def is_wjc_dates():
-    year = int(Config.config["year"])
-    start = date(year, 12, 25)
-    end = date(year + 1, 1, 6)
-
-    return start <= date.today() <= end
-
-def parse_wjc_final(game):
+def parse_iihf_final(game, suffix = ""):
     away = game["GuestTeam"]["TeamCode"]
     home = game["HomeTeam"]["TeamCode"]
+    away_emoji = get_emoji(away)
+    home_emoji = get_emoji(home)
     away_score = game["GuestTeam"]["Points"]
     home_score = game["HomeTeam"]["Points"]
+    away += suffix
+    home += suffix
 
-    return f"Final: {get_emoji(away)} {away} U20 {away_score} - {home_score} {home} U20 {get_emoji(home)}"
+    return f"Final: {away_emoji} {away} {away_score} - {home_score} {home} {home_emoji}"
 
-def parse_wjc_start(game):
+def parse_iihf_start(game, suffix = ""):
     away = game["GuestTeam"]["TeamCode"]
     home = game["HomeTeam"]["TeamCode"]
+    away_emoji = get_emoji(away)
+    home_emoji = get_emoji(home)
+    away += suffix
+    home += suffix
 
-    return f"{get_emoji(away)} {away} U20 at {get_emoji(home)} {home} U20 Starting."
+    return f"{away_emoji} {away} at {home_emoji} {home} Starting."
 
-def parse_wjc_goal(goal):
+def parse_iihf_goal(goal, suffix = ""):
     situation = goal["SituationType"]
     team = goal["ExecutedByShortTeamName"]
     clock_mins, clock_secs = goal["TimeOfPlay"].split(":")
@@ -46,7 +47,7 @@ def parse_wjc_goal(goal):
 
     scorer = goal["Scorer"]["ReportingName"]
 
-    goal_string = f"GOAL ({situation}) {get_emoji(team)} {team} U20 {clock} {period}: {scorer}"
+    goal_string = f"GOAL ({situation}) {get_emoji(team)} {team}{suffix} {clock} {period}: {scorer}"
 
     if "Assistant1" in goal:
         goal_string += f", assists: {goal['Assistant1']['ReportingName']}"
@@ -55,11 +56,11 @@ def parse_wjc_goal(goal):
 
     return goal_string
 
-def get_score_string_wjc(game):
+def get_iihf_score_string(game, suffix = ""):
     away = game["GuestTeam"]["TeamCode"]
     home = game["HomeTeam"]["TeamCode"]
-    away = f"{get_emoji(away)} {away} U20"
-    home = f"{get_emoji(home)} {home} U20"
+    away = f"{get_emoji(away)} {away}{suffix}"
+    home = f"{get_emoji(home)} {home}{suffix}"
 
     phase = game["PhaseId"]
     if phase == "PreliminaryRound":
