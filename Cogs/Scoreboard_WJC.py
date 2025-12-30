@@ -31,13 +31,13 @@ def parse_wjc_goal(goal):
     clock_mins, clock_secs = goal["TimeOfPlay"].split(":")
     clock_mins = int(clock_mins)
 
-    if clock_mins > 60:
+    if clock_mins >= 60:
         clock = f"{clock_mins - 60}:{clock_secs}"
         period = "OT"
-    elif clock_mins > 40:
+    elif clock_mins >= 40:
         clock = f"{clock_mins - 40}:{clock_secs}"
         period = "3rd"
-    elif clock_mins > 20:
+    elif clock_mins >= 20:
         clock = f"{clock_mins - 20}:{clock_secs}"
         period = "2nd"
     else:

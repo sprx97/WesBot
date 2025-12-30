@@ -35,7 +35,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=60)
     async def scores_loop(self):
         games = await self.get_games_for_today()
         for game in games:
