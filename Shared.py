@@ -60,6 +60,12 @@ team_map["can"] = team_map["canada"]                                            
 team_map["fin"] = team_map["finland"]                                                                                       = "FIN"
 team_map["swe"] = team_map["sweden"]                                                                                        = "SWE"
 team_map["usa"] = team_map["us"] = team_map["america"] = team_map["united states"]                                          = "USA"
+team_map["cze"] = team_map["czechia"] = team_map["czech republic"]                                                          = "CZE"
+team_map["svk"] = team_map["slovakia"]                                                                                      = "SVK"
+team_map["ger"] = team_map["germany"]                                                                                       = "GER"
+team_map["lat"] = team_map["latvia"]                                                                                        = "LAT"
+team_map["sui"] = team_map["switzerland"] = team_map["swiss"]                                                               = "SUI"
+team_map["den"] = team_map["denmark"]                                                                                        = "DEN"
 
 emojis = {}
 emojis["ANA"] = "<:ANA:1353413714505765028>"
@@ -103,7 +109,7 @@ emojis["USA"] = ":flag_us:"
 emojis["CZE"] = ":flag_cz:"
 emojis["SVK"] = ":flag_sk:"
 emojis["GER"] = ":flag_de:"
-emojis["LAT"] = ":flat_lv:"
+emojis["LAT"] = ":flag_lv:"
 emojis["SUI"] = ":flag_ch:"
 emojis["DEN"] = ":flag_dk:"
 

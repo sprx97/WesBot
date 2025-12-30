@@ -1,5 +1,5 @@
 # Python Libaries
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
@@ -14,13 +14,13 @@ import Shared
 class Wes(commands.Bot):
     def __init__(self, *args, **kwargs):
         self.killed = False
-        self.start_timestamp = datetime.utcnow()
+        self.start_timestamp = datetime.now(timezone.utc)
         self.log = self.create_log("Bot")
         super(Wes, self).__init__(*args, **kwargs)
 
     # Returns the days, hours, minutes, and seconds since the bot was last initialized
     def calculate_uptime(self):
-        uptime = (datetime.utcnow() - self.start_timestamp)
+        uptime = (datetime.now(timezone.utc) - self.start_timestamp)
         hours, remainder = divmod(uptime.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
 
@@ -73,7 +73,7 @@ bot = Wes(command_prefix="!", case_insensitive=True, help_command=None, intents=
 
 @bot.event
 async def on_connect():
-    Shared.start_timestamp = datetime.utcnow()
+    Shared.start_timestamp = datetime.now(timezone.utc)
     await bot.change_presence(activity=discord.Game(name="NHL '94"))
     await bot.user.edit(username="Wes McCauley")
     bot.log.info("Bot started.")

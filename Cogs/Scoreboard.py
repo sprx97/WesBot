@@ -5,7 +5,7 @@ from discord import app_commands
 
 # Python Libraries
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import reduce
 
 # Local Includes
@@ -63,17 +63,17 @@ class Scoreboard(WesCog):
 
                     if game["Status"] == "FINAL" or game["Status"] == "F(OT)" or game["Status"] == "F(SO)":
                         end_string = parse_wjc_final(game)
-                        await self.post_embed(breadcrumbs, "end", end_string, debug=True)
+                        await self.post_embed(breadcrumbs, "end", end_string)
 
                     start_string = parse_wjc_start(game)
-                    await self.post_embed(breadcrumbs, "start", start_string, debug=True)
+                    await self.post_embed(breadcrumbs, "start", start_string)
 
                     play_by_play = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestState/{game_id}")
                     for period in play_by_play["Periods"]:
                         for goal in period["ScoringActions"]:
                             goal_string = parse_wjc_goal(goal)
-                            score_string = f"{emojis[away]} {away} U20 {goal['NewScore']['Away']} - {goal['NewScore']['Home']} {home} U20 {emojis[home]}"
-                            await self.post_embed(breadcrumbs, goal["Id"], goal_string, None, score_string, debug=True)
+                            score_string = f"{get_emoji(away)} {away} U20 {goal['NewScore']['Away']} - {goal['NewScore']['Home']} {home} U20 {get_emoji(home)}"
+                            await self.post_embed(breadcrumbs, goal["Id"], goal_string, None, score_string)
 
         except Exception as e:
             self.log.error("Error in WJC Scoreboard parsing: {e}.")
@@ -596,7 +596,7 @@ class Scoreboard(WesCog):
         game_type = game["gameType"]
 
         if game_state == "FUT" or game_state == "PRE": # Game hasn't started yet
-            utc_time = datetime.strptime(game["startTimeUTC"] + " +0000", "%Y-%m-%dT%H:%M:%SZ %z")
+            utc_time = datetime.strptime(f"{game['startTimeUTC']} +0000", "%Y-%m-%dT%H:%M:%SZ %z")
             time = f"<t:{int(utc_time.timestamp())}:t>"
 
             if game_type == 2: # Regular season
@@ -699,20 +699,39 @@ class Scoreboard(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def scoreboard(self, interaction: discord.Interaction):
+        msg = ""
         try:
             games = await self.get_games_for_today()
-
-            if len(games) == 0:
-                msg = "No games found for today."
-            else:
-                msg = ""
-                for game in games:
-                    msg += self.get_score_string(game) + "\n"
-
-            await interaction.response.send_message(msg)
-
+            for game in games:
+                msg += self.get_score_string(game) + "\n"
         except Exception as e:
-            await interaction.response.send_message(f"Error in `/scoreboard` function: {e}")
+            await interaction.response.send_message(f"Error in NHL scores for `/scoreboard` function: {e}")
+            return
+
+        try:
+            if is_wjc_dates():
+                is_first_wjc = True
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{Config.config['wjc_event_id']}")
+                for game in root:
+                    game_dt_utc = datetime.strptime(f"{game['GameDateTimeUTC']} +0000", "%Y-%m-%dT%H:%M:%SZ %z")
+                    game_dt_est = game_dt_utc - timedelta(hours=5)
+                    date_dt = datetime.strptime(self.messages['date'], "%Y-%m-%d").date()
+
+                    if game_dt_est.date() == date_dt:
+                        time = f"<t:{int(game_dt_utc.timestamp())}:t>"
+
+                        if is_first_wjc:
+                            msg += "\n"
+                            is_first_wjc = False
+                        msg += get_score_string_wjc(game) + "\n"
+        except Exception as e:
+            await interaction.response.send_message(f"Error in WJC scores for `/scoreboard` function: {e}")
+            return
+
+        if msg == "":
+            msg = "No games found for today."
+
+        await interaction.response.send_message(msg)
 
     @app_commands.command(name="score", description="Check the score for a specific team.")
     @app_commands.describe(team="An NHL team abbreviation, name, or nickname.")
@@ -734,17 +753,24 @@ class Scoreboard(WesCog):
             for game in games:
                 if game["awayTeam"]["abbrev"] == team or game["homeTeam"]["abbrev"] == team:
                     found = True
+                    msg = self.get_score_string(game)
+                    link = get_recap_link(str(game["id"]))
                     break
+
+            if is_wjc_dates():
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{Config.config['wjc_event_id']}")
+                for game in root:
+                    if game["GuestTeam"]["TeamCode"] == team or game["HomeTeam"]["TeamCode"] == team:
+                        found = True
+                        msg = get_score_string_wjc(game)
+                        link = None
+                        team += " U20"
+                        break
 
             # If the team doesn't play today, return
             if not found:
-                await interaction.response.send_message(f"{emojis[team]} {team} does not play today.")
+                await interaction.response.send_message(f"{get_emoji(team)} {team} does not play today.")
                 return
-
-            # Get the score and recap
-            msg = self.get_score_string(game)
-
-            link = get_recap_link(str(game["id"]))
 
             # Create and send the embed
             embed=discord.Embed(title=msg, url=link)
