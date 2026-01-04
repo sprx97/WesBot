@@ -54,6 +54,7 @@ class Memes(WesCog):
                   "If there was a fourth unforgiveable curse it would be called petterssaucious or some shit because this kids dishes are absolutely team killing, " + \
                   "SHL, AHL, NHL it doesn't fucking matter 100 points to Pettersson because he's winning the House Cup, The Calder Cup, " + \
                   "The Stanley Cup and whatever fucking cup is in Sweden. Game Over."],
+        "plonks": ["https://media.discordapp.net/attachments/507616755510673409/1424980174348488764/plonks.png?ex=695b4134&is=6959efb4&hm=8c9d61c08c9cba4a5e1c55774411d729ca38133a1778f241f69a90b9e09ba888&="],
         "price": ["Carey Price has a $10.5 million cap hit through 2025-26. The Price is WRONG, Bob Barker."],
         "tapthesign": ["https://media.discordapp.net/attachments/207638168269225984/1160383890721083432/IMG_7356.jpg"],
         "toughguy": ["<@{}> watch your mouth. Just cuz you tell me to do something doesn't " + \

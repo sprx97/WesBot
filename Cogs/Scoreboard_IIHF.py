@@ -81,7 +81,7 @@ def get_iihf_score_string(game, suffix = ""):
         away_score = game["GuestTeam"]["Points"]
         home_score = game["HomeTeam"]["Points"]
         # TODO: Add period and time remaining here, might not have that on this object. Need to get the play-by-play from the API
-        return f"**{phase}** Live: {away} {away_score}, {home}, {home_score}"
+        return f"**{phase}** Live: {away} {away_score}, {home} {home_score}"
     # TODO: Finals disappear at different time than NHL ones roll over. Can use messages as a backup
     elif game_state == "FINAL" or game_state == "F(OT)" or game_state == "F(SO)":
         away_score = game["GuestTeam"]["Points"]
