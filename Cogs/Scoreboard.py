@@ -378,11 +378,11 @@ class Scoreboard(WesCog):
 
     # Post Shootout results in a single updating embed.
     async def check_shootout(self, id, landing):
-        if "summary" not in landing or "shootout" not in landing["summary"] or len(landing["summary"]["shootout"]) == 0:
+        if "summary" not in landing or "shootout" not in landing["summary"] or "events" not in landing["summary"]["shootout"] or len(landing["summary"]["shootout"]["events"]) == 0:
             return
 
         so_key = f"Shootout"
-        shootout = landing["summary"]["shootout"]
+        shootout = landing["summary"]["shootout"]["events"]
         away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
 
         title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
