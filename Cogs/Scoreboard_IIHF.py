@@ -27,6 +27,8 @@ def parse_iihf_start(game, suffix = ""):
     return f"{away_emoji} {away} at {home_emoji} {home} Starting."
 
 def parse_iihf_goal(goal, suffix = ""):
+    # TODO: Shootout goals are sketchy. They work, but not well
+
     situation = goal["SituationType"]
     team = goal["ExecutedByShortTeamName"]
     clock_mins, clock_secs = goal["TimeOfPlay"].split(":")
