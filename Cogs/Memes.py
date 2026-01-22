@@ -26,6 +26,7 @@ class Memes(WesCog):
                  "rip any wristers at ISIS yet. If i had three wishes, the first would be to live forever, the second would be for Kevin Fiala to live forever, " + \
                  "and the third would be for a trillion dollars so I could pay to watch ol Fifi Score top cheddar magic for all eternity."],
         "fowler": ["https://imgur.com/6H5sOqN", "https://media.discordapp.net/attachments/507616755510673409/1201644222592323727/h52itsi6cgw11.jpg"],
+        "fplanks": ["<@222830283399888897>"],
         "fuck": ["Bruce Boudreau would not approve of such language. Please try `/memes darn` instead."],
         "hawks": ["My brother in Christ, you've fallen so low that you're searching for even a crumb of hope so badly that you're clinging to some jabroni's make believe future projections 4 years from now? I don't even feel sad for your fan base at this point, only pity."],
         "jonas": ["I can say without hesitation that the Avs are getting the worst goalie I've seen during my 19 seasons covering the Sabres. He doesn't stop pucks in practice or games."],
@@ -55,7 +56,6 @@ class Memes(WesCog):
                   "SHL, AHL, NHL it doesn't fucking matter 100 points to Pettersson because he's winning the House Cup, The Calder Cup, " + \
                   "The Stanley Cup and whatever fucking cup is in Sweden. Game Over."],
         "plonks": ["https://media.discordapp.net/attachments/507616755510673409/1424980174348488764/plonks.png?ex=695b4134&is=6959efb4&hm=8c9d61c08c9cba4a5e1c55774411d729ca38133a1778f241f69a90b9e09ba888&="],
-        "price": ["Carey Price has a $10.5 million cap hit through 2025-26. The Price is WRONG, Bob Barker."],
         "tapthesign": ["https://media.discordapp.net/attachments/207638168269225984/1160383890721083432/IMG_7356.jpg"],
         "toughguy": ["<@{}> watch your mouth. Just cuz you tell me to do something doesn't " + \
                      "mean I'm going to do it. Being a keyboard tough guy making smart ass remarks doesn't " + \
@@ -77,6 +77,9 @@ class Memes(WesCog):
     async def memes(self, interaction: discord.Interaction, meme: Choice[str], user: discord.User = None):
         if user == None:
             user = interaction.user
+
+        if meme.value == "fplanks":
+            await interaction.channel.send(file=discord.File("Cogs/assets/fplanks.mp4"))
 
         await interaction.response.send_message(random.choice(self.meme_map[meme.value]).format(user.id))
 
