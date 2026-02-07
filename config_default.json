@@ -13,5 +13,5 @@
 	"challonge_username": "", // for accessing woppa cup matchups
 	"challonge_api_key": "", // for accessing woppa cup matchups
 	"woppa_cup_id": "",
-	"active_iihf_tourneys": {}
+	"active_iihf_tourneys": {"37": "WJC", "852": "OG-W"} // get these by sniffing the realtime.iihf.com calls on the iihf scoreboard page
 }

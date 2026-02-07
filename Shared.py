@@ -55,7 +55,7 @@ team_map["cen"] = team_map["central"] = team_map["team central"]                
 team_map["met"] = team_map["metropolitan"] = team_map["team metropolitan"]                                                  = "MET"
 team_map["pac"] = team_map["pacific"] = team_map["team pacific"]                                                            = "PAC"
 
-# 4-nations teams
+# International teams
 team_map["can"] = team_map["canada"]                                                                                        = "CAN"
 team_map["fin"] = team_map["finland"]                                                                                       = "FIN"
 team_map["swe"] = team_map["sweden"]                                                                                        = "SWE"
@@ -65,7 +65,10 @@ team_map["svk"] = team_map["slovakia"]                                          
 team_map["ger"] = team_map["germany"]                                                                                       = "GER"
 team_map["lat"] = team_map["latvia"]                                                                                        = "LAT"
 team_map["sui"] = team_map["switzerland"] = team_map["swiss"]                                                               = "SUI"
-team_map["den"] = team_map["denmark"]                                                                                        = "DEN"
+team_map["ita"] = team_map["italy"]                                                                                         = "ITA"
+team_map["fra"] = team_map["france"]                                                                                        = "FRA"
+team_map["jpn"] = team_map["japan"]                                                                                         = "JPN"
+team_map["den"] = team_map["denmark"]                                                                                       = "DEN"
 
 emojis = {}
 emojis["ANA"] = "<:ANA:1353413714505765028>"
@@ -112,6 +115,9 @@ emojis["GER"] = ":flag_de:"
 emojis["LAT"] = ":flag_lv:"
 emojis["SUI"] = ":flag_ch:"
 emojis["DEN"] = ":flag_dk:"
+emojis["ITA"] = ":flag_it:"
+emojis["FRA"] = ":flag_fr:"
+emojis["JPN"] = ":flag_jp:"
 
 # Other
 emojis["goal"] = "<a:goalsiren:1354137595424014470>"

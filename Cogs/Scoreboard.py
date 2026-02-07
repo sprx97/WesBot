@@ -5,8 +5,9 @@ from discord import app_commands
 
 # Python Libraries
 import asyncio
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import reduce
+from zoneinfo import ZoneInfo
 
 # Local Includes
 from Shared import *
@@ -193,26 +194,26 @@ class Scoreboard(WesCog):
     async def get_games_for_today(self):
         # Get the week scoreboard and today's date
         root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
-        date = root["focusedDate"]
+        curr_date = datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
         # date = self.messages["date"] # I think this works just as well, and apparently "focusedDate" breaks near the end of the SCF
 
         # Execute rollover if the date has changed
-        if "date" not in self.messages or self.messages["date"] < date:
+        if "date" not in self.messages or self.messages["date"] < curr_date:
             self.log.info(f"Date before date rollover: {self.messages['date']}, Loop Iteration: {self.scores_loop.current_loop}")
-            await self.do_date_rollover(date)
+            await self.do_date_rollover(curr_date)
             self.log.info(f"Date after date rollover: {self.messages['date']}")
             return []
 
         # This hack should prevent the goal from posting if the date has gone backwards
         # NHL.com backslides sometimes right around the rollover time, probably due to
         # site redundancy.
-        if self.messages["date"] > date:
-            self.log.error(f"WRONG DATE {self.scores_loop.current_loop} date: {date}, stored: {self.messages['date']}")
+        if self.messages["date"] > curr_date:
+            self.log.error(f"WRONG DATE {self.scores_loop.current_loop} date: {curr_date}, stored: {self.messages['date']}")
             return []
 
         # Get the list of games for the correct date
         for games in root["gamesByDate"]:
-            if games["date"] == date:
+            if games["date"] == curr_date:
                 return games["games"]
 
         return []
@@ -728,7 +729,8 @@ class Scoreboard(WesCog):
                         if is_first_of_type:
                             msg += "\n"
                             is_first_of_type = False
-                        msg += get_iihf_score_string(game, " U20" if tourney_type.lower() == "wjc" else "") + "\n"
+                        suffix = " U20" if tourney_type.lower() == "wjc" else " W" if tourney_type.lower() == "og-w" else ""
+                        msg += get_iihf_score_string(game, suffix) + " " + time + "\n"
         except Exception as e:
             await interaction.response.send_message(f"Error in IIHF scores for `/scoreboard` function: {e}")
             return
