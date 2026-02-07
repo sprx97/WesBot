@@ -58,6 +58,9 @@ class Scoreboard(WesCog):
                     if tourney_type.lower() == "wjc":
                         away += " U20"
                         home += " U20"
+                    elif tourney_type.lower() == "og-w":
+                        away += " W"
+                        home += " W"
 
                     # Add iihf game to messages if it doesn't exist
                     if "iihf" not in self.messages:
