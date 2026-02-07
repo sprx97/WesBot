@@ -724,13 +724,11 @@ class Scoreboard(WesCog):
                     date_dt = datetime.strptime(self.messages['date'], "%Y-%m-%d").date()
 
                     if game_dt_est.date() == date_dt:
-                        time = f"<t:{int(game_dt_utc.timestamp())}:t>"
-
                         if is_first_of_type:
                             msg += "\n"
                             is_first_of_type = False
                         suffix = " U20" if tourney_type.lower() == "wjc" else " W" if tourney_type.lower() == "og-w" else ""
-                        msg += get_iihf_score_string(game, suffix) + " " + time + "\n"
+                        msg += get_iihf_score_string(game, suffix) + "\n"
         except Exception as e:
             await interaction.response.send_message(f"Error in IIHF scores for `/scoreboard` function: {e}")
             return
