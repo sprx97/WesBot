@@ -23,6 +23,11 @@ def get_goal_strength(event, is_home_team):
 
     strength = " "
 
+    # if the sum of the "situation bits" is less than 8 and it isn't a penalty shot (1010),
+    # then skip it because this is broken in the olympics
+    if (int(situation[0])+int(situation[1])+int(situation[2])+int(situation[3])) < 8 and situation != "1010":
+        return strength
+
     # TODO: Need to check previous event for strength on PS
     # TODO: Lose out on (OG) here
     if situation == "1010":
