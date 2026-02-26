@@ -209,7 +209,7 @@ DB.autocommit(True)
 
 def get_owner_for_team(year, team_id):
     cursor = DB.cursor()
-    cursor.execute(f"SELECT U.FFname from Teams T INNER JOIN Users U on T.ownerID = U.FFid where year={year} AND teamID={team_id}")
+    cursor.execute("SELECT U.FFname from Teams T INNER JOIN Users U on T.ownerID = U.FFid where year=%s AND teamID=%s", (year, team_id))
     owner = cursor.fetchone()
     cursor.close()
 
@@ -219,7 +219,7 @@ def get_owner_for_team(year, team_id):
 # from the SQL database
 def get_leagues_from_database(year):
     cursor = DB.cursor()
-    cursor.execute(f"SELECT id, name from Leagues where year={year}")
+    cursor.execute("SELECT id, name from Leagues where year=%s", (year,))
     leagues = cursor.fetchall()
     cursor.close()
 
@@ -254,25 +254,29 @@ def get_user_matchup_from_database(user, division=None):
 
     year = Config.config["year"]
 
-    query = "SELECT l.name as league_name, l.tier as tier, me_u.FFname as name, me.currentWeekPF as PF, opp_u.FFname as opp_name, opp.currentWeekPF as opp_PF, " + \
-                          "me.leagueID as league_id, me.matchupID as matchup_id, " + \
-                          "me.wins as wins, me.losses as losses, opp.wins as opp_wins, opp.losses as opp_losses, me.year as year, " + \
-                          f"(select count(1) FROM Teams t where t.currentWeekPF > PF and t.year={year})+1 as ranking, " + \
-                          f"(select count(1) FROM Teams t where t.currentWeekPF > opp_PF and t.year={year})+1 as opp_ranking " + \
-                          "FROM Teams AS me " + \
-                          "LEFT JOIN Teams AS opp ON (me.CurrOpp=opp.teamID AND me.year=opp.year) " + \
-                          "INNER JOIN Users AS me_u ON me.ownerID=me_u.FFid " + \
-                          "LEFT JOIN Users AS opp_u ON opp.ownerID=opp_u.FFid " + \
-                          "INNER JOIN Leagues AS l ON (me.leagueID=l.id AND me.year=l.year) "
+    query = """
+        SELECT l.name as league_name, l.tier as tier, me_u.FFname as name, me.currentWeekPF as PF, opp_u.FFname as opp_name, opp.currentWeekPF as opp_PF,
+            me.leagueID as league_id, me.matchupID as matchup_id, me.wins as wins, me.losses as losses, opp.wins as opp_wins, opp.losses as opp_losses, me.year as year,
+            (select count(1) FROM Teams t where t.currentWeekPF > PF and t.year=%s)+1 as ranking,
+            (select count(1) FROM Teams t where t.currentWeekPF > opp_PF and t.year=%s)+1 as opp_ranking
+            FROM Teams AS me
+            LEFT JOIN Teams AS opp ON (me.CurrOpp=opp.teamID AND me.year=opp.year)
+            INNER JOIN Users AS me_u ON me.ownerID=me_u.FFid
+            LEFT JOIN Users AS opp_u ON opp.ownerID=opp_u.FFid
+            INNER JOIN Leagues AS l ON (me.leagueID=l.id AND me.year=l.year)
+    """
+    params = [year, year]
 
     if division == None:
-        query += "WHERE me.replacement != 1 "
+        query += "WHERE me.initialOwner = me.ownerID "
     else:
-        query += f"WHERE LOWER(l.name)='{division.lower()}' "
+        query += "WHERE LOWER(l.name)=%s "
+        params.append(division.lower())
 
-    query += f"AND LOWER(me_u.FFname)='{user}' AND l.year={year}"
-
-    cursor.execute(query)
+    query += "AND LOWER(me_u.FFname)=%s AND l.year=%s"
+    params.extend([user, year])
+    
+    cursor.execute(query, tuple(params))
 
     matchup = cursor.fetchall()
     cursor.close()
