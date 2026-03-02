@@ -267,9 +267,7 @@ def get_user_matchup_from_database(user, division=None):
     """
     params = [year, year]
 
-    if division == None:
-        query += "WHERE me.initialOwner = me.ownerID "
-    else:
+    if division != None:
         query += "WHERE LOWER(l.name)=%s "
         params.append(division.lower())
 
