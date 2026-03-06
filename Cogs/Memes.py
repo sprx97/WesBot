@@ -1,4 +1,5 @@
 # Python includes
+import asyncio
 from discord import app_commands
 from discord.app_commands import Choice
 import random
@@ -10,9 +11,11 @@ class Memes(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
 
+        self.memes_lock = asyncio.Lock()
+        self.use_count = LoadJsonFile(memes_datafile)
+
     meme_map = {
         "bryz": ["http://2.bp.blogspot.com/-ut7bwg8rrp8/UCFRrZinwVI/AAAAAAAACNw/M6LRPCMuUtg/s1600/its-only-game.gif"],
-        "cat": ["https://images-ext-1.discordapp.net/external/jqBbbyFVQk10FI3TZlQS1GV2LNg8COT2TLw-9ckFqWM/https/media.discordapp.net/attachments/507616755510673409/744726226786320454/3x.gif"],
         "caufield": ["I've concluded that Caufield will be a bust in the NHL."],
         "dahlin": ["https://i.imgur.com/Nsf5hkz.mp4"],
         "darn": ["https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif", "https://i.redd.it/wdhnfsxdl3v91.gif", "https://media.discordapp.net/attachments/489882482838077451/1062867025787113542/ezgif-3-93e35eb357.gif"],
@@ -25,7 +28,7 @@ class Memes(WesCog):
                  "living at the back of the goddamn net. The world record for a recorded sniper kill is 3,540m, but that's only because nobody has asked ya boi Fifi to " + \
                  "rip any wristers at ISIS yet. If i had three wishes, the first would be to live forever, the second would be for Kevin Fiala to live forever, " + \
                  "and the third would be for a trillion dollars so I could pay to watch ol Fifi Score top cheddar magic for all eternity."],
-        "fowler": ["https://imgur.com/6H5sOqN", "https://media.discordapp.net/attachments/507616755510673409/1201644222592323727/h52itsi6cgw11.jpg"],
+        "fowler": ["https://imgur.com/6H5sOqN"],
         "fplanks": ["<@222830283399888897>"],
         "fuck": ["Bruce Boudreau would not approve of such language. Please try `/memes darn` instead."],
         "hawks": ["My brother in Christ, you've fallen so low that you're searching for even a crumb of hope so badly that you're clinging to some jabroni's make believe future projections 4 years from now? I don't even feel sad for your fan base at this point, only pity."],
@@ -56,19 +59,19 @@ class Memes(WesCog):
                   "SHL, AHL, NHL it doesn't fucking matter 100 points to Pettersson because he's winning the House Cup, The Calder Cup, " + \
                   "The Stanley Cup and whatever fucking cup is in Sweden. Game Over."],
         "plonks": ["https://media.discordapp.net/attachments/507616755510673409/1424980174348488764/plonks.png?ex=695b4134&is=6959efb4&hm=8c9d61c08c9cba4a5e1c55774411d729ca38133a1778f241f69a90b9e09ba888&="],
+        "stammer": ["https://media.discordapp.net/attachments/799741542033522728/1478454868019646738/stamkos.png?ex=69ac6a64&is=69ab18e4&hm=b95fb425c6795968e3bd962479c541b0aec9487b385a68981cfee6ceb04486b3&=&format=webp&quality=lossless&width=412&height=895"],
         "tapthesign": ["https://media.discordapp.net/attachments/207638168269225984/1160383890721083432/IMG_7356.jpg"],
         "toughguy": ["<@{}> watch your mouth. Just cuz you tell me to do something doesn't " + \
                      "mean I'm going to do it. Being a keyboard tough guy making smart ass remarks doesn't " + \
                      "make you funny or clever, just a coward hiding behind a computer"],
-        "tuukka": ["https://media.discordapp.net/attachments/507616755510673409/933173217781219338/unknown.gif"],
+        "troch": ["https://tenor.com/kyAanIQdt7d.gif"],
         "wilson": ["https://i.redd.it/xez9b6ovy2xe1.gif"],
         "woppa": ["🎺 🛡️ All hail His Grace, Woppa of House Relegation, Last in his Division, King of the Subpar Draft and the Worst D-Men, " + \
                   "Scrublord of the Sixteen Leagues, and Protector of the Past Accomplishments."],
-        "xfactor": ["I have studied tapes of him and I must disagree. While he is highly skilled, he does not have 'it' if you know what I mean. " + \
-                    "That 'x-factor'. The 'above and beyond' trait."],
+        "yoshicook": ["https://media.discordapp.net/attachments/799741542033522728/1478454786306211981/cook.png?ex=69ac6a51&is=69ab18d1&hm=cd7c07d587217d19dc5a30700a3720dd0c788dac932f8a088655b129ef881164&=&format=webp&quality=lossless&width=148&height=41"]
     }
 
-    @app_commands.command(name="memes", description="Mmmmm fresh pasta :spaghetti:.")
+    @app_commands.command(name="memes", description="Mmmmm fresh pasta 🍝.")
     @app_commands.describe(meme="Choose your pasta.", user="Optional user for some commands.")
     @app_commands.choices(meme=[Choice(name=k, value=k) for k in meme_map.keys()])
     @app_commands.default_permissions(send_messages=True)
@@ -77,6 +80,12 @@ class Memes(WesCog):
     async def memes(self, interaction: discord.Interaction, meme: Choice[str], user: discord.User = None):
         if user == None:
             user = interaction.user
+
+        if meme.value not in self.use_count:
+            self.use_count[meme.value] = 0
+        self.use_count[meme.value] += 1
+        async with self.memes_lock:
+            WriteJsonFile(memes_datafile, self.use_count)
 
         if meme.value == "fplanks":
             await interaction.channel.send(file=discord.File("Cogs/assets/fplanks.mp4"))

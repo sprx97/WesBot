@@ -354,6 +354,7 @@ def sanitize(name):
 #region Datafile helper functions
 
 channels_datafile = "data/channels.json"
+memes_datafile = "data/memes.json"
 messages_datafile = "data/messages.json"
 ot_datafile = "data/ot.json"
 otstandings_datafile = "data/otstandings.json"
