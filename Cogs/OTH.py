@@ -440,7 +440,17 @@ class OTH(WesCog):
 
         await interaction.response.defer(thinking=True, ephemeral=False)
 
-        participants, matches, url = WoppaCup.get_wc_data()
+        participants, matches, url, winner, tourney_name = WoppaCup.get_wc_data()
+
+        if winner != None:
+            for p in participants:
+                if winner == p["id"]:
+                    winner = p["name"].split(".")[-1]
+                    break
+            embed = discord.Embed(title=tourney_name, description=f"The tournament is over. Congrats to {winner}!", url=url)
+            await interaction.followup.send(embed=embed)
+            return
+
         curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
         matches = WoppaCup.trim_matches(matches, curr_round, is_group_stage)
 
@@ -482,7 +492,16 @@ class OTH(WesCog):
         await interaction.response.defer(thinking=True)
 
         user = sanitize_user(user)
-        participants, matches, url = WoppaCup.get_wc_data()
+        participants, matches, url, winner, tourney_name = WoppaCup.get_wc_data()
+        if winner != None:
+            for p in participants:
+                if winner == p["id"]:
+                    winner = p["name"].split(".")[-1]
+                    break
+
+            embed = discord.Embed(title=tourney_name, description=f"The tournament is over. Congrats to {winner}!", url=url)
+            await interaction.followup.send(embed=embed)
+            return
 
         # Check that the user requested actually exists
         me = None
@@ -492,17 +511,12 @@ class OTH(WesCog):
                 break
 
         if me == None:
-            embed = embed=discord.Embed(title=f"User {user} either doesn't exist or was never in this tournament.")
+            embed = discord.Embed(title=tourney_name, description=f"User {user} either doesn't exist or was never in this tournament.", url=url)
             embed.set_footer(text=url, icon_url=None)
             await interaction.followup.send(embed=embed)
             return
 
         curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
-        if curr_round == 999:
-            embed = embed=discord.Embed(title=f"This tournament appears to be over.")
-            embed.set_footer(text=url, icon_url=None)
-            await interaction.followup.send(embed=embed)
-            return
 
         # Find the user's match from this week
         embed = None
@@ -522,20 +536,20 @@ class OTH(WesCog):
         # A few scenarios for if the user is not playing this week
         if embed == None:
             if is_group_stage:
-                embed = discord.Embed(title=f"User {user} is on bye.")
+                embed = discord.Embed(title=tourney_name, description=f"User {user} is on bye.", url=url)
             else:
-                embed = discord.Embed(title=f"User {user} has been eliminated from the tournament.")
+                embed = discord.Embed(title=tourney_name, description=f"User {user} has been eliminated from the tournament.", url=url)
 
         embed.set_footer(text="Looking for more scores? Try /wc_all", icon_url=None)
         await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="playoffpool", description="Formats the playoff pool standings.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def playoffpool(self, interaction: discord.Interaction):
-        client = pygsheets.authorize()
-        sh = client.open()
+    # @app_commands.command(name="playoffpool", description="Formats the playoff pool standings.")
+    # @app_commands.guild_only()
+    # @app_commands.default_permissions(manage_guild=True)
+    # @app_commands.checks.has_permissions(manage_guild=True)
+    # async def playoffpool(self, interaction: discord.Interaction):
+    #     client = pygsheets.authorize()
+    #     sh = client.open()
 
 #endregion
 

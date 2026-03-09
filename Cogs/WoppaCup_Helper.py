@@ -11,10 +11,16 @@ class WoppaCup():
             super().__init__()
 
             # Get info about the tournament
-            self.participants, self.matches, self.url = WoppaCup.get_wc_data()
+            self.participants, self.matches, self.url, self.winner, self.tourney_name = WoppaCup.get_wc_data()
             self.curr_round, self.is_group_stage = WoppaCup.get_round_and_stage(self.matches)
+            if self.winner != None:
+                for p in self.participants:
+                    if self.winner == p["id"]:
+                        self.winner = p["name"].split(".")[-1]
+                        break
+
             self.matches = WoppaCup.trim_matches(self.matches, self.curr_round, self.is_group_stage)
-            self.round_name = WoppaCup.get_round_name(self.matches[0])
+            self.round_name = WoppaCup.get_round_name(self.matches[0]) if len(self.matches) > 0 else None
 
             # Group stage has 3 matches per group, so display them together
             # Knockout round display 4 for bracket purposes
@@ -29,6 +35,10 @@ class WoppaCup():
                 self.clear_items()
 
         def update_embed(self):
+            if self.winner != None:
+                self.embed = discord.Embed(title=self.tourney_name, description=f"The tournament is over. Congrats to {self.winner}!", url=self.url)
+                return
+
             # Wraparound
             if self.current == -1:
                 self.current = int(len(self.matches)/self.matches_per_page-1)
@@ -40,7 +50,7 @@ class WoppaCup():
             end_match = (self.current + 1) * self.matches_per_page
             group_name = chr(65 + self.current) if self.current <= 26 else "A" + chr(65 - 26 + self.current)
 
-            self.embed = discord.Embed(title=f"Woppa Cup {self.round_name.replace("Stage", group_name)}", url=self.url)
+            self.embed = discord.Embed(title=f"{self.tourney_name} {self.round_name.replace("Stage", group_name)}", url=self.url)
             for m in self.matches[start_match:end_match]:
                 self.embed.add_field(name="", value=WoppaCup.get_description_for_woppacup_embed(m, self.participants), inline=False)
 
@@ -70,9 +80,9 @@ class WoppaCup():
         matches = challonge.matches.index(wc_id)
         matches = sorted(matches, key=lambda x: x["round"])
 
-        url = challonge.tournaments.show(wc_id)["full_challonge_url"]
+        tourney = challonge.tournaments.show(wc_id)
 
-        return participants, matches, url
+        return participants, matches, tourney["full_challonge_url"], matches[-1]["winner_id"], tourney["name"]
 
     def trim_matches(matches, round, is_group_stage):
         matching_matches = []
@@ -195,6 +205,5 @@ class WoppaCup():
 
     # Creates an embed for a given woppa cup matchup
     def get_embed_for_woppacup_match(match, participants, url):
-        embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(match)}", description=WoppaCup.get_description_for_woppacup_embed(match, participants), url=url)
-        # embed.set_footer(text=url, icon_url=None)
+        embed = discord.Embed(title=f"{self.tourney_name} {WoppaCup.get_round_name(match)}", description=WoppaCup.get_description_for_woppacup_embed(match, participants), url=url)
         return embed
