@@ -17,6 +17,7 @@ class Memes(WesCog):
     meme_map = {
         "bryz": ["http://2.bp.blogspot.com/-ut7bwg8rrp8/UCFRrZinwVI/AAAAAAAACNw/M6LRPCMuUtg/s1600/its-only-game.gif"],
         "caufield": ["I've concluded that Caufield will be a bust in the NHL."],
+        "celebrini": ["No offense to anyone's hockey opinions but I think it's gonna look silly to say Celebrini is equal to or better than Bedard in a few years. Will be like comparing Hischier to MacKinnon."],
         "dahlin": ["https://i.imgur.com/Nsf5hkz.mp4"],
         "darn": ["https://media1.tenor.com/images/192264256befe5ba70487b0d60ee7832/tenor.gif", "https://i.redd.it/wdhnfsxdl3v91.gif", "https://media.discordapp.net/attachments/489882482838077451/1062867025787113542/ezgif-3-93e35eb357.gif"],
         "fifi": ["Aw yeah buddy we need way more Kevin “Fifi” Fiala up in this thread, all that animal does is rip shelfies buddy, " + \
@@ -36,10 +37,6 @@ class Memes(WesCog):
         "laine": ["Yeah, fuck off buddy we absolutely need more Laine clips. Fuckin every time this kid steps on the ice someone scores. " + \
                   "kids fuckin dirt nasty man. Does fuckin ovi have 14 goals this season I dont fuckin think so bud. I'm fuckin tellin ya Patrik 'golden flow' " + \
                   "Laine is pottin 50 in '17 fuckin callin it right now. Clap bombs, fuck moms, wheel, snipe, and fuckin celly boys fuck"],
-        "mcavoy": ["WTF you say he hasn't done anything notable he only the best baddest defenseman you ever seen. " + \
-                   "Now that Krug is out of the way he is going to tear it up and show that top tier fantasy D man you all wish you could have drafted. " + \
-                   "Big brains got in the ground floor while you'll have to overpay next year admitting your wrongs as you wallow in self pity " + \
-                   "from your relegation only asking yourself why, why didn't I draft McAvoy"],
         "ned": ["That's no surprise. He's on the third axis of transcendence right now. Alex Nedeljkovic moves in anti-planar reality " + \
                 "(or prime-planar reality, shouts to my qmech nerds who really buy Frisch-Hayes.) While goalies like Thomas Greiss or Andrei Vasilevskiy " + \
                 "see the game from an x and o perspective, Alex has vision of the omega and delta factors surrounding any given hockey event. " + \
