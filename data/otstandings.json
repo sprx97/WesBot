@@ -13,8 +13,8 @@
         },
         "417851289284902925": {
             "name": "porridge42",
-            "guesses": 181,
-            "correct": 24
+            "guesses": 182,
+            "correct": 25
         },
         "329982578708971522": {
             "name": "bwemonts",
@@ -153,7 +153,7 @@
         },
         "797290038572351519": {
             "name": "hayzer13",
-            "guesses": 194,
+            "guesses": 197,
             "correct": 19
         },
         "492421946550648832": {
@@ -243,7 +243,7 @@
         },
         "442105563115945999": {
             "name": "vin4dawin",
-            "guesses": 107,
+            "guesses": 108,
             "correct": 4
         },
         "228714331120861185": {
@@ -253,7 +253,7 @@
         },
         "221472911880355842": {
             "name": "toomanypuppies",
-            "guesses": 3,
+            "guesses": 4,
             "correct": 0
         },
         "1400217162341421177": {
@@ -301,7 +301,7 @@
         },
         "216987381960540163": {
             "name": "trev1657",
-            "guesses": 155,
+            "guesses": 156,
             "correct": 20
         },
         "192830027534958593": {
@@ -401,7 +401,7 @@
         },
         "888439884266745967": {
             "name": "ryank.wearescore",
-            "guesses": 15,
+            "guesses": 16,
             "correct": 1
         },
         "837375613576806411": {
@@ -423,6 +423,11 @@
             "name": "stevenm0391",
             "guesses": 1,
             "correct": 0
+        },
+        "356989928690679808": {
+            "name": "shamstron",
+            "guesses": 1,
+            "correct": 1
         }
     }
 }

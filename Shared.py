@@ -282,10 +282,15 @@ def get_user_matchup_from_database(user, division=None):
     return matchup
 
 # Gets the JSON data from the given fleaflicker.com/api call
-def make_api_call(link):
+def make_api_call(link, log=None):
     try:
         with requests.get(link, headers={"Cache-Control": "must-revalidate, max-age=0", "Pragma": "no-cache"}) as response:
-            data = response.json()
+            if log:
+                log.info(f"API call to {link} returned status code {response.status_code}.")
+            try:
+                data = response.json()
+            except Exception as e:
+                data = None
     except Exception as e:
         raise LinkError(str(e) + "\n"+ str(e.__cause__))
 

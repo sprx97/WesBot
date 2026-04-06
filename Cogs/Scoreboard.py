@@ -25,7 +25,7 @@ class Scoreboard(WesCog):
         self.messages_lock = asyncio.Lock()
         self.ot_lock = asyncio.Lock()
 
-        self.last_rate_limit_timestamp = 0
+        self.cooldown = 0
 
 #region Cog Startup
 
@@ -36,15 +36,23 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=60)
     async def scores_loop(self):
+        if self.cooldown > 0:
+            self.cooldown -= 1
+            self.log.info(f"Scores loop on cooldown, skipping iteration. Cooldown remaining: {self.cooldown} cycles.")
+            return
+
         games = await self.get_games_for_today()
         for game in games:
             await self.parse_game(game)
 
         try:
             for id, tourney_type in Config.config["active_iihf_tourneys"].items():
-                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}")
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}", self.log)
+                if root == None:
+                    return
+
                 for game in root:
                     # Skip upcoming games
                     if game["Status"] == "UPCOMING":
@@ -77,7 +85,10 @@ class Scoreboard(WesCog):
                     start_string = parse_iihf_start(game, " U20" if tourney_type.lower() == "wjc" else "")
                     await self.post_embed(breadcrumbs, "start", start_string)
 
-                    play_by_play = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestState/{game_id}")
+                    play_by_play = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestState/{game_id}", self.log)
+                    if play_by_play == None:
+                        return
+
                     for period in play_by_play["Periods"]:
                         for goal in period["ScoringActions"]:
                             goal_string = parse_iihf_goal(goal, " U20" if tourney_type.lower() == "wjc" else "")
@@ -132,7 +143,10 @@ class Scoreboard(WesCog):
                 # Archive the threads made for this OT challenge
                 await self.archive_ot_threads(game_id)
 
-                landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
+                landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing", self.log)
+                if landing == None:
+                    return
+
                 final_period = landing["summary"]["scoring"][-1]
 
                 # Some games won't reach overtime or will end in a shootout, so ignore them.
@@ -196,7 +210,11 @@ class Scoreboard(WesCog):
     # from the NHL.com api.
     async def get_games_for_today(self):
         # Get the week scoreboard and today's date
-        root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now")
+        root = make_api_call(f"https://api-web.nhle.com/v1/scoreboard/now", self.log)
+        if root == None:
+            self.cooldown = 4 # Skip 4 cycles (2 mins) as cooldown
+            return []
+
         curr_date = datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
         # date = self.messages["date"] # I think this works just as well, and apparently "focusedDate" breaks near the end of the SCF
 
@@ -505,8 +523,10 @@ class Scoreboard(WesCog):
             return
 
         # TODO: Try to eliminate reliance on landing
-        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing")
-        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
+        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing", self.log)
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play", self.log)
+        if landing == None or play_by_play == None:
+            return
 
         # TODO: This works with either play_by_play or landing
         away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
@@ -552,7 +572,7 @@ class Scoreboard(WesCog):
                     recap_link = get_recap_link(game_id)
                     await self.post_embed(breadcrumbs, event_id, end_string, recap_link)
         except Exception as e:
-            self.log.error(f"{e}")
+            self.log.error(f"ERROR: {e}")
 
 #endregion
 #region Scoreboard Slash Commands
@@ -669,7 +689,10 @@ class Scoreboard(WesCog):
     async def playoffs(self, interaction: discord.Interaction):
         try:
             year = Config.config["year"]
-            playoffs = make_api_call(f"https://api-web.nhle.com/v1/playoff-series/carousel/{year}{int(year)+1}/")
+            playoffs = make_api_call(f"https://api-web.nhle.com/v1/playoff-series/carousel/{year}{int(year)+1}/", self.log)
+            if playoffs == None:
+                return
+
             if not playoffs or not playoffs["rounds"]:
                 await interaction.response.send_message(f"No playoffs found for {year}-{year+1}")
                 return
@@ -720,7 +743,10 @@ class Scoreboard(WesCog):
         try:
             for id, tourney_type in Config.config["active_iihf_tourneys"].items():
                 is_first_of_type = True
-                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}")
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}", self.log)
+                if root == None:
+                    return
+
                 for game in root:
                     game_dt_utc = datetime.strptime(f"{game['GameDateTimeUTC']} +0000", "%Y-%m-%dT%H:%M:%SZ %z")
                     game_dt_est = game_dt_utc - timedelta(hours=5)
@@ -767,7 +793,10 @@ class Scoreboard(WesCog):
                     break
 
             for id, tourney_type in Config.config["active_iihf_tourneys"].items():
-                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}")
+                root = make_api_call(f"https://realtime.iihf.com/gamestate/GetLatestScoresState/{id}", self.log)
+                if root == None:
+                    return
+
                 for game in root:
                     if game["GuestTeam"]["TeamCode"] == team or game["HomeTeam"]["TeamCode"] == team:
                         found = True
@@ -838,7 +867,10 @@ class Scoreboard(WesCog):
             await interaction.followup.send(f"Trouble finding game id for {team}. This should not happen.")
             return
 
-        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play")
+        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play", self.log)
+        if play_by_play == None:
+            return
+
         if not is_ot_challenge_window(play_by_play):
             await interaction.followup.send(f"OT Challenge window is closed. No guesses allowed.")
             return
