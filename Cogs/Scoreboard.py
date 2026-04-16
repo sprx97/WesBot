@@ -98,6 +98,8 @@ class Scoreboard(WesCog):
         except Exception as e:
             self.log.error(f"Error in IIHF Scoreboard parsing: {e}.")
 
+        flush_telemetry()
+
     @scores_loop.before_loop
     async def before_scores_loop(self):
         await self.bot.wait_until_ready()

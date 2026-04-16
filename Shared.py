@@ -3,10 +3,12 @@ import discord
 from discord.ext import commands
 
 # Python Libraries
+from datetime import datetime
 import json
 import pymysql
 import requests
 import traceback
+from urllib.parse import urlparse
 
 # Local Includes
 import Config
@@ -281,11 +283,49 @@ def get_user_matchup_from_database(user, division=None):
 
     return matchup
 
-# Gets the JSON data from the given fleaflicker.com/api call
+def bucket_time(minutes):
+    dt = datetime.now()
+    bucket_minute = (dt.minute // minutes) * minutes
+    return dt.replace(minute=bucket_minute, second=0, microsecond=0)
+
+telemetry = {}
+def log_api_usage_telemetry(site):
+    if site not in telemetry:
+        telemetry[site] = {}
+
+    bucket = bucket_time(minutes=1).strftime("%Y-%m-%d %H:%M:%S")
+    if bucket not in telemetry[site]:
+        telemetry[site][bucket] = 0
+
+    telemetry[site][bucket] += 1
+
+def flush_telemetry():
+    global telemetry
+    DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)
+    cursor = DB.cursor()
+
+    query = "INSERT INTO ApiUsageTelemetry (time_bucket, site, count) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE count = count + VALUES(count)"
+
+    for site, buckets in telemetry.items():
+        for bucket, count in buckets.items():
+            cursor.execute(query, (bucket, site, count))
+
+    DB.commit()
+    cursor.close()
+    DB.close()
+
+    telemetry = {}
+
 def make_api_call(link, log=None):
+    # Log telemetry to ensure I'm not overusing APIs
+    if "://" not in link:
+        link = "https://" + link
+    site = urlparse(link).netloc.replace("www.", "")
+    log_api_usage_telemetry(site)
+
     try:
         with requests.get(link, headers={"Cache-Control": "must-revalidate, max-age=0", "Pragma": "no-cache"}) as response:
-            if log:
+            if log and response.status_code != 200:
                 log.info(f"API call to {link} returned status code {response.status_code}.")
             try:
                 data = response.json()
