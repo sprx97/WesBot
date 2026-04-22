@@ -4,8 +4,8 @@ from Shared import *
 
 # TODO: Possibly move get_score_string and get_games_for_today into here.
 
-def get_teams_from_landing(landing):
-    return landing["awayTeam"]["abbrev"], get_emoji(landing["awayTeam"]["abbrev"]), landing["homeTeam"]["abbrev"], get_emoji(landing["homeTeam"]["abbrev"])        
+def get_teams_from_json(json):
+    return json["awayTeam"]["abbrev"], get_emoji(json["awayTeam"]["abbrev"]), json["homeTeam"]["abbrev"], get_emoji(json["homeTeam"]["abbrev"])        
 
 def get_period_ordinal(period):
     period_ordinals = [None, "1st", "2nd", "3rd", "OT"]

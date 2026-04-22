@@ -36,7 +36,7 @@ class Scoreboard(WesCog):
         self.scores_loop.start()
         self.loops.append(self.scores_loop)
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=30)
     async def scores_loop(self):
         if self.cooldown > 0:
             self.cooldown -= 1
@@ -299,7 +299,7 @@ class Scoreboard(WesCog):
 #region Game Parsing Sections
 
     def format_goal_embed(self, event, play_by_play):
-        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
+        away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
 
         # Get the timing info for the goal to create the key
         period_ord = get_period_ordinal(event["periodDescriptor"]["number"])
@@ -374,7 +374,7 @@ class Scoreboard(WesCog):
 
     async def check_ot_challenge(self, game_id, play_by_play):
         ot_key = "OT"
-        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
+        away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
 
         is_otc_window = is_ot_challenge_window(play_by_play)
 
@@ -408,42 +408,8 @@ class Scoreboard(WesCog):
                 self.messages[game_id]["ot_state"] = "open"
                 # await self.post_message_to_ot_thread(game_id, "Reopening guesses, either because we're in an OT Intermission or the closing was a false alarm.")
 
-    # Post Shootout results in a single updating embed.
-    async def check_shootout(self, id, landing):
-        if "summary" not in landing or "shootout" not in landing["summary"] or "events" not in landing["summary"]["shootout"] or len(landing["summary"]["shootout"]["events"]) == 0:
-            return
-
-        so_key = f"Shootout"
-        shootout = landing["summary"]["shootout"]["events"]
-        away, away_emoji, home, home_emoji = get_teams_from_landing(landing)
-
-        title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
-        away_shooters = ""
-        home_shooters = ""
-        try:
-            for shooter in shootout:
-                shooter_str = ":white_check_mark:" if shooter["result"] == "goal" else ":x:"
-                if "firstName" in shooter and "lastName" in shooter:
-                    shooter_str += f" {shooter['firstName']['default']} {shooter['lastName']['default']}"
-                if shooter["teamAbbrev"]["default"] == home:
-                    home_shooters += shooter_str + "\n"
-                elif shooter["teamAbbrev"]["default"] == away:
-                    away_shooters += shooter_str + "\n"
-                else:
-                    self.log.error(f"Shooter team {shooter['teamAbbrev']['default']} not found")
-        except Exception as e:
-            self.log.error(f"Failure logging shootout {e}")
-        away_shooters += "\u200b" # Zero-width character for spacing on mobile
-
-        fields = [
-            {"name": f"{away_emoji} {away}", "value": away_shooters, "inline": True},
-            {"name": f"{home_emoji} {home}", "value": home_shooters, "inline": True}
-        ]
-
-        await self.post_embed([id, "events"], so_key, title, fields=fields)
-
     def format_game_end_embed(self, event, play_by_play):
-        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
+        away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
 
         # Set the modifier for the final, ie (OT), (2OT), (SO), etc
         modifier = ""
@@ -532,14 +498,13 @@ class Scoreboard(WesCog):
         if state not in ["LIVE", "CRIT", "OVER", "FINAL", "OFF"]:
             return
 
-        # TODO: Try to eliminate reliance on landing
-        landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing", self.log)
         play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play", self.log)
-        if landing == None or play_by_play == None:
+        if play_by_play == None:
             return
 
-        # TODO: This works with either play_by_play or landing
-        away, away_emoji, home, home_emoji = get_teams_from_landing(play_by_play)
+        away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
+        home_team_id = play_by_play["homeTeam"]["id"]
+        away_team_id = play_by_play["awayTeam"]["id"]
 
         # Add game to messages list
         if game_id not in self.messages:
@@ -550,6 +515,8 @@ class Scoreboard(WesCog):
             await self.check_ot_challenge(game_id, play_by_play)
 
             breadcrumbs = [game_id, "events"]
+            shootout_home_str = ""
+            shootout_away_str = ""
             for event in play_by_play["plays"]:
                 event_id = str(event["eventId"])
 
@@ -567,10 +534,17 @@ class Scoreboard(WesCog):
                     goal_str, highlight, score_str = self.format_goal_embed(event, play_by_play)
                     await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str)
 
-                # TODO: Check Shootouts based on goal/shot/save events happening in a SO period
-                # TODO: Need to move these to use play_by_play
-                # await self.check_shootout_2(game_id, play_by_play) # [typeDescKey] == "period-start" and [periodDescriptor][number] == 5, "goal", "missed-shot", "shot-on-goal", [typeDescKey] == "shootout-complete"
-                await self.check_shootout(game_id, landing)
+                if event["periodDescriptor"]["periodType"] == "SO":
+                    if event["typeDescKey"] in ["period-start", "shootout-complete", "period-end", "game-end"]:
+                        continue
+
+                    event_result = ":white_check_mark:" if event["typeDescKey"] == "goal" else ":x:"
+                    event_result += f" {get_player_name_from_id(event['details']['shootingPlayerId'])}"
+
+                    if event["details"]["eventOwnerTeamId"] == home_team_id:
+                        shootout_home_str += event_result + "\n"
+                    else:
+                        shootout_away_str += event_result + "\n"
 
                 # Game Ending Message
                 if event["typeDescKey"] == "game-end":
@@ -581,6 +555,16 @@ class Scoreboard(WesCog):
                     end_string = self.format_game_end_embed(event, play_by_play)
                     recap_link = get_recap_link(game_id)
                     await self.post_embed(breadcrumbs, event_id, end_string, recap_link)
+
+            if shootout_home_str != "" or shootout_away_str != "":
+                title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
+                shootout_away_str += "\u200b" # Zero-width character for spacing on mobile
+                fields = [
+                    {"name": f"{away_emoji} {away}", "value": shootout_away_str, "inline": True},
+                    {"name": f"{home_emoji} {home}", "value": shootout_home_str, "inline": True}
+                ]
+                await self.post_embed(breadcrumbs, "Shootout", title, fields=fields)
+
         except Exception as e:
             self.log.error(f"ERROR: {e}")
 
