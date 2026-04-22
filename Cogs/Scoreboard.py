@@ -138,9 +138,16 @@ class Scoreboard(WesCog):
     async def do_ot_rollover(self):
         has_errors = False
         async with self.ot_lock:
+            ot_games = list(self.ot_guesses.keys())
+            if len(ot_games) == 0:
+                return
+
+            year = int(str(ot_games[0])[:4])
+            season_type = int(str(ot_games[0])[4:6])
+            otstandings_datafile = get_otstandings_datafile(year, season_type)
+
             ot_standings = LoadJsonFile(otstandings_datafile)
 
-            ot_games = list(self.ot_guesses.keys())
             for game_id in ot_games:
                 # Archive the threads made for this OT challenge
                 await self.archive_ot_threads(game_id)
@@ -251,8 +258,6 @@ class Scoreboard(WesCog):
                 "- Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n" + \
                 f"- Contact sprx97 with any bugs or suggestions.\n"
 
-        ot_standings = LoadJsonFile(otstandings_datafile)
-
         for message_id in self.messages[id]["events"]["OT"]["message_ids"]:
             channel = message_id[0]
             message = message_id[1]
@@ -265,8 +270,11 @@ class Scoreboard(WesCog):
 
                 my_intro = intro
                 guild_id = str(thread.guild.id)
-                if guild_id in ot_standings and "role" in ot_standings[guild_id]:
-                    my_intro += f"<@&{ot_standings[guild_id]['role']}>"
+
+                if guild_id == KK_GUILD_ID:
+                    my_intro += f"@&{KK_OT_ROLE_ID}"
+                elif guild_id == OTH_GUILD_ID:
+                    my_intro += f"@&{OTH_OT_ROLE_ID}"
 
                 await thread.send(my_intro)
             except Exception as e:
@@ -926,6 +934,11 @@ class Scoreboard(WesCog):
         await interaction.response.defer(thinking=True)
 
         async with self.ot_lock:
+            otstandings_datafile = get_latest_otstandings_datafile()
+            if otstandings_datafile is None:
+                await interaction.followup.send("No OT Challenge standings found.", ephemeral=True)
+                return
+
             ot_standings = LoadJsonFile(otstandings_datafile)
 
         guild_id = str(interaction.guild_id)
@@ -953,27 +966,20 @@ class Scoreboard(WesCog):
     async def ot_subscribe(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True, ephemeral=True)
 
-        async with self.ot_lock:
-            ot_standings = LoadJsonFile(otstandings_datafile)
 
-            guild_id = str(interaction.guild_id)
-            if guild_id not in ot_standings:
-                ot_standings[guild_id] = {}
+        otc_role_id = 0
+        if interaction.guild_id == KK_GUILD_ID:
+            otc_role_id = KK_OT_ROLE_ID
+        elif interaction.guild_id == OTH_GUILD_ID:
+            otc_role_id = OTH_OT_ROLE_ID
 
-            # Check if ot_standings[guild_id]["role"] exists, and create a role if necessary
-            otc_role = None
-            if "role" in ot_standings[guild_id]:
-                otc_role = interaction.guild.get_role(ot_standings[guild_id]["role"])
+        if otc_role_id == 0:
+            await interaction.followup.send("Subscripting to OT Challenge is not available in this server.", ephemeral=True)
+            return
 
-            # Create a new role if necessary
-            if otc_role == None:
-                otc_role = await interaction.guild.create_role(name="OT Challenge", mentionable=True)
-                ot_standings[guild_id]["role"] = otc_role.id
-                WriteJsonFile(otstandings_datafile, ot_standings)
-
-        # If we still don't have a role, abort
-        if otc_role == None:
-            await interaction.followup.send("Error creating/finding OT Challenge role. Please contact the bot owner or try again later.")
+        otc_role = interaction.guild.get_role(otc_role_id)
+        if otc_role is None:
+            await interaction.followup.send("Error finding OT Challenge role. Please contact the bot owner or try again later.")
             return
 
         # Toggle the role on the user that sent this message

@@ -4,7 +4,9 @@ from discord.ext import commands
 
 # Python Libraries
 from datetime import datetime
+import glob
 import json
+import os
 import pymysql
 import requests
 import traceback
@@ -149,6 +151,8 @@ TRADEREVIEW_CHANNEL_ID = 235926223757377537
 TRADEREVIEW_ROLE_ID = 235926008266620929
 OTH_BOX_ROLE_ID = 816888894066917407
 SPRX_USER_ID = 228258453599027200
+KK_OT_ROLE_ID = 1209388054171881483
+OTH_OT_ROLE_ID = 1206140465641168986
 
 # Config settings
 MIN_INACTIVE_DAYS = 7 # Number of days where we deem a team to be "inactive" on fleaflicker
@@ -402,9 +406,39 @@ channels_datafile = "data/channels.json"
 memes_datafile = "data/memes.json"
 messages_datafile = "data/messages.json"
 ot_datafile = "data/ot.json"
-otstandings_datafile = "data/otstandings.json"
 pickems_datafile = "data/pickems.json"
 pickemsstandings_datafile = "data/pickemsstandings.json"
+
+def get_latest_otstandings_datafile():
+    files = glob.glob("data/otstandings_*.json")
+    if not files:
+        return None
+    
+    newest = files[0]
+    for file in files:
+        season = int(file.split("_")[1])
+        newest_season = int(newest.split("_")[1])
+        type = 3 if "playoffs" in file else 2 if "reg" in file else 1 if "preseason" in file else 0
+        newest_type = 3 if "playoffs" in newest else 2 if "reg" in newest else 1 if "preseason" in newest else 0
+
+        if season > newest_season:
+            newest = file
+        elif season == newest_season:
+            if type > newest_type:
+                newest = file
+
+    return newest
+
+def get_otstandings_datafile(year, season_type):
+    yearpart = int(str(year)[-2:])
+    season_type = "preseason" if season_type == 1 else "reg" if season_type == 2 else "playoffs" if season_type == 3 else "unknown"
+
+    filename = f"data/otstandings_{yearpart}{yearpart+1}_{season_type}.json"
+    if not os.path.exists(f"{Config.config['srcroot']}/{filename}"):
+        with open(filename, "w") as f:
+            json.dump({}, f)
+
+    return filename
 
 def WriteJsonFile(file, data):
     try:
