@@ -1,15 +1,15 @@
 # Python Libraries
 import asyncio
 from datetime import datetime, timedelta, timezone
+from lxml import etree # xml parsing
 import os
-import pygsheets
 import pytz
 
 # Discord Libraries
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
-from discord.ext import commands, tasks
+from discord.ext import tasks
 
 # Local Includes
 from Shared import *
@@ -228,12 +228,21 @@ class OTH(WesCog):
                     msg += f"**{league['name']}**: *Unowned team: {team['name']}* {team_url}\n"
                     continue
 
-                # If there are owners, check if the primary one has been seen in the last MIN_INACTIVE_DAYS days
-                last_seen = team["owners"][0]["lastSeenIso"]
-                last_seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ")
-                time_since_seen = datetime.utcnow()-last_seen
-                if time_since_seen.days > MIN_INACTIVE_DAYS:
-                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} not seen in last {time_since_seen.days} days* {team_url}\n"
+                # Old code based on the "lastSeenIso", which is the last time the owner logged in.
+                # Doesn't work well for people who have other teams on Fleaflicker
+                # last_seen = team["owners"][0]["lastSeenIso"]
+                # last_seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ")
+
+                # Check the last lineup change for the team
+                log_api_usage_telemetry("fleaflicker.com") # Hardcoded because not using my make_api_call method
+                response = requests.get(team_url)
+                tree = etree.HTML(response.text)
+                dt_str = tree.xpath("//relative-time/@datetime")[0]
+                last_lineup_change = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                time_since_change = datetime.now(timezone.utc) - last_lineup_change
+
+                if time_since_change.days > MIN_INACTIVE_DAYS:
+                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} no lineup changes in last {time_since_change.days} days* {team_url}\n"
 
             if msg != "":
                 await channel.send(msg, suppress_embeds=True)
