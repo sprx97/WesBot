@@ -272,9 +272,9 @@ class Scoreboard(WesCog):
                 guild_id = thread.guild.id
 
                 if guild_id == KK_GUILD_ID:
-                    my_intro += f"@&{KK_OT_ROLE_ID}"
+                    my_intro += f"<@&{KK_OT_ROLE_ID}>"
                 elif guild_id == OTH_GUILD_ID:
-                    my_intro += f"@&{OTH_OT_ROLE_ID}"
+                    my_intro += f"<@&{OTH_OT_ROLE_ID}>"
 
                 await thread.send(my_intro)
             except Exception as e:
