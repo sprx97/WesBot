@@ -269,7 +269,7 @@ class Scoreboard(WesCog):
                 self.log.info(f"Created thread {name} off message {message}")
 
                 my_intro = intro
-                guild_id = str(thread.guild.id)
+                guild_id = thread.guild.id
 
                 if guild_id == KK_GUILD_ID:
                     my_intro += f"@&{KK_OT_ROLE_ID}"
