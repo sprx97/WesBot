@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from lxml import etree # xml parsing
 import os
 import pytz
+import subprocess
 
 # Discord Libraries
 import discord
@@ -394,6 +395,16 @@ class OTH(WesCog):
 #endregion
 #region Fleaflicker Matchups and Rankings
 
+    def run_update_current_pf_script(self):
+        return subprocess.run(
+            [
+                "/var/www/OldTimeHockey/scripts/oth.venv/bin/python3",
+                "/var/www/OldTimeHockey/scripts/UpdateCurrentPF.py"
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
     @app_commands.command(name="matchup", description="Check the current matchup score for a user.")
     @app_commands.describe(user="A fleaflicker username", division="(Optional) User's division")
     @app_commands.guild_only()
@@ -401,6 +412,8 @@ class OTH(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     async def matchup(self, interaction: discord.Interaction, user: str, division: str = None):
         await interaction.response.defer(thinking=True)
+
+        await asyncio.to_thread(self.run_update_current_pf_script)
 
         matchup = get_user_matchup_from_database(user, division)
         if len(matchup) == 0:

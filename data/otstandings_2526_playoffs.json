@@ -3,12 +3,12 @@
         "role": 1206140465641168986,
         "797290038572351519": {
             "name": "hayzer13",
-            "guesses": 4,
-            "correct": 0
+            "guesses": 7,
+            "correct": 1
         },
         "282997586020007937": {
             "name": "nickfrompitt",
-            "guesses": 4,
+            "guesses": 10,
             "correct": 0
         },
         "360940651153588234": {
@@ -23,7 +23,7 @@
         },
         "269630861073317899": {
             "name": ".zodiac33",
-            "guesses": 1,
+            "guesses": 2,
             "correct": 1
         },
         "486366622785994753": {
@@ -38,21 +38,51 @@
         },
         "442105563115945999": {
             "name": "vin4dawin",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 2,
+            "correct": 1
         },
         "417851289284902925": {
             "name": "porridge42",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 4,
+            "correct": 1
         },
         "747171502591442997": {
             "name": "minneapolistim",
-            "guesses": 2,
+            "guesses": 8,
             "correct": 0
         },
         "228714331120861185": {
             "name": "ckroyal92",
+            "guesses": 1,
+            "correct": 0
+        },
+        "149614475631132673": {
+            "name": "alittlelion",
+            "guesses": 2,
+            "correct": 1
+        },
+        "169647186622021632": {
+            "name": "allenisfeliz",
+            "guesses": 1,
+            "correct": 0
+        },
+        "447077568403865620": {
+            "name": "tom.jane",
+            "guesses": 1,
+            "correct": 0
+        },
+        "745414158266269746": {
+            "name": "yokieran",
+            "guesses": 1,
+            "correct": 0
+        },
+        "232566177140965376": {
+            "name": "stevenrj",
+            "guesses": 1,
+            "correct": 0
+        },
+        "267125044898037761": {
+            "name": "indeed12",
             "guesses": 1,
             "correct": 0
         }
@@ -61,27 +91,47 @@
         "role": 1209388054171881483,
         "216987381960540163": {
             "name": "trev1657",
-            "guesses": 3,
+            "guesses": 5,
             "correct": 0
         },
         "141057575914307584": {
             "name": "kendrickd33",
-            "guesses": 1,
-            "correct": 0
+            "guesses": 5,
+            "correct": 1
         },
         "339479682422538245": {
             "name": "mashu86",
-            "guesses": 2,
+            "guesses": 3,
             "correct": 0
         },
         "363115347248939008": {
             "name": "shawnthemenace",
-            "guesses": 1,
+            "guesses": 5,
             "correct": 0
         },
         "776146272158875658": {
             "name": "andyp455",
             "guesses": 1,
+            "correct": 0
+        },
+        "1012173290313359400": {
+            "name": "acermacrophyllum",
+            "guesses": 4,
+            "correct": 0
+        },
+        "150472298984505345": {
+            "name": "cam5639",
+            "guesses": 1,
+            "correct": 0
+        },
+        "149732689979768833": {
+            "name": "ryan4095",
+            "guesses": 1,
+            "correct": 1
+        },
+        "888439884266745967": {
+            "name": "ryank.wearescore",
+            "guesses": 2,
             "correct": 0
         }
     }
