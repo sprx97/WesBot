@@ -161,6 +161,7 @@ ROLLOVER_HOUR_UTC = 11 # 11am UTC = 6am EST = 3am PST
 
 all_cogs = ["Cogs.Debug",
             "Cogs.KeepingKarlsson",
+            "Cogs.MDH",
             "Cogs.Memes",
             "Cogs.OTH",
             "Cogs.Scoreboard"]
