@@ -36,7 +36,6 @@ class ConfirmationView(discord.ui.View):
 class MDH(WesCog):
     @app_commands.command(name="button", description="Processes MDH bids for free agent frenzy")
     @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
     @app_commands.check(lambda interaction: interaction.created_at.month in (7, 8))
     async def button(self, interaction: discord.Interaction):
         if interaction.user.id not in (228258453599027200, 243201978191052800):

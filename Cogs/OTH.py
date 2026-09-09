@@ -134,6 +134,10 @@ class OTH(WesCog):
                 if league_role in member.roles:
                     count += 1
                     self.log.info(f"Removing all league/division roles from {member.name}.")
+
+                    # TODO: Could try using asyncio.gather to parallelize this.
+                    # Something like `await asyncio.gather(*(update_member(member) for member in members))`
+
                     if not debug:
                         await member.remove_roles(*league_roles.values())
                         self.log.info("Roles removed")
