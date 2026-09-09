@@ -1,6 +1,8 @@
 # Python Libraries
 import asyncio
 from datetime import datetime, timedelta, timezone
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 from lxml import etree # xml parsing
 import os
 import pytz
@@ -89,18 +91,35 @@ class OTH(WesCog):
 
         return choices
 
-    # TODO: Move the Emailer to a shared location instead of the other project, and use direct sheet access instead of the rolesfile
-
     def get_role_assignments(self):
-        rolesfile = Config.config["srcroot"] + "/Roles.txt"
+        credentials_file = os.path.join(Config.config["srcroot"], "service_client_secret_OTH.json")
+        scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
-        if not os.path.isfile(rolesfile):
+        try:
+            credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=scopes)
+            sheets = build("sheets", "v4", credentials=credentials).spreadsheets()
+            rows = sheets.values().get(spreadsheetId=Config.config["reg_sheet_id"], range="Responses!A:W").execute()
+        except Exception:
+            self.log.exception("Could not read role assignments from the registration sheet.")
             return None
 
         assignments = {}
-        f = open(rolesfile)
-        for line in f.readlines():
-            name, division, league = line.strip().split("\t")
+        discord_name_col = 3 # D
+        division_assignment_col = 21 # V
+        league_assignment_col = 22 # W
+        for row in rows.get("values", [])[1:]:
+            if len(row) <= league_assignment_col or row[league_assignment_col] == "NO RESPONSE":
+                continue
+
+            name = row[discord_name_col].strip()
+            if name == "":
+                continue
+
+            division = row[division_assignment_col]
+            if division == "NEW":
+                division = "D5"
+
+            league = row[league_assignment_col]
             assignments[name.lower()] = (division, league)
 
         return assignments
@@ -165,15 +184,16 @@ class OTH(WesCog):
         debug = (debug.value == 1)
         scope = scope.value
 
-        # Early return if the roles assignment file is missing
-        assignments = self.get_role_assignments()
+        await interaction.response.defer()
+
+        assignments = await asyncio.to_thread(self.get_role_assignments)
         if assignments == None:
-            await interaction.response.send_message("Could not find role assignments list.")
+            await interaction.edit_original_response(content="Could not read role assignments from the registration sheet.")
             return
 
-        await interaction.response.send_message(f"Assigning roles for scope '{scope}'.")
+        await interaction.edit_original_response(content=f"Assigning roles for scope '{scope}'.")
         if debug:
-            await interaction.channel.send(f"Debug mode -- reading roles from file but not setting them. Check the bot's logs for output.")
+            await interaction.channel.send(f"Debug mode -- reading roles from the registration sheet but not setting them. Check the bot's logs for output.")
 
         league_roles = get_roles_from_ids(self.bot)
         offseason_role = get_offseason_league_role(self.bot)
@@ -185,6 +205,9 @@ class OTH(WesCog):
         members = self.bot.get_guild(OTH_GUILD_ID).members
         for member in members:
             key = member.name.lower()
+            if key not in assignments:
+                key = member.display_name.lower()
+
             if key in assignments:
                 division = assignments[key][0]
                 league = assignments[key][1]

@@ -1,6 +1,7 @@
 {
 	"srcroot": "/var/www/DiscordBot",
 	"year": "20XX",
+	"reg_sheet_id": "",
 
 	"sql_hostname": "localhost",
 	"sql_username": "", // update this to be your local mysql username
