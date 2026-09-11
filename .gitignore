@@ -10,7 +10,6 @@ service_client_secret*.json
 data/messages.json
 data/ot.json
 data/pickems.json
-Roles.txt
 
 # Extraneous stuff
 StandingsOverride.py

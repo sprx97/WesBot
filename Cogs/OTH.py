@@ -337,7 +337,7 @@ class OTH(WesCog):
 
         if "tentativeExecutionTime" in trade:
             ts = int(trade["tentativeExecutionTime"]) / 1000
-            
+
             utc = pytz.utc
             est = pytz.timezone("America/New_York")
             dt_utc = datetime.fromtimestamp(ts, tz=utc)
@@ -349,8 +349,6 @@ class OTH(WesCog):
 
     # Function that checks all OTH fleaflicker leagues for new trades
     async def check_trades(self, verbose=False):
-        return # disabled for offseason. TODO: Add a weekvar check here once I get my shared config file
-
         # Find the list of trades that have already been posted so that we can ignore them.
         f = open("data/posted_trades.txt", "a+")
         f.seek(0)
