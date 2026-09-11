@@ -18,6 +18,10 @@ from discord.ext import tasks
 from Shared import *
 from Cogs.WoppaCup_Helper import *
 
+def get_trade_season_year(now=None):
+    now = now or datetime.now(timezone.utc)
+    return now.year if now.month >= 8 else now.year - 1
+
 class OTH(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
@@ -312,12 +316,13 @@ class OTH(WesCog):
         await self.check_inactives()
 
     # Formats a json trade into a discord embed
-    def format_trade(self, league, trade):
+    def format_trade(self, league, trade, season_year=None):
+        season_year = season_year or get_trade_season_year()
         embed = discord.Embed(url=f"https://www.fleaflicker.com/nhl/leagues/{league['id']}/trades/{trade['id']}")
         embed.title = "Trade in " + league["name"]
         n_teams = 1
         for team in trade["teams"]:
-            owner = get_owner_for_team(Config.config["year"], team["team"]["id"])["FFname"]
+            owner = get_owner_for_team(season_year, team["team"]["id"])["FFname"]
 
             if "playersObtained" not in team:
                 embed.add_field(name=f"**{team['team']['name']} ({owner})**", value="No players going to this team -- please investigate.")
