@@ -164,6 +164,7 @@ all_cogs = ["Cogs.Debug",
             "Cogs.MDH",
             "Cogs.Memes",
             "Cogs.OTH",
+            "Cogs.OTH_Registration",
             "Cogs.Scoreboard"]
 
 #endregion
@@ -224,9 +225,14 @@ def get_owner_for_team(year, team_id):
 
 # Grabs the list of OTH leagues for the given year
 # from the SQL database
-def get_leagues_from_database(year):
+def get_leagues_from_database(year, tier=None):
     cursor = DB.cursor()
-    cursor.execute("SELECT id, name from Leagues where year=%s", (year,))
+    query = "SELECT id, name, tier from Leagues where year=%s"
+    params = [year]
+    if tier is not None:
+        query += " and tier=%s"
+        params.append(tier)
+    cursor.execute(query, tuple(params))
     leagues = cursor.fetchall()
     cursor.close()
 

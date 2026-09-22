@@ -209,7 +209,7 @@ class Scoreboard(WesCog):
     # This needs to be a function so we can await it and not spam all the messages from the previous day
     # after deleting them from the datafile.
     async def do_date_rollover(self, date):
-        await self.do_ot_rollover()
+#        await self.do_ot_rollover()
 
         self.messages = {"date": date}
         async with self.messages_lock:
@@ -512,7 +512,7 @@ class Scoreboard(WesCog):
 
         try:
             await self.check_disallowed_goals(game_id, play_by_play)
-            await self.check_ot_challenge(game_id, play_by_play)
+#            await self.check_ot_challenge(game_id, play_by_play)
 
             breadcrumbs = [game_id, "events"]
             shootout_home_str = ""

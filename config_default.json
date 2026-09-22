@@ -2,6 +2,8 @@
 	"srcroot": "/var/www/DiscordBot",
 	"year": "20XX",
 	"reg_sheet_id": "",
+	"fleaflicker_email": "",
+	"fleaflicker_password": "",
 
 	"sql_hostname": "localhost",
 	"sql_username": "", // update this to be your local mysql username
