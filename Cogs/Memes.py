@@ -15,6 +15,7 @@ class Memes(WesCog):
         self.use_count = LoadJsonFile(memes_datafile)
 
     meme_map = {
+        "beggars": ["https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmp4ZmxwYmxocWY4dHBmY2Y5eGRtdTEzMnAxbGVlOHVnZzB4dDV5eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tHFDZ1zUI0NjSDPDT3/giphy.gif"],
         "bryz": ["http://2.bp.blogspot.com/-ut7bwg8rrp8/UCFRrZinwVI/AAAAAAAACNw/M6LRPCMuUtg/s1600/its-only-game.gif"],
         "caufield": ["I've concluded that Caufield will be a bust in the NHL."],
         "celebrini": ["No offense to anyone's hockey opinions but I think it's gonna look silly to say Celebrini is equal to or better than Bedard in a few years. Will be like comparing Hischier to MacKinnon."],
@@ -37,13 +38,6 @@ class Memes(WesCog):
         "laine": ["Yeah, fuck off buddy we absolutely need more Laine clips. Fuckin every time this kid steps on the ice someone scores. " + \
                   "kids fuckin dirt nasty man. Does fuckin ovi have 14 goals this season I dont fuckin think so bud. I'm fuckin tellin ya Patrik 'golden flow' " + \
                   "Laine is pottin 50 in '17 fuckin callin it right now. Clap bombs, fuck moms, wheel, snipe, and fuckin celly boys fuck"],
-        "ned": ["That's no surprise. He's on the third axis of transcendence right now. Alex Nedeljkovic moves in anti-planar reality " + \
-                "(or prime-planar reality, shouts to my qmech nerds who really buy Frisch-Hayes.) While goalies like Thomas Greiss or Andrei Vasilevskiy " + \
-                "see the game from an x and o perspective, Alex has vision of the omega and delta factors surrounding any given hockey event. " + \
-                "There's a reason Alex was able to lead Martin Necas to the 2019 Calder Cup. Put simply, Nedeljkovic is visuospatial jazz. " + \
-                "Think of Ornette Coleman or Buddy Rich, not Henrik Lundqvist or Tuukka Rask. The dorian stylings of a Eric Dolphy better describe Ned's game " + \
-                "than a monotone listing-off of conventional goalie skills. Puck handles? When you're in constant tune with the precise Hz pitch of the ice like Nedeljkovic, " + \
-                "English words like 'good save' cannot encapsulate even a fractoid of the scientific and metaphysical majesty of Alex."],
         "nopoke": ["<@{}> yes, you can slowpoke me because you posted the vid a couple hours earlier. But on the other hand, your post got zero engagement, " + \
                 "because you didn't contribute anything valuable to the conversation, whereas I said 'what the HECK is this'"],
         "olympics": ["I am, with every fiber of my cognitive being, genuinely, spectacularly, almost transcendently baffled—so baffled that the sensation borders on a " + \
