@@ -821,164 +821,164 @@ class Scoreboard(WesCog):
         await interaction.response.send_message(f"{error}", ephemeral=True)
 
 #endregion
-#region OT Challenge Slash Commands
+#region OT Challenge Slash Commands -- currently disabled
 
-    @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
-    @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages_in_threads=True)
-    @app_commands.checks.has_permissions(send_messages_in_threads=True)
-    async def ot(self, interaction: discord.Interaction, team: str, player: str):
-        await interaction.response.defer(thinking=True)
+    # @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
+    # @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
+    # @app_commands.guild_only()
+    # @app_commands.default_permissions(send_messages_in_threads=True)
+    # @app_commands.checks.has_permissions(send_messages_in_threads=True)
+    # async def ot(self, interaction: discord.Interaction, team: str, player: str):
+    #     await interaction.response.defer(thinking=True)
 
-        # Ensure this message was sent in an OT Challenge Thread
-        # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
-        if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
-            await interaction.followup.send(f"This is not a valid OT Challenge thread.")
-            return
+    #     # Ensure this message was sent in an OT Challenge Thread
+    #     # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
+    #     if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
+    #         await interaction.followup.send(f"This is not a valid OT Challenge thread.")
+    #         return
 
-        # Check that the team is valid
-        team = team.lower().strip()
-        if team not in team_map.keys():
-            await interaction.followup.send(f"{team} is not a valid team.")
-            return
-        team = team_map[team]
+    #     # Check that the team is valid
+    #     team = team.lower().strip()
+    #     if team not in team_map.keys():
+    #         await interaction.followup.send(f"{team} is not a valid team.")
+    #         return
+    #     team = team_map[team]
 
-        if team not in interaction.channel.name[:10]:
-            await interaction.followup.send(f"Team {team} is not in this game.")
-            return
+    #     if team not in interaction.channel.name[:10]:
+    #         await interaction.followup.send(f"Team {team} is not in this game.")
+    #         return
 
-        # Get correct game_id from messages
-        game_id = None
-        for id in self.messages:
-            if "awayTeam" not in self.messages[id]:
-                continue
-            if team == self.messages[id]["awayTeam"] or team == self.messages[id]["homeTeam"]:
-                game_id = id
-                break
+    #     # Get correct game_id from messages
+    #     game_id = None
+    #     for id in self.messages:
+    #         if "awayTeam" not in self.messages[id]:
+    #             continue
+    #         if team == self.messages[id]["awayTeam"] or team == self.messages[id]["homeTeam"]:
+    #             game_id = id
+    #             break
 
-        if game_id == None:
-            await interaction.followup.send(f"Trouble finding game id for {team}. This should not happen.")
-            return
+    #     if game_id == None:
+    #         await interaction.followup.send(f"Trouble finding game id for {team}. This should not happen.")
+    #         return
 
-        play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play", self.log)
-        if play_by_play == None:
-            return
+    #     play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play", self.log)
+    #     if play_by_play == None:
+    #         return
 
-        if not is_ot_challenge_window(play_by_play):
-            await interaction.followup.send(f"OT Challenge window is closed. No guesses allowed.")
-            return
+    #     if not is_ot_challenge_window(play_by_play):
+    #         await interaction.followup.send(f"OT Challenge window is closed. No guesses allowed.")
+    #         return
 
-        # Find the team ID from the play-by-play
-        if play_by_play["awayTeam"]["abbrev"] == team:
-            team_id = play_by_play["awayTeam"]["id"]
-        elif play_by_play["homeTeam"]["abbrev"] == team:
-            team_id = play_by_play["homeTeam"]["id"]
-        else:
-            await interaction.followup.send(f"Trouble finding team {team} in play-by-play. This should not happen.")
-            return
+    #     # Find the team ID from the play-by-play
+    #     if play_by_play["awayTeam"]["abbrev"] == team:
+    #         team_id = play_by_play["awayTeam"]["id"]
+    #     elif play_by_play["homeTeam"]["abbrev"] == team:
+    #         team_id = play_by_play["homeTeam"]["id"]
+    #     else:
+    #         await interaction.followup.send(f"Trouble finding team {team} in play-by-play. This should not happen.")
+    #         return
 
-        # Loop through the rosters in the play-by-play
-        player_name = player_num = None
-        try:
-            player_num = int(player)
-        except:
-            player_name = player.lower().strip()
+    #     # Loop through the rosters in the play-by-play
+    #     player_name = player_num = None
+    #     try:
+    #         player_num = int(player)
+    #     except:
+    #         player_name = player.lower().strip()
 
-        found = False
-        for roster_player in play_by_play["rosterSpots"]:
-            if roster_player["teamId"] == team_id and (sanitize(roster_player["lastName"]["default"].lower()) == player_name or sanitize(f"{roster_player['firstName']['default']} {roster_player['lastName']['default']}".lower()) == player_name or roster_player["sweaterNumber"] == player_num):
-                found = True
-                break
+    #     found = False
+    #     for roster_player in play_by_play["rosterSpots"]:
+    #         if roster_player["teamId"] == team_id and (sanitize(roster_player["lastName"]["default"].lower()) == player_name or sanitize(f"{roster_player['firstName']['default']} {roster_player['lastName']['default']}".lower()) == player_name or roster_player["sweaterNumber"] == player_num):
+    #             found = True
+    #             break
 
-        if found:
-            async with self.ot_lock:
-                if game_id not in self.ot_guesses:
-                    self.ot_guesses[game_id] = {}
-                guild_id = str(interaction.guild_id)
-                if guild_id not in self.ot_guesses[game_id]:
-                    self.ot_guesses[game_id][guild_id] = {}
+    #     if found:
+    #         async with self.ot_lock:
+    #             if game_id not in self.ot_guesses:
+    #                 self.ot_guesses[game_id] = {}
+    #             guild_id = str(interaction.guild_id)
+    #             if guild_id not in self.ot_guesses[game_id]:
+    #                 self.ot_guesses[game_id][guild_id] = {}
 
-                user_id = str(interaction.user.id)
-                self.ot_guesses[game_id][guild_id][user_id] = {"guess": roster_player["playerId"], "name": interaction.user.name}
+    #             user_id = str(interaction.user.id)
+    #             self.ot_guesses[game_id][guild_id][user_id] = {"guess": roster_player["playerId"], "name": interaction.user.name}
 
-                WriteJsonFile(ot_datafile, self.ot_guesses)
+    #             WriteJsonFile(ot_datafile, self.ot_guesses)
 
-            self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
-            await interaction.followup.send(f"<@{interaction.user.id}> has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
-        else:
-            self.log.error(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
-            await interaction.followup.send(f"Could not find player {player} on team {team}.")
+    #         self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
+    #         await interaction.followup.send(f"<@{interaction.user.id}> has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
+    #     else:
+    #         self.log.error(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
+    #         await interaction.followup.send(f"Could not find player {player} on team {team}.")
 
-    @app_commands.command(name="ot_standings", description="Check the OT Challenge standings for this server.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def ot_standings(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+    # @app_commands.command(name="ot_standings", description="Check the OT Challenge standings for this server.")
+    # @app_commands.guild_only()
+    # @app_commands.default_permissions(send_messages=True)
+    # @app_commands.checks.has_permissions(send_messages=True)
+    # async def ot_standings(self, interaction: discord.Interaction):
+    #     await interaction.response.defer(thinking=True)
 
-        async with self.ot_lock:
-            otstandings_datafile = get_latest_otstandings_datafile()
-            if otstandings_datafile is None:
-                await interaction.followup.send("No OT Challenge standings found.", ephemeral=True)
-                return
+    #     async with self.ot_lock:
+    #         otstandings_datafile = get_latest_otstandings_datafile()
+    #         if otstandings_datafile is None:
+    #             await interaction.followup.send("No OT Challenge standings found.", ephemeral=True)
+    #             return
 
-            ot_standings = LoadJsonFile(otstandings_datafile)
+    #         ot_standings = LoadJsonFile(otstandings_datafile)
 
-        guild_id = str(interaction.guild_id)
-        if guild_id not in ot_standings:
-            await interaction.followup.send("No standings found for this server.", ephemeral=True)
-            return
+    #     guild_id = str(interaction.guild_id)
+    #     if guild_id not in ot_standings:
+    #         await interaction.followup.send("No standings found for this server.", ephemeral=True)
+    #         return
 
-        message = "Updates every night at noon EST.\n"
-        message += "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
+    #     message = "Updates every night at noon EST.\n"
+    #     message += "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
 
-        if "role" in ot_standings[guild_id]:
-            del ot_standings[guild_id]["role"]
-        standings = sorted(ot_standings[guild_id].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
-        for user in standings:
-            message += "{:<16} {:>4} {:>4}\n".format(user[1]["name"][:14], user[1]["correct"], user[1]["guesses"])
+    #     if "role" in ot_standings[guild_id]:
+    #         del ot_standings[guild_id]["role"]
+    #     standings = sorted(ot_standings[guild_id].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
+    #     for user in standings:
+    #         message += "{:<16} {:>4} {:>4}\n".format(user[1]["name"][:14], user[1]["correct"], user[1]["guesses"])
 
-        message += "```"
-        embed = discord.Embed(title="OT Challenge Standings", description=message)
-        await interaction.followup.send(embed=embed)
+    #     message += "```"
+    #     embed = discord.Embed(title="OT Challenge Standings", description=message)
+    #     await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="ot_subscribe", description="Add or remove the role to be notified when each OT Challenge starts.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def ot_subscribe(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True, ephemeral=True)
+    # @app_commands.command(name="ot_subscribe", description="Add or remove the role to be notified when each OT Challenge starts.")
+    # @app_commands.guild_only()
+    # @app_commands.default_permissions(send_messages=True)
+    # @app_commands.checks.has_permissions(send_messages=True)
+    # async def ot_subscribe(self, interaction: discord.Interaction):
+    #     await interaction.response.defer(thinking=True, ephemeral=True)
 
 
-        otc_role_id = 0
-        if interaction.guild_id == KK_GUILD_ID:
-            otc_role_id = KK_OT_ROLE_ID
-        elif interaction.guild_id == OTH_GUILD_ID:
-            otc_role_id = OTH_OT_ROLE_ID
+    #     otc_role_id = 0
+    #     if interaction.guild_id == KK_GUILD_ID:
+    #         otc_role_id = KK_OT_ROLE_ID
+    #     elif interaction.guild_id == OTH_GUILD_ID:
+    #         otc_role_id = OTH_OT_ROLE_ID
 
-        if otc_role_id == 0:
-            await interaction.followup.send("Subscripting to OT Challenge is not available in this server.", ephemeral=True)
-            return
+    #     if otc_role_id == 0:
+    #         await interaction.followup.send("Subscripting to OT Challenge is not available in this server.", ephemeral=True)
+    #         return
 
-        otc_role = interaction.guild.get_role(otc_role_id)
-        if otc_role is None:
-            await interaction.followup.send("Error finding OT Challenge role. Please contact the bot owner or try again later.")
-            return
+    #     otc_role = interaction.guild.get_role(otc_role_id)
+    #     if otc_role is None:
+    #         await interaction.followup.send("Error finding OT Challenge role. Please contact the bot owner or try again later.")
+    #         return
 
-        # Toggle the role on the user that sent this message
-        if interaction.user.get_role(otc_role.id):
-            await interaction.user.remove_roles(otc_role)
-            await interaction.followup.send(f"{interaction.user.display_name} unsubscribed from OT Challenge.")
-        else:
-            await interaction.user.add_roles(otc_role)
-            await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
+    #     # Toggle the role on the user that sent this message
+    #     if interaction.user.get_role(otc_role.id):
+    #         await interaction.user.remove_roles(otc_role)
+    #         await interaction.followup.send(f"{interaction.user.display_name} unsubscribed from OT Challenge.")
+    #     else:
+    #         await interaction.user.add_roles(otc_role)
+    #         await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
 
-    @ot.error
-    @ot_standings.error
-    @ot_subscribe.error
-    async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        await interaction.followup.send(f"{error}")
+    # @ot.error
+    # @ot_standings.error
+    # @ot_subscribe.error
+    # async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+    #     await interaction.followup.send(f"{error}")
 
 #endregion
 
