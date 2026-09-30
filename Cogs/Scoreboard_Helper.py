@@ -50,32 +50,6 @@ def get_player_name_from_id(player_id, rosters):
 
     return "UNKNOWN PLAYER"
 
-def is_ot_challenge_window(play_by_play):
-    if play_by_play["gameState"] not in ["LIVE", "CRIT"]:
-        return False
-
-    if "periodDescriptor" not in play_by_play or "clock" not in play_by_play:
-        return False
-
-    is_intermission = play_by_play["clock"]["inIntermission"]
-    last_play_was_in_third_period = len(play_by_play["plays"]) > 0 and play_by_play["plays"][-1]["periodDescriptor"]["number"] == 3
-    last_play_was_in_ot_period = len(play_by_play["plays"]) > 0 and play_by_play["plays"][-1]["periodDescriptor"]["periodType"] == "OT"
-    is_playoff_game = play_by_play["gameType"] == 3
-
-    # Need to be a bit careful here because sometimes period rolls over from 2nd to 3rd during the intermission
-    is_third_intermission = is_intermission and last_play_was_in_third_period
-
-    # Need to be a bit careful here because sometimes period changes over from OT to SO late and re-opens
-    is_ot_intermission = is_intermission and last_play_was_in_ot_period and is_playoff_game
-
-    # Open in a close game late in the third too
-    is_near_end_of_third = play_by_play["clock"]["secondsRemaining"] < 60*OT_CHALLENGE_BUFFER_MINUTES and play_by_play["periodDescriptor"]["number"] == 3 and not is_intermission
-
-    if is_third_intermission or is_ot_intermission or is_near_end_of_third:
-        return True
-
-    return False
-
 # Gets the game recap video link if it's available
 def get_recap_link(id):
     try:

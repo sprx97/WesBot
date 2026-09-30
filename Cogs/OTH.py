@@ -44,8 +44,6 @@ class OTH(WesCog):
 
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
-        return # disabled for offseason. TODO: Add a weekvar check here once I get my shared config file
-
         channel = self.bot.get_channel(MODS_CHANNEL_ID)
         leagues = get_leagues_from_database(Config.config["year"])
         for league in leagues:
@@ -236,18 +234,18 @@ class OTH(WesCog):
         )
 
     @app_commands.command(name="matchup", description="Check the current matchup score for a user.")
-    @app_commands.describe(user="A fleaflicker username", division="(Optional) User's division")
+    @app_commands.describe(user="A fleaflicker username", quiet="Whether to post to discord or just whisper.")
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
-    async def matchup(self, interaction: discord.Interaction, user: str, division: str = None):
-        await interaction.response.defer(thinking=True)
+    async def matchup(self, interaction: discord.Interaction, user: str, quiet: bool = True):
+        await interaction.response.defer(thinking=True, ephemeral=quiet)
 
         await asyncio.to_thread(self.run_update_current_pf_script)
 
-        matchup = get_user_matchup_from_database(user, division)
+        matchup = get_user_matchup_from_database(user)
         if len(matchup) == 0:
-            raise UserNotFound(user, division)
+            raise UserNotFound(user)
         if len(matchup) > 1:
             raise MultipleMatchupsFound(user)
         matchup = matchup[0]

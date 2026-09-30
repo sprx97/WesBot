@@ -23,7 +23,6 @@ class Scoreboard(WesCog):
 
         self.channels_lock = asyncio.Lock()
         self.messages_lock = asyncio.Lock()
-        self.ot_lock = asyncio.Lock()
 
         self.cooldown = 0
 
@@ -108,9 +107,6 @@ class Scoreboard(WesCog):
         async with self.messages_lock:
             self.messages = LoadJsonFile(messages_datafile)
 
-        async with self.ot_lock:
-            self.ot_guesses = LoadJsonFile(ot_datafile)
-
     @scores_loop.error
     async def scores_loop_error(self, error):
         tb = traceback.extract_tb(error.__traceback__)
@@ -121,96 +117,10 @@ class Scoreboard(WesCog):
 
 #endregion
 #region Date/Today Functions
-
-    async def archive_ot_threads(self, game_id):
-        if game_id not in self.messages:
-            self.log.error(f"Game_id {game_id} not found in messages. May have to archive threads manually.")
-            return
-
-        for _, message in self.messages[game_id]["events"]["OT"]["message_ids"]:
-            try:
-                thread = await self.bot.fetch_channel(message)
-                await thread.edit(archived=True)
-                self.log.info(f"Archived thread {thread.name}")
-            except:
-                self.log.error(f"Could not find thread id {message}")
-
-    async def do_ot_rollover(self):
-        has_errors = False
-        async with self.ot_lock:
-            ot_games = list(self.ot_guesses.keys())
-            if len(ot_games) == 0:
-                return
-
-            year = int(str(ot_games[0])[:4])
-            season_type = int(str(ot_games[0])[4:6])
-            otstandings_datafile = get_otstandings_datafile(year, season_type)
-
-            ot_standings = LoadJsonFile(otstandings_datafile)
-
-            for game_id in ot_games:
-                # Archive the threads made for this OT challenge
-                await self.archive_ot_threads(game_id)
-
-                landing = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing", self.log)
-                if landing == None:
-                    return
-
-                final_period = landing["summary"]["scoring"][-1]
-
-                # Some games won't reach overtime or will end in a shootout, so ignore them.
-                if final_period["periodDescriptor"]["periodType"] != "OT" and final_period["periodDescriptor"]["periodType"] != "SO":
-                    self.log.info(f"Game {game_id} did not end via Overtime.")
-                    del self.ot_guesses[game_id]
-                    continue
-
-                # Sanity check
-                if len(final_period["goals"]) != 1:
-                    self.log.error(f"Game {game_id} apparently ended in OT but has more than one goal. Something is wrong.")
-                    has_errors = True
-                    continue
-
-                # Ensure the game is actually "Official"
-                if landing["gameState"] != "OFF":
-                    self.log.error(f"Game state not final for {game_id}. Something is wrong.")
-                    has_errors = True
-                    continue
-
-                gwg_scorer = final_period["goals"][0]["playerId"]
-
-                # Update the Standings
-                for guild_id in self.ot_guesses[game_id]:
-                    for user_id in self.ot_guesses[game_id][guild_id]:
-                        # Add the guild to standings if it doesn't exist
-                        if guild_id not in ot_standings:
-                            ot_standings[guild_id] = {}
-
-                        # Add the user to the guild's standings if they don't exist
-                        if user_id not in ot_standings[guild_id]:
-                            ot_standings[guild_id][user_id] = {"name": self.ot_guesses[game_id][guild_id][user_id]["name"], "guesses": 0, "correct": 0}
-
-                        # Update the user's stats
-                        ot_standings[guild_id][user_id]["guesses"] += 1
-                        if self.ot_guesses[game_id][guild_id][user_id]["guess"] == gwg_scorer:
-                            ot_standings[guild_id][user_id]["correct"] += 1
-
-                        self.log.info(f"{guild_id}:{user_id} guessed {self.ot_guesses[game_id][guild_id][user_id]['guess']}. {self.ot_guesses[game_id][guild_id][user_id]['guess'] == gwg_scorer}")
-
-                del self.ot_guesses[game_id]
-
-            WriteJsonFile(otstandings_datafile, ot_standings)
-            WriteJsonFile(ot_datafile, self.ot_guesses)
-
-        if has_errors:
-            channel = self.bot.get_channel(OTH_TECH_CHANNEL_ID)
-            await channel.send(f"<@{SPRX_USER_ID}> Error in OT Rollover. Check logs.")
-
     # Rolls over the date in our messages_datafile to the next one.
     # This needs to be a function so we can await it and not spam all the messages from the previous day
     # after deleting them from the datafile.
     async def do_date_rollover(self, date):
-#        await self.do_ot_rollover()
-
         self.messages = {"date": date}
         async with self.messages_lock:
             WriteJsonFile(messages_datafile, self.messages)
@@ -247,53 +157,6 @@ class Scoreboard(WesCog):
                 return games["games"]
 
         return []
-
-#endregion
-#region Parsing Helper Functions
-
-    async def create_ot_thread(self, id, name):
-        intro = "# Welcome to OT Challenge v2 (beta)!\n\n" + \
-                "- Use /ot in this thread followed by a team abbreviation and player full name, last name, or number to guess.\n" + \
-                "- Use /ot_standings in any channel to display the scoreboard for this server.\n" + \
-                "- Use /ot_subscribe to receive a special role to be notified when each OT Challenge starts.\n" + \
-                f"- Contact sprx97 with any bugs or suggestions.\n"
-
-        for message_id in self.messages[id]["events"]["OT"]["message_ids"]:
-            channel = message_id[0]
-            message = message_id[1]
-
-            try:
-                # Create a thread if it doesn't exist already
-                message = await self.bot.get_channel(channel).fetch_message(message)
-                thread = await message.create_thread(name=name, auto_archive_duration=1440)
-                self.log.info(f"Created thread {name} off message {message}")
-
-                my_intro = intro
-                guild_id = thread.guild.id
-
-                if guild_id == KK_GUILD_ID:
-                    my_intro += f"<@&{KK_OT_ROLE_ID}>"
-                elif guild_id == OTH_GUILD_ID:
-                    my_intro += f"<@&{OTH_OT_ROLE_ID}>"
-
-                await thread.send(my_intro)
-            except Exception as e:
-                self.log.error(f"Failed to create OT Challenge thread {name} off of {message.id}. Error {e}")
-
-    async def post_message_to_ot_thread(self, id, msg):
-        try:
-            for message_id in self.messages[id]["events"]["OT"]["message_ids"]:
-                channel = message_id[0]
-                message = message_id[1]
-
-                thread = await self.bot.fetch_channel(message)
-                if not thread:
-                    self.log.error(f"Could not find thread {message} in channel {channel}.")
-                    continue
-
-                await thread.send(msg)
-        except Exception as e:
-            self.log.error(f"Exception in post_message_to_ot_thread: {e}")
 
 #endregion
 #region Game Parsing Sections
@@ -372,41 +235,29 @@ class Scoreboard(WesCog):
                 # If we get here, we want to cross out that goal key and change it to a disallowed
                 await self.post_embed([game_id, "events"], logged_event_id, f"~~{logged_message['content']['title']}~~", logged_message["content"]["url"], f"~~{logged_message['content']['description']}~~")
 
-    async def check_ot_challenge(self, game_id, play_by_play):
-        ot_key = "OT"
-        away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
+    async def check_ot_start(self, game_id, play_by_play):
+        if play_by_play["gameState"] not in ["LIVE", "CRIT"]:
+            return
 
-        is_otc_window = is_ot_challenge_window(play_by_play)
+        if "periodDescriptor" not in play_by_play or "clock" not in play_by_play or not play_by_play["plays"]:
+            return
 
-        # Open the OT Challenge or update the message if needed
-        if is_otc_window and play_by_play["homeTeam"]["score"] == play_by_play["awayTeam"]["score"]:
-            time_remaining = "INT" if play_by_play['clock']['inIntermission'] else f"~{play_by_play['clock']['timeRemaining']} left"
-            ot_string = f"OT Challenge for {away_emoji} {away} - {home} {home_emoji} is now open ({time_remaining})"
-            await self.post_embed([game_id, "events"], ot_key, ot_string)
+        if play_by_play["homeTeam"]["score"] != play_by_play["awayTeam"]["score"]:
+            return
 
-            if "ot_state" not in self.messages[game_id]:
-                await self.create_ot_thread(game_id, f"🥅 {away}-{home} {self.messages['date'][2:]}")
-                self.log.info(f"Opened OT Challenge for {away}-{home}")
-                self.messages[game_id]["ot_state"] = "open"
+        is_intermission = play_by_play["clock"]["inIntermission"]
+        last_play_was_in_third_period = play_by_play["plays"][-1]["periodDescriptor"]["number"] == 3
 
-                if game_id not in self.ot_guesses:
-                    self.ot_guesses[game_id] = {}
+        # Need to be a bit careful here because sometimes period rolls over from 2nd to 3rd during the intermission
+        is_third_intermission = is_intermission and last_play_was_in_third_period
+        is_near_end_of_third = not is_intermission and \
+            play_by_play["periodDescriptor"]["number"] == 3 and \
+            play_by_play["clock"]["secondsRemaining"] < 60
 
-        elif ot_key in self.messages[game_id]["events"]:
-            ot_string = f"~~OT Challenge Closed for {away_emoji} {away} - {home} {home_emoji}~~"
-            await self.post_embed([game_id, "events"], ot_key, ot_string)
-
-        # Log when the ot state changes
-        if "ot_state" in self.messages[game_id]:
-            if not is_otc_window and self.messages[game_id]["ot_state"] == "open":
-                self.log.info(f"Closed OT Challenge for {away}-{home}")
-                self.messages[game_id]["ot_state"] = "closed"
-                await self.post_message_to_ot_thread(game_id, "OT has closed, no more guesses will be counted. This means OT is about to start or the game ended without going to OT.")
-
-            if is_otc_window and self.messages[game_id]["ot_state"] == "closed":
-                self.log.info(f"Re-opened OT Challenge for {away}-{home}")
-                self.messages[game_id]["ot_state"] = "open"
-                # await self.post_message_to_ot_thread(game_id, "Reopening guesses, either because we're in an OT Intermission or the closing was a false alarm.")
+        if is_third_intermission or is_near_end_of_third:
+            away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
+            ot_string = f"{away_emoji} {away} at {home_emoji} {home} is about to enter overtime!"
+            await self.post_embed([game_id, "events"], "OT", ot_string)
 
     def format_game_end_embed(self, event, play_by_play):
         away, away_emoji, home, home_emoji = get_teams_from_json(play_by_play)
@@ -512,7 +363,7 @@ class Scoreboard(WesCog):
 
         try:
             await self.check_disallowed_goals(game_id, play_by_play)
-#            await self.check_ot_challenge(game_id, play_by_play)
+            await self.check_ot_start(game_id, play_by_play)
 
             breadcrumbs = [game_id, "events"]
             shootout_home_str = ""
@@ -598,7 +449,7 @@ class Scoreboard(WesCog):
         async with self.channels_lock:
             WriteJsonFile(channels_datafile, self.channel_ids)
 
-        await interaction.response.send_message("Scoreboard disabled. This will also disable OT Challenge until the scoreboard is re-enabled.", ephemeral=True)
+        await interaction.response.send_message("Scoreboard disabled.", ephemeral=True)
 
     # Helper function to parse a game JSON object into a score string
     # Works for games that haven't started, are in progress, or are finished
@@ -819,168 +670,6 @@ class Scoreboard(WesCog):
     @playoffs.error
     async def score_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         await interaction.response.send_message(f"{error}", ephemeral=True)
-
-#endregion
-#region OT Challenge Slash Commands -- currently disabled
-
-    # @app_commands.command(name="ot", description="Make a guess in an OT Challenge Thread.")
-    # @app_commands.describe(team="An NHL team", player="A player full name, last name, or number.")
-    # @app_commands.guild_only()
-    # @app_commands.default_permissions(send_messages_in_threads=True)
-    # @app_commands.checks.has_permissions(send_messages_in_threads=True)
-    # async def ot(self, interaction: discord.Interaction, team: str, player: str):
-    #     await interaction.response.defer(thinking=True)
-
-    #     # Ensure this message was sent in an OT Challenge Thread
-    #     # The last here condition isn't the greatest, but currently that's how we can identify if this is an OT Challenge thread as opposed to a different thread
-    #     if not isinstance(interaction.channel, discord.Thread) or interaction.channel.owner_id != self.bot.user.id or interaction.channel.name[0] not in ["⏳", "🥅", "🔒"]:
-    #         await interaction.followup.send(f"This is not a valid OT Challenge thread.")
-    #         return
-
-    #     # Check that the team is valid
-    #     team = team.lower().strip()
-    #     if team not in team_map.keys():
-    #         await interaction.followup.send(f"{team} is not a valid team.")
-    #         return
-    #     team = team_map[team]
-
-    #     if team not in interaction.channel.name[:10]:
-    #         await interaction.followup.send(f"Team {team} is not in this game.")
-    #         return
-
-    #     # Get correct game_id from messages
-    #     game_id = None
-    #     for id in self.messages:
-    #         if "awayTeam" not in self.messages[id]:
-    #             continue
-    #         if team == self.messages[id]["awayTeam"] or team == self.messages[id]["homeTeam"]:
-    #             game_id = id
-    #             break
-
-    #     if game_id == None:
-    #         await interaction.followup.send(f"Trouble finding game id for {team}. This should not happen.")
-    #         return
-
-    #     play_by_play = make_api_call(f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play", self.log)
-    #     if play_by_play == None:
-    #         return
-
-    #     if not is_ot_challenge_window(play_by_play):
-    #         await interaction.followup.send(f"OT Challenge window is closed. No guesses allowed.")
-    #         return
-
-    #     # Find the team ID from the play-by-play
-    #     if play_by_play["awayTeam"]["abbrev"] == team:
-    #         team_id = play_by_play["awayTeam"]["id"]
-    #     elif play_by_play["homeTeam"]["abbrev"] == team:
-    #         team_id = play_by_play["homeTeam"]["id"]
-    #     else:
-    #         await interaction.followup.send(f"Trouble finding team {team} in play-by-play. This should not happen.")
-    #         return
-
-    #     # Loop through the rosters in the play-by-play
-    #     player_name = player_num = None
-    #     try:
-    #         player_num = int(player)
-    #     except:
-    #         player_name = player.lower().strip()
-
-    #     found = False
-    #     for roster_player in play_by_play["rosterSpots"]:
-    #         if roster_player["teamId"] == team_id and (sanitize(roster_player["lastName"]["default"].lower()) == player_name or sanitize(f"{roster_player['firstName']['default']} {roster_player['lastName']['default']}".lower()) == player_name or roster_player["sweaterNumber"] == player_num):
-    #             found = True
-    #             break
-
-    #     if found:
-    #         async with self.ot_lock:
-    #             if game_id not in self.ot_guesses:
-    #                 self.ot_guesses[game_id] = {}
-    #             guild_id = str(interaction.guild_id)
-    #             if guild_id not in self.ot_guesses[game_id]:
-    #                 self.ot_guesses[game_id][guild_id] = {}
-
-    #             user_id = str(interaction.user.id)
-    #             self.ot_guesses[game_id][guild_id][user_id] = {"guess": roster_player["playerId"], "name": interaction.user.name}
-
-    #             WriteJsonFile(ot_datafile, self.ot_guesses)
-
-    #         self.log.info(f"User {interaction.user.display_name} has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
-    #         await interaction.followup.send(f"<@{interaction.user.id}> has guessed {roster_player['firstName']['default']} {roster_player['lastName']['default']}")
-    #     else:
-    #         self.log.error(f"Could not find {interaction.user.display_name} guess {team} {team_id} {player_num if player_num else player_name}")
-    #         await interaction.followup.send(f"Could not find player {player} on team {team}.")
-
-    # @app_commands.command(name="ot_standings", description="Check the OT Challenge standings for this server.")
-    # @app_commands.guild_only()
-    # @app_commands.default_permissions(send_messages=True)
-    # @app_commands.checks.has_permissions(send_messages=True)
-    # async def ot_standings(self, interaction: discord.Interaction):
-    #     await interaction.response.defer(thinking=True)
-
-    #     async with self.ot_lock:
-    #         otstandings_datafile = get_latest_otstandings_datafile()
-    #         if otstandings_datafile is None:
-    #             await interaction.followup.send("No OT Challenge standings found.", ephemeral=True)
-    #             return
-
-    #         ot_standings = LoadJsonFile(otstandings_datafile)
-
-    #     guild_id = str(interaction.guild_id)
-    #     if guild_id not in ot_standings:
-    #         await interaction.followup.send("No standings found for this server.", ephemeral=True)
-    #         return
-
-    #     message = "Updates every night at noon EST.\n"
-    #     message += "```{:<15} {:>4} {:>4}\n\n".format("User", "✅", "Tot")
-
-    #     if "role" in ot_standings[guild_id]:
-    #         del ot_standings[guild_id]["role"]
-    #     standings = sorted(ot_standings[guild_id].items(), key=lambda x:(x[1]["correct"], -x[1]["guesses"]), reverse=True)
-    #     for user in standings:
-    #         message += "{:<16} {:>4} {:>4}\n".format(user[1]["name"][:14], user[1]["correct"], user[1]["guesses"])
-
-    #     message += "```"
-    #     embed = discord.Embed(title="OT Challenge Standings", description=message)
-    #     await interaction.followup.send(embed=embed)
-
-    # @app_commands.command(name="ot_subscribe", description="Add or remove the role to be notified when each OT Challenge starts.")
-    # @app_commands.guild_only()
-    # @app_commands.default_permissions(send_messages=True)
-    # @app_commands.checks.has_permissions(send_messages=True)
-    # async def ot_subscribe(self, interaction: discord.Interaction):
-    #     await interaction.response.defer(thinking=True, ephemeral=True)
-
-
-    #     otc_role_id = 0
-    #     if interaction.guild_id == KK_GUILD_ID:
-    #         otc_role_id = KK_OT_ROLE_ID
-    #     elif interaction.guild_id == OTH_GUILD_ID:
-    #         otc_role_id = OTH_OT_ROLE_ID
-
-    #     if otc_role_id == 0:
-    #         await interaction.followup.send("Subscripting to OT Challenge is not available in this server.", ephemeral=True)
-    #         return
-
-    #     otc_role = interaction.guild.get_role(otc_role_id)
-    #     if otc_role is None:
-    #         await interaction.followup.send("Error finding OT Challenge role. Please contact the bot owner or try again later.")
-    #         return
-
-    #     # Toggle the role on the user that sent this message
-    #     if interaction.user.get_role(otc_role.id):
-    #         await interaction.user.remove_roles(otc_role)
-    #         await interaction.followup.send(f"{interaction.user.display_name} unsubscribed from OT Challenge.")
-    #     else:
-    #         await interaction.user.add_roles(otc_role)
-    #         await interaction.followup.send(f"{interaction.user.display_name} subscribed to OT Challenge.")
-
-    # @ot.error
-    # @ot_standings.error
-    # @ot_subscribe.error
-    # async def ot_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-    #     await interaction.followup.send(f"{error}")
-
-#endregion
 
 async def setup(bot):
     await bot.add_cog(Scoreboard(bot))

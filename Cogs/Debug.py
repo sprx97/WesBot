@@ -136,17 +136,6 @@ class Debug(WesCog):
         except:
             await interaction.edit_original_response(content=f"Could not find file {cog}.log.")
 
-    @app_commands.command(name="ot_rollover", description="Admin function to test the OT rollover rapidly")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.has_permissions(manage_guild=True)
-    @app_commands.checks.check(is_bot_owner)
-    async def ot_rollover(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        scoreboard_cog = self.bot.get_cog("Scoreboard")
-        await scoreboard_cog.do_ot_rollover()
-        await interaction.followup.send("Complete")
-
 #endregion
 
 async def setup(bot):
