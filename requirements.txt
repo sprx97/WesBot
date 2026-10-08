@@ -1,4 +1,3 @@
-discord.py==2.5.2
 google-api-python-client==2.164.0
 google-auth==2.38.0
 lxml==6.1.0
