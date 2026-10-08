@@ -288,6 +288,9 @@ class OTH(WesCog):
     @app_commands.checks.has_permissions(send_messages=True)
     @app_commands.checks.cooldown(1, 300.0)
     async def woppacup_bracket(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"OTH Cup 2026 is under construction.")
+        return
+
         # Temp override for weeks where it's paused. Update the text as necessary.
         if not WoppaCup.has_tournament_started:
             await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
@@ -324,6 +327,9 @@ class OTH(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def woppacup_all(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"OTH Cup 2026 is under construction.")
+        return
+
         # Temp override for weeks where it's paused. Update the text as necessary.
         if not WoppaCup.has_tournament_started:
             await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
@@ -339,6 +345,9 @@ class OTH(WesCog):
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
     async def woppacup(self, interaction: discord.Interaction, user: str):
+        await interaction.response.send_message(f"OTH Cup 2026 is under construction.")
+        return
+
         # Temp override for weeks where it's paused. Update the text as necessary.
         if not WoppaCup.has_tournament_started:
             await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
@@ -397,14 +406,6 @@ class OTH(WesCog):
 
         embed.set_footer(text="Looking for more scores? Try /wc_all", icon_url=None)
         await interaction.followup.send(embed=embed)
-
-    # @app_commands.command(name="playoffpool", description="Formats the playoff pool standings.")
-    # @app_commands.guild_only()
-    # @app_commands.default_permissions(manage_guild=True)
-    # @app_commands.checks.has_permissions(manage_guild=True)
-    # async def playoffpool(self, interaction: discord.Interaction):
-    #     client = pygsheets.authorize()
-    #     sh = client.open()
 
 #endregion
 
