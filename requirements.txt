@@ -19,6 +19,7 @@ googleapis-common-protos==1.69.1
 httplib2==0.22.0
 idna==3.10
 iso8601==0.1.12
+lxml==6.1.0
 multidict==6.1.0
 oauthlib==3.2.2
 propcache==0.3.0

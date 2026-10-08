@@ -41,7 +41,6 @@ class OTH(WesCog):
 #endregion
 
 #region League management tools (inactives and trade review)
-
     # Checks all OTH leagues for inactive managers and abandoned teams
     async def check_inactives(self):
         channel = self.bot.get_channel(MODS_CHANNEL_ID)
@@ -160,13 +159,17 @@ class OTH(WesCog):
         # Get the list of leagueIds for this year from the database
         leagues = get_leagues_from_database(Config.config["year"])
 
-        trades_channel = self.bot.get_channel(TRADEREVIEW_CHANNEL_ID)
+        mods_channel = self.bot.get_channel(MODS_CHANNEL_ID)
         hockey_general_channel = self.bot.get_channel(HOCKEY_GENERAL_CHANNEL_ID)
 
         # Make Fleaflicker API calls to get pending trades in all the leagues
         count = 0
         for league in leagues:
             trades = make_api_call(f"https://www.fleaflicker.com/api/FetchTrades?sport=NHL&league_id={league['id']}&filter=TRADES_UNDER_REVIEW")
+
+            if trades is None:
+                self.log.error(f"Trade check API call failed for {league['name']} ({league['id']}).")
+                continue
 
             # No trades in this league
             if "trades" not in trades:
@@ -178,7 +181,7 @@ class OTH(WesCog):
                     continue
 
                 trade_embed = self.format_trade(league, trade)
-                await trades_channel.send(f"<@&{TRADEREVIEW_ROLE_ID}>", embed=trade_embed)
+                await mods_channel.send(f"<@&{MODS_ROLE_ID}>", embed=trade_embed)
                 msg = await hockey_general_channel.send(embed=trade_embed)
 
                 # Add reactions to the message for each team in the trade
@@ -194,7 +197,7 @@ class OTH(WesCog):
 
         # Message if no trades were found
         if count == 0 and verbose:
-            await trades_channel.send("No pending trades in any league.")
+            await mods_channel.send("No pending trades in any league.")
 
         f.close()
 

@@ -143,10 +143,9 @@ OTH_GUILD_ID = 207634081700249601
 HOCKEY_GENERAL_CHANNEL_ID = 507616755510673409
 MODS_CHANNEL_ID = 220663309786021888
 OTH_TECH_CHANNEL_ID = 489882482838077451
-TRADEREVIEW_CHANNEL_ID = 235926223757377537
 
 # Role IDs
-TRADEREVIEW_ROLE_ID = 235926008266620929
+MODS_ROLE_ID = 220272487592624129
 OTH_BOX_ROLE_ID = 816888894066917407
 SPRX_USER_ID = 228258453599027200
 
@@ -322,6 +321,12 @@ def flush_telemetry():
 
     telemetry = {}
 
+headers={
+    "Cache-Control": "must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json",
+}
 def make_api_call(link, log=None):
     # Log telemetry to ensure I'm not overusing APIs
     if "://" not in link:
@@ -330,7 +335,7 @@ def make_api_call(link, log=None):
     log_api_usage_telemetry(site)
 
     try:
-        with requests.get(link, headers={"Cache-Control": "must-revalidate, max-age=0", "Pragma": "no-cache"}) as response:
+        with requests.get(link, headers=headers) as response:
             if log and response.status_code != 200:
                 log.info(f"API call to {link} returned status code {response.status_code}.")
             try:

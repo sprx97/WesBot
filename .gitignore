@@ -8,11 +8,6 @@ service_client_secret*.json
 
 # Bot data files
 data/messages.json
-data/ot.json
-data/pickems.json
-
-# Extraneous stuff
-StandingsOverride.py
 
 # Bot log files
 Logs/*
