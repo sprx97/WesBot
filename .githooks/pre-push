@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+python3 scripts/sync_requirements.py
+if ! git diff HEAD --quiet -- requirements.txt; then
+    echo "Push blocked: requirements.txt changed. Commit the regenerated file, then push again." >&2
+    exit 1
+fi
