@@ -2,6 +2,9 @@
 **/__pycache__/
 *.pyc
 
+# venv
+wes.venv
+
 # Personal info
 config.json
 service_client_secret*.json
