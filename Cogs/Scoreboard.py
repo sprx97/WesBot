@@ -390,7 +390,7 @@ class Scoreboard(WesCog):
                         continue
 
                     event_result = ":white_check_mark:" if event["typeDescKey"] == "goal" else ":x:"
-                    event_result += f" {get_player_name_from_id(event['details']['shootingPlayerId'])}"
+                    event_result += f" {get_player_name_from_id(event['details']['shootingPlayerId'], play_by_play['rosterSpots'])}"
 
                     if event["details"]["eventOwnerTeamId"] == home_team_id:
                         shootout_home_str += event_result + "\n"
