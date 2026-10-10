@@ -281,6 +281,18 @@ class Scoreboard(WesCog):
 
         return end_string
 
+    async def post_shootout_embed(self, breadcrumbs, away, away_emoji, home, home_emoji, shootout_away_str, shootout_home_str):
+        if shootout_home_str == "" and shootout_away_str == "":
+            return
+
+        title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
+        shootout_away_str += "\u200b" # Zero-width character for spacing on mobile
+        fields = [
+            {"name": f"{away_emoji} {away}", "value": shootout_away_str, "inline": True},
+            {"name": f"{home_emoji} {home}", "value": shootout_home_str, "inline": True}
+        ]
+        await self.post_embed(breadcrumbs, "Shootout", title, fields=fields)
+
 #endregion
 #region Core Parsing/Posting Functions
 
@@ -379,18 +391,17 @@ class Scoreboard(WesCog):
                 # Goal Message
                 if event["typeDescKey"] == "goal":
                     # Skip shootout goals because those are handled separately
-                    if event["periodDescriptor"]["periodType"] == "SO":
-                        continue
-
-                    goal_str, highlight, score_str = self.format_goal_embed(event, play_by_play)
-                    await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str)
+                    if event["periodDescriptor"]["periodType"] != "SO":
+                        goal_str, highlight, score_str = self.format_goal_embed(event, play_by_play)
+                        await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str)
 
                 if event["periodDescriptor"]["periodType"] == "SO":
                     if event["typeDescKey"] in ["period-start", "shootout-complete", "period-end", "game-end"]:
                         continue
 
                     event_result = ":white_check_mark:" if event["typeDescKey"] == "goal" else ":x:"
-                    event_result += f" {get_player_name_from_id(event['details']['shootingPlayerId'], play_by_play['rosterSpots'])}"
+                    player_id = event["details"].get("scoringPlayerId") if event["typeDescKey"] == "goal" else event["details"].get("shootingPlayerId")
+                    event_result += f" {get_player_name_from_id(player_id, play_by_play['rosterSpots'])}"
 
                     if event["details"]["eventOwnerTeamId"] == home_team_id:
                         shootout_home_str += event_result + "\n"
@@ -401,20 +412,14 @@ class Scoreboard(WesCog):
                 if event["typeDescKey"] == "game-end":
                     # Return if we've already handled this and have the recap video.
                     if event_id in self.messages[game_id]["events"] and self.messages[game_id]["events"][event_id]["content"]["url"] != None:
+                        await self.post_shootout_embed(breadcrumbs, away, away_emoji, home, home_emoji, shootout_away_str, shootout_home_str)
                         return
 
                     end_string = self.format_game_end_embed(event, play_by_play)
                     recap_link = get_recap_link(game_id)
                     await self.post_embed(breadcrumbs, event_id, end_string, recap_link)
 
-            if shootout_home_str != "" or shootout_away_str != "":
-                title = f"Shootout: {away_emoji} {away} - {home} {home_emoji}"
-                shootout_away_str += "\u200b" # Zero-width character for spacing on mobile
-                fields = [
-                    {"name": f"{away_emoji} {away}", "value": shootout_away_str, "inline": True},
-                    {"name": f"{home_emoji} {home}", "value": shootout_home_str, "inline": True}
-                ]
-                await self.post_embed(breadcrumbs, "Shootout", title, fields=fields)
+            await self.post_shootout_embed(breadcrumbs, away, away_emoji, home, home_emoji, shootout_away_str, shootout_home_str)
 
         except Exception as e:
             self.log.error(f"ERROR: {e}")
