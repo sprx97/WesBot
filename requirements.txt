@@ -1,0 +1,8 @@
+discord.py
+google-api-python-client
+google-auth
+lxml
+pychallonge
+PyMySQL
+pytz
+requests
