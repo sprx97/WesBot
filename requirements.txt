@@ -1,8 +1,0 @@
-discord.py
-google-api-python-client==2.164.0
-google-auth==2.38.0
-lxml==6.1.0
-pychallonge==1.11.5
-PyMySQL==1.1.1
-pytz==2019.3
-requests==2.32.3

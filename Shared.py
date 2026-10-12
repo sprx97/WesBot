@@ -336,8 +336,10 @@ def make_api_call(link, log=None):
 
     try:
         with requests.get(link, headers=headers) as response:
-            if log and response.status_code != 200:
-                log.info(f"API call to {link} returned status code {response.status_code}.")
+            if response.status_code != 200:
+                if log:
+                    log.error(f"API call to {link} returned status code {response.status_code}.")
+                return None
             try:
                 data = response.json()
             except Exception as e:
