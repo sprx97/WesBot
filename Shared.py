@@ -196,8 +196,8 @@ class DataFileNotFound(discord.ext.commands.CommandError):
 
 # Custom exception for an invalid fleaflicker username
 class UserNotFound(discord.ext.commands.CommandError):
-    def __init__(self, user, division):
-        self.message = f"Matchup for user {user} in division {division} not found."
+    def __init__(self, user):
+        self.message = f"Matchup for user {user} not found."
 
 # Custom exception for finding multiple matchups for a user
 class MultipleMatchupsFound(discord.ext.commands.CommandError):
@@ -254,7 +254,7 @@ def sanitize_user(user):
     return user
 
 # Grabs the current score and opponent's current score for the given username
-def get_user_matchup_from_database(user, division=None):
+def get_user_matchup_from_database(user):
     user = sanitize_user(user)
 
     cursor = DB.cursor()
@@ -271,15 +271,9 @@ def get_user_matchup_from_database(user, division=None):
             INNER JOIN Users AS me_u ON me.ownerID=me_u.FFid
             LEFT JOIN Users AS opp_u ON opp.ownerID=opp_u.FFid
             INNER JOIN Leagues AS l ON (me.leagueID=l.id AND me.year=l.year)
+            WHERE LOWER(me_u.FFname)=%s AND l.year=%s
     """
-    params = [year, year]
-
-    if division != None:
-        query += "WHERE LOWER(l.name)=%s "
-        params.append(division.lower())
-
-    query += "AND LOWER(me_u.FFname)=%s AND l.year=%s"
-    params.extend([user, year])
+    params = [year, year, user, year]
     
     cursor.execute(query, tuple(params))
 

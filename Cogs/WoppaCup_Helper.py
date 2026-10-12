@@ -174,17 +174,17 @@ class WoppaCup():
                 break
 
         # Get p1's matchup from the database
-        p1_matchup = get_user_matchup_from_database(p1_name, p1_div)
+        p1_matchup = get_user_matchup_from_database(p1_name)
         if len(p1_matchup) == 0:
-            raise UserNotFound(p1_name, p1_div)
+            raise UserNotFound(p1_name)
         if len(p1_matchup) > 1:
             raise MultipleMatchupsFound(p1_name)
         p1_matchup = p1_matchup[0]
 
         # Get p2's matchup from the database
-        p2_matchup = get_user_matchup_from_database(p2_name, p2_div)
+        p2_matchup = get_user_matchup_from_database(p2_name)
         if len(p2_matchup) == 0:
-            raise UserNotFound(p2_name, p2_div)
+            raise UserNotFound(p2_name)
         if len(p2_matchup) > 1:
             raise MultipleMatchupsFound(p2_name)
         p2_matchup = p2_matchup[0]
