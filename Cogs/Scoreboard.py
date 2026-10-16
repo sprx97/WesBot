@@ -396,14 +396,23 @@ class Scoreboard(WesCog):
                         await self.post_embed(breadcrumbs, event_id, goal_str, highlight, score_str)
 
                 if event["periodDescriptor"]["periodType"] == "SO":
-                    if event["typeDescKey"] in ["period-start", "shootout-complete", "period-end", "game-end"]:
+                    event_type = event["typeDescKey"]
+                    if event_type not in ["goal", "shot-on-goal", "missed-shot", "failed-shot-attempt"]:
                         continue
 
-                    event_result = ":white_check_mark:" if event["typeDescKey"] == "goal" else ":x:"
-                    player_id = event["details"].get("scoringPlayerId") if event["typeDescKey"] == "goal" else event["details"].get("shootingPlayerId")
-                    event_result += f" {get_player_name_from_id(player_id, play_by_play['rosterSpots'])}"
+                    details = event.get("details") or {}
+                    player_id = details.get("scoringPlayerId") if event_type == "goal" else details.get("shootingPlayerId")
+                    if player_id is None or "eventOwnerTeamId" not in details:
+                        continue
 
-                    if event["details"]["eventOwnerTeamId"] == home_team_id:
+                    player_name = get_player_name_from_id(player_id, play_by_play["rosterSpots"])
+                    if player_name == "UNKNOWN PLAYER":
+                        continue
+
+                    event_result = ":white_check_mark:" if event_type == "goal" else ":x:"
+                    event_result += f" {player_name}"
+
+                    if details["eventOwnerTeamId"] == home_team_id:
                         shootout_home_str += event_result + "\n"
                     else:
                         shootout_away_str += event_result + "\n"
