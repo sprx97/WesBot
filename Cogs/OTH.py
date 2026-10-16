@@ -237,12 +237,12 @@ class OTH(WesCog):
         )
 
     @app_commands.command(name="matchup", description="Check the current matchup score for a user.")
-    @app_commands.describe(user="A fleaflicker username", quiet="Whether to post to discord or just whisper.")
+    @app_commands.describe(user="A fleaflicker username", public="Whether to post the response publicly.")
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
-    async def matchup(self, interaction: discord.Interaction, user: str, quiet: bool = True):
-        await interaction.response.defer(thinking=True, ephemeral=quiet)
+    async def matchup(self, interaction: discord.Interaction, user: str, public: bool = False):
+        await interaction.response.defer(thinking=True, ephemeral=not public)
 
         await asyncio.to_thread(self.run_update_current_pf_script)
 
