@@ -64,10 +64,29 @@ class OTH(WesCog):
 
                 # Check the last lineup change for the team
                 log_api_usage_telemetry("fleaflicker.com") # Hardcoded because not using my make_api_call method
-                response = requests.get(team_url)
-                tree = etree.HTML(response.text)
-                dt_str = tree.xpath("//relative-time/@datetime")[0]
-                last_lineup_change = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                headers={
+                    "Cache-Control": "must-revalidate, max-age=0",
+                    "Pragma": "no-cache",
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "text/html",
+                }
+                try:
+                    response = requests.get(team_url, headers=headers)
+                    response.raise_for_status()
+                    tree = etree.HTML(response.content)
+                    dt_values = tree.xpath("//relative-time/@datetime") if tree is not None else []
+                    if not dt_values:
+                        self.log.warning("No lineup change datetime found for team %s (%s)", team["name"], team_url)
+                        msg += f"**{league['name']}**: *No last lineup change found for {team['name']}* {team_url}\n"
+                        continue
+
+                    dt_str = dt_values[0]
+                    last_lineup_change = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                    if last_lineup_change.tzinfo is None:
+                        last_lineup_change = last_lineup_change.replace(tzinfo=timezone.utc)
+                except (requests.RequestException, ValueError) as error:
+                    self.log.warning("Could not read lineup change for team %s (%s): %s", team["name"], team_url, error)
+                    continue
                 time_since_change = datetime.now(timezone.utc) - last_lineup_change
 
                 if time_since_change.days > MIN_INACTIVE_DAYS:
