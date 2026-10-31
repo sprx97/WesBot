@@ -1,36 +1,18 @@
 # Python Libraries
 import asyncio
-from datetime import datetime, timedelta, timezone
-from lxml import etree # xml parsing
-import pytz
 import subprocess
 
 # Discord Libraries
 import discord
 from discord import app_commands
-from discord.ext import tasks
 
 # Local Includes
 from Shared import *
 from Cogs.WoppaCup_Helper import *
 
-def get_trade_season_year(now=None):
-    now = now or datetime.now(timezone.utc)
-    return now.year if now.month >= 8 else now.year - 1
-
 class OTH(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
-
-    async def cog_load(self):
-        self.bot.loop.create_task(self.start_loops())
-
-    async def start_loops(self):
-        self.trades_loop.start()
-        self.loops.append(self.trades_loop)
-
-        self.inactives_loop.start()
-        self.loops.append(self.inactives_loop)
 
 #region Custom cog-specific exceptions
 
@@ -40,209 +22,6 @@ class OTH(WesCog):
 
 #endregion
 
-#region League management tools (inactives and trade review)
-    # Checks all OTH leagues for inactive managers and abandoned teams
-    async def check_inactives(self):
-        channel = self.bot.get_channel(MODS_CHANNEL_ID)
-        leagues = get_leagues_from_database(Config.config["year"])
-        for league in leagues:
-            msg = ""
-            standings = make_api_call(f"https://www.fleaflicker.com/api/FetchLeagueStandings?sport=NHL&league_id={league['id']}")
-
-            for team in standings["divisions"][0]["teams"]:
-                team_url = f"https://www.fleaflicker.com/nhl/leagues/{league['id']}/teams/{team['id']}"
-
-                # If there's no owners, mark as inactive
-                if "owners" not in team:
-                    msg += f"**{league['name']}**: *Unowned team: {team['name']}* {team_url}\n"
-                    continue
-
-                # Old code based on the "lastSeenIso", which is the last time the owner logged in.
-                # Doesn't work well for people who have other teams on Fleaflicker
-                # last_seen = team["owners"][0]["lastSeenIso"]
-                # last_seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ")
-
-                # Check the last lineup change for the team
-                log_api_usage_telemetry("fleaflicker.com") # Hardcoded because not using my make_api_call method
-                headers={
-                    "Cache-Control": "must-revalidate, max-age=0",
-                    "Pragma": "no-cache",
-                    "User-Agent": "Mozilla/5.0",
-                    "Accept": "text/html",
-                }
-                try:
-                    response = requests.get(team_url, headers=headers)
-                    response.raise_for_status()
-                    tree = etree.HTML(response.content)
-                    dt_values = tree.xpath("//relative-time/@datetime") if tree is not None else []
-                    if not dt_values:
-                        self.log.warning("No lineup change datetime found for team %s (%s)", team["name"], team_url)
-                        msg += f"**{league['name']}**: *No last lineup change found for {team['name']}* {team_url}\n"
-                        continue
-
-                    dt_str = dt_values[0]
-                    last_lineup_change = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-                    if last_lineup_change.tzinfo is None:
-                        last_lineup_change = last_lineup_change.replace(tzinfo=timezone.utc)
-                except (requests.RequestException, ValueError) as error:
-                    self.log.warning("Could not read lineup change for team %s (%s): %s", team["name"], team_url, error)
-                    continue
-                time_since_change = datetime.now(timezone.utc) - last_lineup_change
-
-                if time_since_change.days > MIN_INACTIVE_DAYS:
-                    msg += f"**{league['name']}**: *Owner {team['owners'][0]['displayName']} no lineup changes in last {time_since_change.days} days* {team_url}\n"
-
-            if msg != "":
-                await channel.send(msg, suppress_embeds=True)
-        self.log.info("Inactives check complete.")
-
-    @tasks.loop(hours=7*24.0) # weekly -- could check more often if MIN_INACTIVE_DAYS is set to smaller
-    async def inactives_loop(self):
-        await self.check_inactives()
-
-    @inactives_loop.before_loop
-    async def before_inactives_loop(self):
-        await self.bot.wait_until_ready()
-
-        # Sleep until midnight Sunday (Sat night) to call at the same time every week
-        curr_time = datetime.utcnow()-timedelta(hours=ROLLOVER_HOUR_UTC)
-        days_delta = timedelta((13-curr_time.weekday()) % 7)
-        target_time = curr_time + days_delta
-        target_time = target_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        delta = target_time-curr_time
-        while delta.days < 0:
-            delta += timedelta(days=7)
-
-        self.log.info("Sleeping inactives_loop for " + str(delta))
-        await asyncio.sleep(delta.total_seconds())
-
-    @inactives_loop.error
-    async def inactives_loop_error(self, error):
-        await self.cog_command_error(None, error)
-
-    def is_mods_channel(interaction: discord.Interaction) -> bool:
-        return interaction.channel.id == MODS_CHANNEL_ID or interaction.channel.id == OTH_TECH_CHANNEL_ID
-
-    @app_commands.command(name="inactives", description="Checks for any inactive OTH teams on FF.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(manage_guild=True)
-    @app_commands.checks.check(is_mods_channel)
-    async def inactives(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Checking inactives.", ephemeral=True)
-        await self.check_inactives()
-
-    # Formats a json trade into a discord embed
-    def format_trade(self, league, trade, season_year=None):
-        season_year = season_year or get_trade_season_year()
-        embed = discord.Embed(url=f"https://www.fleaflicker.com/nhl/leagues/{league['id']}/trades/{trade['id']}")
-        embed.title = "Trade in " + league["name"]
-        n_teams = 1
-        for team in trade["teams"]:
-            owner = get_owner_for_team(season_year, team["team"]["id"])["FFname"]
-
-            if "playersObtained" not in team:
-                embed.add_field(name=f"**{team['team']['name']} ({owner})**", value="No players going to this team -- please investigate.")
-                continue
-
-            players = ""
-            for player in team["playersObtained"]:
-                players += player["proPlayer"]["nameFull"] + "\n"
-
-            # Display drops too
-            if "playersReleased" in team:
-                for player in team["playersReleased"]:
-                    players += "*Dropping* " + player["proPlayer"]["nameFull"] + "\n"
-
-            embed.add_field(name=f"**[{n_teams}] {team['team']['name']} ({owner})** gets", value=players)
-            n_teams += 1
-
-        if "tentativeExecutionTime" in trade:
-            ts = int(trade["tentativeExecutionTime"]) / 1000
-
-            utc = pytz.utc
-            est = pytz.timezone("America/New_York")
-            dt_utc = datetime.fromtimestamp(ts, tz=utc)
-            dt_local = dt_utc.astimezone(est)
-
-            embed.set_footer(text="Processes " + dt_local.strftime("%A, %B %d, %Y %H:%M ET"))
-
-        return embed
-
-    # Function that checks all OTH fleaflicker leagues for new trades
-    async def check_trades(self, verbose=False):
-        # Find the list of trades that have already been posted so that we can ignore them.
-        f = open("data/posted_trades.txt", "a+")
-        f.seek(0)
-        posted = [int(x.strip()) for x in f.readlines()]
-
-        # Get the list of leagueIds for this year from the database
-        leagues = get_leagues_from_database(Config.config["year"])
-
-        mods_channel = self.bot.get_channel(MODS_CHANNEL_ID)
-        hockey_general_channel = self.bot.get_channel(HOCKEY_GENERAL_CHANNEL_ID)
-
-        # Make Fleaflicker API calls to get pending trades in all the leagues
-        count = 0
-        for league in leagues:
-            trades = make_api_call(f"https://www.fleaflicker.com/api/FetchTrades?sport=NHL&league_id={league['id']}&filter=TRADES_UNDER_REVIEW")
-
-            if trades is None:
-                self.log.error(f"Trade check API call failed for {league['name']} ({league['id']}).")
-                continue
-
-            # No trades in this league
-            if "trades" not in trades:
-                continue
-
-            # Post each trade in this league
-            for trade in trades["trades"]:
-                if trade["id"] in posted:
-                    continue
-
-                trade_embed = self.format_trade(league, trade)
-                await mods_channel.send(f"<@&{MODS_ROLE_ID}>", embed=trade_embed)
-                msg = await hockey_general_channel.send(embed=trade_embed)
-
-                # Add reactions to the message for each team in the trade
-                number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
-                if len(trade["teams"]) < len(number_emojis):
-                    for n in range(len(trade["teams"])):
-                        await msg.add_reaction(number_emojis[n])
-
-                count += 1
-
-                # Append this trade ID to the list of trades already covered
-                f.write(str(trade["id"]) + "\n")
-
-        # Message if no trades were found
-        if count == 0 and verbose:
-            await mods_channel.send("No pending trades in any league.")
-
-        f.close()
-
-        self.log.info("Trades check complete.")
-
-    # Check fleaflicker for recent trades
-    @tasks.loop(hours=1.0)
-    async def trades_loop(self):
-        await self.check_trades()
-
-    @trades_loop.before_loop
-    async def before_trades_loop(self):
-        await self.bot.wait_until_ready()
-
-    @trades_loop.error
-    async def trades_loop_error(self, error):
-        await self.cog_command_error(None, error)
-
-    @app_commands.command(name="trades", description="Checks for any new OTH trades.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    async def trades(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Checking trades.", ephemeral=True)
-        await self.check_trades(True)
-
-#endregion
 #region Fleaflicker Matchups and Rankings
 
     def run_update_current_pf_script(self):

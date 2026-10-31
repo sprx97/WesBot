@@ -149,10 +149,6 @@ MODS_ROLE_ID = 220272487592624129
 OTH_BOX_ROLE_ID = 816888894066917407
 SPRX_USER_ID = 228258453599027200
 
-# Config settings
-MIN_INACTIVE_DAYS = 7 # Number of days where we deem a team to be "inactive" on fleaflicker
-ROLLOVER_HOUR_UTC = 11 # 11am UTC = 6am EST = 3am PST
-
 all_cogs = ["Cogs.Debug",
             "Cogs.KeepingKarlsson",
             "Cogs.MDH",
@@ -208,14 +204,6 @@ class MultipleMatchupsFound(discord.ext.commands.CommandError):
 
 DB = pymysql.connect(host=Config.config["sql_hostname"], user=Config.config["sql_username"], passwd=Config.config["sql_password"], db=Config.config["sql_dbname"], cursorclass=pymysql.cursors.DictCursor)
 DB.autocommit(True)
-
-def get_owner_for_team(year, team_id):
-    cursor = DB.cursor()
-    cursor.execute("SELECT U.FFname from Teams T INNER JOIN Users U on T.ownerID = U.FFid where year=%s AND teamID=%s", (year, team_id))
-    owner = cursor.fetchone()
-    cursor.close()
-
-    return owner
 
 # Grabs the list of OTH leagues for the given year
 # from the SQL database
