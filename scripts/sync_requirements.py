@@ -8,7 +8,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_NAMES = {
-    "challonge": "pychallonge",
     "discord": "discord.py",
     "google": "google-auth",
     "googleapiclient": "google-api-python-client",

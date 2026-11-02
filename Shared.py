@@ -220,31 +220,8 @@ def get_leagues_from_database(year, tier=None):
 
     return leagues
 
-def sanitize_user(user):
-    user = user.lower()
-
-    # For the lulz
-    if user == "doodoosteve" or user == "dookie":
-        user = "stevenrj"
-    elif user == "sprx":
-        user = "sprx97"
-    elif user == "planks":
-        user = "twoplanks"
-    elif user == "yoshi" or user == "yoshirider2709":
-        user = "yoshirider2136"
-    elif user == "coyle":
-        user = "coyle1096"
-    elif user == "chizzle":
-        user = "ch1zzle"
-    elif user == "edge":
-        user = "edgies"
-
-    return user
-
 # Grabs the current score and opponent's current score for the given username
 def get_user_matchup_from_database(user):
-    user = sanitize_user(user)
-
     cursor = DB.cursor()
 
     year = Config.config["year"]

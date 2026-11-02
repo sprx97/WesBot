@@ -8,19 +8,10 @@ from discord import app_commands
 
 # Local Includes
 from Shared import *
-from Cogs.WoppaCup_Helper import *
 
 class OTH(WesCog):
     def __init__(self, bot):
         super().__init__(bot)
-
-#region Custom cog-specific exceptions
-
-    class WoppaCupOpponentNotFound(discord.ext.commands.CommandError):
-        def __init__(self, user):
-            self.message = f"Current opponent for user {user} not found."
-
-#endregion
 
 #region Fleaflicker Matchups and Rankings
 
@@ -34,8 +25,42 @@ class OTH(WesCog):
             stderr=subprocess.DEVNULL
         )
 
+    async def manager_autocomplete(self, interaction: discord.Interaction, current: str):
+        # Get a list of all of this year's managers from the database,
+        # filtering to the substring and returning up to 25 results (Discord max limit)
+        cursor = DB.cursor()
+        cursor.execute(
+            """
+            SELECT DISTINCT u.FFname AS manager_name
+            FROM Teams t
+            INNER JOIN Users u ON u.FFid=t.ownerID
+            WHERE t.year=%s AND INSTR(LOWER(u.FFname), %s) > 0
+            ORDER BY manager_name
+            LIMIT 25
+            """,
+            (Config.config["year"], current.lower()),
+        )
+        managers = cursor.fetchall()
+        cursor.close()
+
+        return [app_commands.Choice(name=manager["manager_name"], value=manager["manager_name"]) for manager in managers]
+
+    def format_matchup_scores(self, team_one_name, team_one_score, team_two_name, team_two_score):
+        team_one_name = team_one_name or "Unknown manager"
+        team_two_name = team_two_name or "Unknown manager"
+        name_width = max(len(team_one_name), len(team_two_name))
+
+        def format_line(name, score):
+            score_text = f"{score:>6.2f}" if score is not None else ""
+            name_text = f"`{name:<{name_width}}`"
+            spacer = "\u2002" * max(0, 24 - name_width)
+            return f"{name_text} {spacer}{score_text}"
+
+        return f"{format_line(team_one_name, team_one_score)}\n{format_line(team_two_name, team_two_score)}"
+
     @app_commands.command(name="matchup", description="Check the current matchup score for a user.")
     @app_commands.describe(user="A fleaflicker username", public="Whether to post the response publicly.")
+    @app_commands.autocomplete(user=manager_autocomplete)
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
@@ -51,168 +76,155 @@ class OTH(WesCog):
             raise MultipleMatchupsFound(user)
         matchup = matchup[0]
 
-        # Format names for posting
-        p1_name = f"{matchup['name']} ({matchup['wins']}-{matchup['losses']})"
-        p1_PF = "{:>6.2f}".format(round(matchup['PF'], 2))
+        p1_name = matchup["name"]
+        p1_score = matchup["PF"]
         if matchup["opp_name"] != None:
-            p2_name = f"{matchup['opp_name']} ({matchup['opp_wins']}-{matchup['opp_losses']})"
-            p2_PF = "{:>6.2f}".format(round(matchup['opp_PF'], 2))
+            p2_name = matchup["opp_name"]
+            p2_score = matchup["opp_PF"]
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores/{matchup['matchup_id']}"
         else:
             p2_name = "BYE"
-            p1_PF = ""
-            p2_PF = ""
+            p1_score = None
+            p2_score = None
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
-        if len(p1_name) > len(p2_name):
-            p2_name += " "*(len(p1_name)-len(p2_name))
-        else:
-            p1_name += " "*(len(p2_name)-len(p1_name))
-
-        # Format a matchup embed to send
-        msg =  f"`{p1_name}` " + f"\u2002"*(24-len(p1_name)) + f"{p1_PF}\n"
-        msg += f"`{p2_name}` " + f"\u2002"*(24-len(p2_name)) + f"{p2_PF}"
+        msg = self.format_matchup_scores(p1_name, p1_score, p2_name, p2_score)
 
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77", "#AD1457"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
         embed = discord.Embed(title=f"{matchup['league_name']} Matchup", description=f"{msg}", url=link, color=color)
         await interaction.followup.send(embed=embed)
 
-#endregion
-#region Woppa Cup
-
-    @app_commands.command(name="wc_bracket", description="Dumps all WoppaCup scores to the chat. Only Ro16 and later.")
+    @app_commands.command(name="cup", description="Check the current OTH Cup matchup score for a manager.")
+    @app_commands.describe(user="A manager", public="Whether to post the response publicly.")
+    @app_commands.autocomplete(user=manager_autocomplete)
     @app_commands.guild_only()
     @app_commands.default_permissions(send_messages=True)
     @app_commands.checks.has_permissions(send_messages=True)
-    @app_commands.checks.cooldown(1, 300.0)
-    async def woppacup_bracket(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"OTH Cup 2026 is under construction.")
-        return
+    async def cup(self, interaction: discord.Interaction, user: str, public: bool = False):
+        await interaction.response.defer(thinking=True, ephemeral=not public)
 
-        # Temp override for weeks where it's paused. Update the text as necessary.
-        if not WoppaCup.has_tournament_started:
-            await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
-            return
+        year = Config.config["year"]
+        title = f"OTH Cup {year}"
+        description = ""
+        with DB.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT t.teamID AS team_id, u.FFname AS manager_name, ct.team_id AS cup_team_id
+                FROM Teams t
+                INNER JOIN Users u ON u.FFid=t.ownerID
+                LEFT JOIN OTHCupTeams ct ON ct.year=t.year AND ct.team_id=t.teamID
+                WHERE t.year=%s AND LOWER(u.FFname)=LOWER(%s)
+                """,
+                (year, user),
+            )
+            current_teams = cursor.fetchall()
 
-        await interaction.response.defer(thinking=True, ephemeral=False)
-
-        participants, matches, url, winner, tourney_name = WoppaCup.get_wc_data()
-
-        if winner != None:
-            for p in participants:
-                if winner == p["id"]:
-                    winner = p["name"].split(".")[-1]
-                    break
-            embed = discord.Embed(title=tourney_name, description=f"The tournament is over. Congrats to {winner}!", url=url)
-            await interaction.followup.send(embed=embed)
-            return
-
-        curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
-        matches = WoppaCup.trim_matches(matches, curr_round, is_group_stage)
-
-        if len(matches) > 8:
-            await interaction.followup.send("Too many matches remain to display full bracket. Please wait until Ro16")
-            return
-
-        embed = discord.Embed(title=f"Woppa Cup {WoppaCup.get_round_name(matches[0])}")
-        for m in matches:
-            embed.add_field(name="", value=WoppaCup.get_description_for_woppacup_embed(m, participants), inline=False)
-
-        await interaction.followup.send(embed=embed)
-
-    @app_commands.command(name="wc_all", description="Shows all scores for the current round of Woppa Cup in a pager.")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def woppacup_all(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"OTH Cup 2026 is under construction.")
-        return
-
-        # Temp override for weeks where it's paused. Update the text as necessary.
-        if not WoppaCup.has_tournament_started:
-            await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
-            return
-
-        await interaction.response.defer(thinking=True, ephemeral=True)
-        view = WoppaCup.WCView()
-        await interaction.followup.send(embed=view.embed, view=view)
-
-    @app_commands.command(name="wc", description="Check the score for a specific manager's Woppa Cup matchup.")
-    @app_commands.describe(user="A fleaflicker username, 'all', or 'bracket'")
-    @app_commands.guild_only()
-    @app_commands.default_permissions(send_messages=True)
-    @app_commands.checks.has_permissions(send_messages=True)
-    async def woppacup(self, interaction: discord.Interaction, user: str):
-        await interaction.response.send_message(f"OTH Cup 2026 is under construction.")
-        return
-
-        # Temp override for weeks where it's paused. Update the text as necessary.
-        if not WoppaCup.has_tournament_started:
-            await interaction.response.send_message(f"WoppaCup has not started yet. It will start in fleaflicker week 6")
-            return
-
-        await interaction.response.defer(thinking=True)
-
-        user = sanitize_user(user)
-        participants, matches, url, winner, tourney_name = WoppaCup.get_wc_data()
-        if winner != None:
-            for p in participants:
-                if winner == p["id"]:
-                    winner = p["name"].split(".")[-1]
-                    break
-
-            embed = discord.Embed(title=tourney_name, description=f"The tournament is over. Congrats to {winner}!", url=url)
-            await interaction.followup.send(embed=embed)
-            return
-
-        # Check that the user requested actually exists
-        me = None
-        for p in participants:
-            if p["name"].lower().split(".")[-1] == user:
-                me = p
-                break
-
-        if me == None:
-            embed = discord.Embed(title=tourney_name, description=f"User {user} either doesn't exist or was never in this tournament.", url=url)
-            embed.set_footer(text=url, icon_url=None)
-            await interaction.followup.send(embed=embed)
-            return
-
-        curr_round, is_group_stage = WoppaCup.get_round_and_stage(matches)
-
-        # Find the user's match from this week
-        embed = None
-        for m in matches:
-            # Skip the group stage if necessary
-            if not is_group_stage and m["group_id"] != None:
-                continue
-
-            # Skip matches for other rounds
-            if m["round"] != curr_round:
-                continue
-
-            if m["player1_id"] == me["id"] or m["player2_id"] == me["id"] or m["player1_id"] in me["group_player_ids"] or m["player2_id"] in me["group_player_ids"]:
-                embed = WoppaCup.get_embed_for_woppacup_match(m, participants, url)
-                break
-
-        # A few scenarios for if the user is not playing this week
-        if embed == None:
-            if is_group_stage:
-                embed = discord.Embed(title=tourney_name, description=f"User {user} is on bye.", url=url)
+            # Validate that we only got one team back, since this should be a unique search
+            if len(current_teams) == 0:
+                description = f"ERROR: user {user} not found."
+            elif len(current_teams) > 1:
+                description = f"ERROR: {user} matches multiple managers."
+            elif current_teams[0]["cup_team_id"] is None:
+                description = f"{current_teams[0]['manager_name']} did not make the OTH Cup this year."
             else:
-                embed = discord.Embed(title=tourney_name, description=f"User {user} has been eliminated from the tournament.", url=url)
+                manager_name = current_teams[0]["manager_name"]
+                team_id = current_teams[0]["team_id"]
+                cursor.execute(
+                    """
+                    SELECT r.stage, r.round_number, r.first_week, r.second_week,
+                           COUNT(m.match_id) AS match_count
+                    FROM OTHCupRounds r
+                    LEFT JOIN OTHCupMatches m
+                      ON m.year=r.year AND m.stage=r.stage AND m.round=r.round_number
+                    WHERE r.year=%s AND r.status='in progress'
+                    GROUP BY r.stage, r.round_number, r.first_week, r.second_week
+                    """,
+                    (year,),
+                )
+                active_rounds = cursor.fetchall()
 
-        embed.set_footer(text="Looking for more scores? Try /wc_all", icon_url=None)
+                if len(active_rounds) == 0:
+                    description = "There is no active OTH Cup round right now."
+                elif len(active_rounds) > 1:
+                    description = "ERROR: Multiple OTH Cup rounds are marked in progress."
+                else:
+                    active_round = active_rounds[0]
+                    if active_round["stage"] == "group":
+                        round_title = "Group Stage"
+                    elif active_round["match_count"] == 4:
+                        round_title = "Quarterfinals"
+                    elif active_round["match_count"] == 2:
+                        round_title = "Semifinals"
+                    elif active_round["match_count"] == 1:
+                        round_title = "Finals"
+                    else:
+                        round_title = f"Round of {active_round['match_count'] * 2}"
+                    title = f"OTH Cup {year} {round_title}"
+                    cursor.execute(
+                        """
+                        SELECT m.match_type, m.team_one_id, m.team_two_id,
+                               u1.FFname AS team_one_name,
+                               u2.FFname AS team_two_name
+                        FROM OTHCupMatches m
+                        LEFT JOIN Teams t1 ON t1.year=m.year AND t1.teamID=m.team_one_id
+                        LEFT JOIN Users u1 ON u1.FFid=t1.ownerID
+                        LEFT JOIN Teams t2 ON t2.year=m.year AND t2.teamID=m.team_two_id
+                        LEFT JOIN Users u2 ON u2.FFid=t2.ownerID
+                        WHERE m.year=%s AND m.stage=%s AND m.round=%s
+                          AND (m.team_one_id=%s OR m.team_two_id=%s)
+                        """,
+                        (
+                            Config.config["year"],
+                            active_round["stage"],
+                            active_round["round_number"],
+                            team_id,
+                            team_id,
+                        ),
+                    )
+                    matches = cursor.fetchall()
+
+                    if len(matches) == 0:
+                        description = f"{manager_name} has been eliminated from the OTH Cup."
+                    elif len(matches) > 1:
+                        description = f"ERROR: {manager_name} matches multiple active OTH Cup matchups."
+                    else:
+                        matchup = matches[0]
+                        if matchup["match_type"] == "bye":
+                            description = f"{manager_name} has a bye this round."
+                        else:
+                            weeks = [active_round["first_week"]]
+                            if active_round["second_week"] is not None:
+                                weeks.append(active_round["second_week"])
+                            week_placeholders = ", ".join(["%s"] * len(weeks))
+                            cursor.execute(
+                                f"""
+                                SELECT team_id, SUM(points) AS score
+                                FROM Scoring
+                                WHERE year=%s AND week IN ({week_placeholders})
+                                  AND team_id IN (%s, %s)
+                                GROUP BY team_id
+                                """,
+                                (Config.config["year"], *weeks, matchup["team_one_id"], matchup["team_two_id"]),
+                            )
+                            score_rows = cursor.fetchall()
+                            scores = {row["team_id"]: float(row["score"] or 0) for row in score_rows}
+                            team_one_score = scores.get(matchup["team_one_id"], 0)
+                            team_two_score = scores.get(matchup["team_two_id"], 0)
+                            description = self.format_matchup_scores(
+                                matchup["team_one_name"],
+                                team_one_score,
+                                matchup["team_two_name"],
+                                team_two_score,
+                            )
+
+        embed = discord.Embed(title=title, description=description, url="https://roldtimehockey.com/othcup")
         await interaction.followup.send(embed=embed)
 
 #endregion
 
-    @woppacup.error
     @matchup.error
     async def matchup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-        if isinstance(error, self.WoppaCupOpponentNotFound):
-            await interaction.followup.send(error.message)
-        elif isinstance(error, UserNotFound):
+        if isinstance(error, UserNotFound):
             await interaction.followup.send(error.message)
         elif isinstance(error, MultipleMatchupsFound):
             await interaction.followup.send(error.message)
