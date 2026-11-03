@@ -416,6 +416,34 @@ class OTH(WesCog):
             embed.set_footer(text="No completed group match results are available yet.")
         await interaction.followup.send(embed=embed)
 
+    @app_commands.command(name="cup_bracket", description="Check when the OTH Cup knockout phase starts.")
+    @app_commands.describe(public="Whether to post the response publicly.")
+    @app_commands.guild_only()
+    @app_commands.default_permissions(send_messages=True)
+    @app_commands.checks.has_permissions(send_messages=True)
+    async def cup_bracket(self, interaction: discord.Interaction, public: bool = False):
+        await interaction.response.defer(thinking=True, ephemeral=not public)
+
+        year = Config.config["year"]
+        with DB.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT MIN(first_week) AS start_week
+                FROM OTHCupRounds
+                WHERE year=%s AND stage <> 'group'
+                """,
+                (year,),
+            )
+            row = cursor.fetchone()
+
+        start_week = row["start_week"] if row else None
+        if start_week is None:
+            description = "The OTH Cup knockout phase has not started yet. Check back later."
+        else:
+            description = f"The OTH Cup knockout phase has not started yet. Check back week {start_week}."
+        embed = discord.Embed(title=f"OTH Cup {year} Bracket", description=description, url="https://roldtimehockey.com/othcup")
+        await interaction.followup.send(embed=embed)
+
     @cup_group.error
     async def cup_group_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         self.log.error("cup_group command failed: %s", error)
