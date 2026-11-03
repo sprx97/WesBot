@@ -59,7 +59,7 @@ class OTH_Registration(WesCog):
         return [Choice(name=division, value=division) for division in ["D1", "D2", "D3", "D4", "D5"]]
 
     def get_role_assignments(self):
-        credentials_file = os.path.join(Config.config["srcroot"], "service_client_secret_OTH.json")
+        credentials_file = os.path.join(Config.config["discordbot_srcroot"], "service_client_secret_OTH.json")
         scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
         try:
@@ -218,7 +218,7 @@ class OTH_Registration(WesCog):
         if not leagues:
             raise ValueError(f"No leagues found for scope {scope!r} in {year}.")
 
-        credentials_file = os.path.join(Config.config["srcroot"], "service_client_secret_OTH.json")
+        credentials_file = os.path.join(Config.config["discordbot_srcroot"], "service_client_secret_OTH.json")
         scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
         credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=scopes)
         sheets = build("sheets", "v4", credentials=credentials).spreadsheets()

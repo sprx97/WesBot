@@ -11,6 +11,12 @@ import traceback
 from urllib.parse import urlparse
 
 # Local Includes
+import sys
+from pathlib import Path
+
+_CONFIG_ROOT = Path("/home/jeremy/oth-shared")
+if str(_CONFIG_ROOT) not in sys.path:
+    sys.path.insert(0, str(_CONFIG_ROOT))
 import Config
 config = Config.config
 
@@ -369,14 +375,14 @@ messages_datafile = "data/messages.json"
 
 def WriteJsonFile(file, data):
     try:
-        with open(f"{Config.config['srcroot']}/{file}", "w") as f:
+        with open(f"{Config.config['discordbot_srcroot']}/{file}", "w") as f:
             json.dump(data, f, indent=4)
     except:
         raise DataFileNotFound(file)
     
 def LoadJsonFile(file):
     try:
-        with open(f"{Config.config['srcroot']}/{file}", "r") as f:
+        with open(f"{Config.config['discordbot_srcroot']}/{file}", "r") as f:
             try:
                 return json.load(f)
             except:

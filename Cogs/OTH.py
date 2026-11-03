@@ -264,7 +264,6 @@ class OTH(WesCog):
                 await interaction.followup.send(f"{manager} is listed in multiple OTH Cup groups.")
                 return
             group_id = manager_groups[0]["group_id"]
-            self.log.info(group_id)
 
             cursor.execute(
                 """
