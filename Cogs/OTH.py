@@ -45,18 +45,20 @@ class OTH(WesCog):
 
         return [app_commands.Choice(name=manager["manager_name"], value=manager["manager_name"]) for manager in managers]
 
-    def format_matchup_scores(self, team_one_name, team_one_score, team_two_name, team_two_score):
+    def format_matchup_scores(self, team_one_name, team_one_score, team_two_name, team_two_score, team_one_url=None, team_two_url=None):
         team_one_name = team_one_name or "Unknown manager"
         team_two_name = team_two_name or "Unknown manager"
         name_width = max(len(team_one_name), len(team_two_name))
 
-        def format_line(name, score):
+        def format_line(name, score, url):
             score_text = f"{score:>6.2f}" if score is not None else ""
+            if url and score is not None:
+                score_text = f"[{score_text}]({url})"
             name_text = f"`{name:<{name_width}}`"
             spacer = "\u2002" * max(0, 24 - name_width)
             return f"{name_text} {spacer}{score_text}"
 
-        return f"{format_line(team_one_name, team_one_score)}\n{format_line(team_two_name, team_two_score)}"
+        return f"{format_line(team_one_name, team_one_score, team_one_url)}\n{format_line(team_two_name, team_two_score, team_two_url)}"
 
     @app_commands.command(name="matchup", description="Check the current matchup score for a user.")
     @app_commands.describe(user="A fleaflicker username", public="Whether to post the response publicly.")
@@ -195,26 +197,35 @@ class OTH(WesCog):
                             weeks = [active_round["first_week"]]
                             if active_round["second_week"] is not None:
                                 weeks.append(active_round["second_week"])
-                            week_placeholders = ", ".join(["%s"] * len(weeks))
                             cursor.execute(
-                                f"""
-                                SELECT team_id, SUM(points) AS score
-                                FROM Scoring
-                                WHERE year=%s AND week IN ({week_placeholders})
-                                  AND team_id IN (%s, %s)
-                                GROUP BY team_id
+                                """
+                                SELECT teamID AS team_id, leagueID AS league_id, matchupID AS matchup_id,
+                                       currentWeekPF, prevWeekPF
+                                FROM Teams
+                                WHERE year=%s AND teamID IN (%s, %s)
                                 """,
-                                (Config.config["year"], *weeks, matchup["team_one_id"], matchup["team_two_id"]),
+                                (Config.config["year"], matchup["team_one_id"], matchup["team_two_id"]),
                             )
                             score_rows = cursor.fetchall()
-                            scores = {row["team_id"]: float(row["score"] or 0) for row in score_rows}
+                            team_data = {row["team_id"]: row for row in score_rows}
+                            scores = {
+                                row["team_id"]: float(row["currentWeekPF"] or 0)
+                                + (float(row["prevWeekPF"] or 0) if active_round["second_week"] is not None else 0)
+                                for row in score_rows
+                            }
                             team_one_score = scores.get(matchup["team_one_id"], 0)
                             team_two_score = scores.get(matchup["team_two_id"], 0)
+                            team_one = team_data.get(matchup["team_one_id"], {})
+                            team_two = team_data.get(matchup["team_two_id"], {})
+                            team_one_url = f"https://www.fleaflicker.com/nhl/leagues/{team_one['league_id']}/scores/{team_one['matchup_id']}" if team_one.get("league_id") and team_one.get("matchup_id") else None
+                            team_two_url = f"https://www.fleaflicker.com/nhl/leagues/{team_two['league_id']}/scores/{team_two['matchup_id']}" if team_two.get("league_id") and team_two.get("matchup_id") else None
                             description = self.format_matchup_scores(
                                 matchup["team_one_name"],
                                 team_one_score,
                                 matchup["team_two_name"],
                                 team_two_score,
+                                team_one_url,
+                                team_two_url,
                             )
 
         embed = discord.Embed(title=title, description=description, url="https://roldtimehockey.com/othcup")
