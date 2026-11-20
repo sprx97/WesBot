@@ -228,6 +228,7 @@ def get_leagues_from_database(year, tier=None):
 
 # Grabs the current score and opponent's current score for the given username
 def get_user_matchup_from_database(user):
+    DB.ping(reconnect=True)
     cursor = DB.cursor()
 
     year = Config.config["year"]

@@ -29,6 +29,7 @@ class OTH(WesCog):
     async def manager_autocomplete(self, interaction: discord.Interaction, current: str):
         year = Config.config["year"]
         if year not in self.manager_names_by_year:
+            DB.ping(reconnect=True)
             with DB.cursor() as cursor:
                 cursor.execute(
                     """
@@ -49,9 +50,13 @@ class OTH(WesCog):
         ][:25]
         return [app_commands.Choice(name=manager, value=manager) for manager in matching_managers]
 
-    def format_matchup_scores(self, team_one_name, team_one_score, team_two_name, team_two_score, team_one_url=None, team_two_url=None):
+    def format_matchup_scores(self, team_one_name, team_one_score, team_two_name, team_two_score, team_one_url=None, team_two_url=None, team_one_record=None, team_two_record=None):
         team_one_name = team_one_name or "Unknown manager"
         team_two_name = team_two_name or "Unknown manager"
+        if team_one_record:
+            team_one_name = f"{team_one_name} ({team_one_record})"
+        if team_two_record:
+            team_two_name = f"{team_two_name} ({team_two_record})"
         name_width = max(len(team_one_name), len(team_two_name))
 
         def format_line(name, score, url):
@@ -93,7 +98,16 @@ class OTH(WesCog):
             p1_score = None
             p2_score = None
             link = f"https://www.fleaflicker.com/nhl/leagues/{matchup['league_id']}/scores"
-        msg = self.format_matchup_scores(p1_name, p1_score, p2_name, p2_score)
+        p1_record = f"{matchup['wins']}-{matchup['losses']}"
+        p2_record = f"{matchup['opp_wins']}-{matchup['opp_losses']}" if matchup["opp_name"] is not None else None
+        msg = self.format_matchup_scores(
+            p1_name,
+            p1_score,
+            p2_name,
+            p2_score,
+            team_one_record=p1_record,
+            team_two_record=p2_record,
+        )
 
         tier_colors = [None, "#EFC333", "#3D99D8", "#E37E2E", "#3DCB77", "#AD1457"]
         color = discord.Color.from_str(tier_colors[matchup['tier']])
